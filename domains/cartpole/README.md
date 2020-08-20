@@ -51,5 +51,5 @@ balanced from the start of the episode. For example,
 
 ## Response format
 
-The agent`s response format is the same as the feature label format above.
+The agent's response format is the same as the feature label format above.
 
