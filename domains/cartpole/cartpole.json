@@ -1,0 +1,48 @@
+{
+    sensors: {
+        time_stamp: {
+            type: "float",
+            description: "Time since epoch."
+        }, 
+        cart_position: {
+            type: "float",
+            range_min: -5.0,
+            range_max:  5.0,
+            description: "The Cart position in the world, in meters from origin"
+        },
+        cart_velocity: {
+            type: "float",
+            range_min: -150.0,
+            range_max:  150.0,
+            description: "The Cart Velocity (speed), in meters per second"
+        },
+        pole_angle: {
+            type: "float",
+            range_min: -0.5,
+            range_max:  0.5,
+            description: "The Pole Angle in Radians. 0.0 is straight up."
+        },
+        pole_angular_velocity: {
+            type: "float",
+            range_min: -50.0,
+            range_max:  50.0,
+            description: "The angular velocity of the pole in Radians per second."
+        }
+    },
+    performance: {
+        type: "float",
+        range_min: 0.0,
+        range_max: 2000.0,
+        description: "Performance goes up by 1 for each tick the pole is kept up."    
+    },
+    actions: {
+        left: {
+            name: "left",
+            description: "Apply force to the left for one tick"
+        },
+        right: {
+            name: "right",
+            description: "Apply force to the right for one tick"
+        }
+    }
+}
