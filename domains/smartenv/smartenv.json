@@ -1,0 +1,123 @@
+{
+    sensors: {
+        time_stamp: {
+            type: "float",
+            description: "Time since epoch. May be several years in the past."
+        },
+    door_sensor: {
+        id: {
+            type: "int",
+            range_min: 0,
+            range_max: 128,
+            description: "Integer constant for sensor identification."
+        },
+        value: {
+            type: "float",
+            range_min: 0.0,
+            range_max: 1.0,
+            description: "Door sensor state: 0 = closed, 1 = open."
+        },
+        description: "Door sensor."
+    },
+    light_switch_sensor: {
+        id: {
+            type: "int",
+            range_min: 0,
+            range_max: 128,
+            description: "Integer constant for sensor identification."
+        },
+        value: {
+        type: "float",
+            range_min: 0.0,
+            range_max: 1.0,
+            description: "Light switch sensor state: 0 = off, 1 = on."
+        },
+        description: "Light switch sensor."
+    },
+    light_level_sensor: {
+        id: {
+            type: "int",
+            range_min: 0,
+            range_max: 128,
+            description: "Integer constant for sensor identification."
+        },
+        value: {
+            type: "float",
+            range_min: 0.0,
+            range_max: 100.0,
+            description: "Light level sensor value: 0 = fully off, 100 = fully on."
+        },
+        description: "Light level sensor."
+    },
+    motion_sensor: {
+        id: {
+            type: "int",
+            range_min: 0,
+            range_max: 128,
+            description: "Integer constant for sensor identification."
+        },
+        value: {
+            type: "float",
+            range_min: 0.0,
+            range_max: 1.0,
+            description: "Motion sensor state: 0 = off, 1 = on."
+        },
+        description: "Motion sensor."
+    },
+    motion_area_sensor: {
+        id: {
+            type: "int",
+            range_min: 0,
+            range_max: 128,
+            description: "Integer constant for sensor identification."
+        },
+        value: {
+            type: "float",
+            range_min: 0.0,
+            range_max: 1.0,
+            description: "Motion area sensor state: 0 = off, 1 = on."
+        },
+        description: "Motion area sensor."
+    },
+    performance: {
+        type: float,
+        range_min: 0.0,
+        range_max: 20000.0,
+        description: "Number of correct activity classifications."
+    },
+    actions: {
+        wash_dishes: {
+            name: "wash_dishes"
+        },
+        relax: {
+            name: "relax"
+        },
+        personal_hygiene: {
+            name: "personal_hygiene"
+        },
+        bed_toilet_transition: {
+            name: "bed_toilet_transition"
+        },
+        cook: {
+            name: "cook"
+        },
+        sleep: {
+            name: "sleep"
+        },
+        take_medicine: {
+            name: "take_medicine"
+        },
+        leave_home: {
+            name: "leave_home"
+        },
+        work: {
+            name: "work"
+        },
+        enter_home: {
+            name: "enter_home"
+        },
+        eat: {
+            name: "eat"
+        }
+    }
+}
