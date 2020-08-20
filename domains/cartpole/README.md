@@ -10,7 +10,7 @@ if the cart moves too far left or right, the absolute pole angle is too large,
 or a time limit is exceeded.
 
 See the [cartpole.json](cartpole.json) file for a precise specification of the
-domain.
+domain, including ranges on sensor values.
 
 ## Feature vector format
 
@@ -19,18 +19,18 @@ For example,
 
 ```
 {
-	time_stamp: 1597953858.2,
-	cart_position: -1.0,
-	cart_veloctiy: 1.0,
-	pole_angle: 0.01,
-	pole_angular_velocity: 0.03
+    time_stamp: 1597953858.2,
+    cart_position: -1.0,
+    cart_veloctiy: 1.0,
+    pole_angle: 0.01,
+    pole_angular_velocity: 0.03
 }
 ```
 
 ## Feature label format
 
 The feature label provides the correct action according to our SOTA agent and
-is sent in JSON format. This is only provided for novelty-level-0 training
+is sent in JSON format. This is only provided for novelty level-0 training
 instances. For CartPole, the possible actions are "left" and "right". For
 example,
 
@@ -41,9 +41,9 @@ example,
 ## Performance format
 
 The current performance of the agent on the current episode is provided as
-feedback after each agent response and is sent in JSON format. For the CartPole
-domain, performance is defined as the number of seconds the pole has remained
-balanced from the start of the episode. For example,
+feedback after each agent response and is sent in JSON format. For CartPole,
+performance is defined as the number of seconds the pole has remained balanced
+from the start of the episode. For example,
 
 ```
 { performance: 10.0 }

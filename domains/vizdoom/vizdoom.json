@@ -1,0 +1,121 @@
+{
+    sensors: {
+        time_stamp: {
+            type: "float",
+            description: "Time since epoch."
+        }, 
+        player: {
+            description: "The player object stores x,y,z and id and health",
+            id: {
+                type: "int",
+                range_min: 0,
+                range_max: 128,
+                description: "Integer constant for object identification"
+            },
+            health: {
+                type: "int",
+                range_min: 0,
+                range_max: 100,
+                description: "The player's health"
+            },
+            x_position: {
+                type: "float",
+                range_min: -500.0,
+                range_max:  500.0,
+                description: "The player x-axis position, 1/32 meters"
+            },
+            y_position: {
+                type: "float",
+                range_min: -500.0,
+                range_max:  500.0,
+                description: "The player y-axis position, 1/32 meters"
+            },
+            z_position: {
+                type: "float",
+                range_min: -10.0,
+                range_max:  10.0,
+                description: "The player z-axis position, not practically utilized at the moment"
+            }
+        },
+        enemy: {
+            description: "The enemy object stores x,y,z and id and health",
+            id: {
+                type: "int",
+                range_min: 0,
+                range_max: 128,
+                description: "Integer constant for object identification"
+            },
+            health: {
+                type: "int",
+                range_min: 0,
+                range_max: 100,
+                description: "The enemy's health"
+            },
+            x_position: {
+                type: "float",
+                range_min: -500.0,
+                range_max:  500.0,
+                description: "The enemy x-axis position, 1/32 meters"
+            },
+            y_position: {
+                type: "float",
+                range_min: -500.0,
+                range_max:  500.0,
+                description: "The enemy y-axis position, 1/32 meters"
+            },
+            z_position: {
+                type: "float",
+                range_min: -10.0,
+                range_max:  10.0,
+                description: "The enemy z-axis position, not practically utilized at the moment"
+            }
+        },
+        projectile: {
+            description: "Holds projectile information when projectiles are present",
+            id: {
+                type: "int",
+                range_min: 0,
+                range_max: 128,
+                description: "Integer constant for object identification"
+            },
+            x_position: {
+                type: "float",
+                range_min: -500.0,
+                range_max:  500.0,
+                description: "The projectile x-axis position, 1/32 meters"
+            },
+            y_position: {
+                type: "float",
+                range_min: -500.0,
+                range_max:  500.0,
+                description: "The projectile y-axis position, 1/32 meters"
+            },
+            z_position: {
+                type: "float",
+                range_min: -10.0,
+                range_max:  10.0,
+                description: "The projectile z-axis position, not practically utilized at the moment"
+            }
+        }
+    },
+    performance: {
+        type: "float",
+        range_min: 0.0,
+        range_max: 2000.0,
+        description: "Performance starts high and decreases by 1 for each tick."    
+    },
+    actions: {
+        left: {
+            name: "left",
+            description: "Move left"
+        },
+        right: {
+            name: "right",
+            description: "Move right"
+        },
+        shoot: {
+            name: "shoot",
+            description: "Shoot once"
+        }
+    }
+}
