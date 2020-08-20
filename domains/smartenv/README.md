@@ -31,7 +31,7 @@ For example,
     door_sensor: { id: 11, value: 0.0 },
     light_switch_sensor: { id: 21, value: 1.0 },
     light_switch_sensor: { id: 22, value: 0.0 },
-    light_level_sensor: { id: 25, value: 70.0 },
+    light_level_sensor: { id: 25, value: 70.0 }
 }
 ```
 
