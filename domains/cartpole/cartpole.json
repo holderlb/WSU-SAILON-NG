@@ -33,16 +33,16 @@
         type: "float",
         range_min: 0.0,
         range_max: 2000.0,
-        description: "Performance goes up by 1 for each tick the pole is kept up."    
+        description: "Number of seconds the pole is kept balanced."
     },
     actions: {
         left: {
             name: "left",
-            description: "Apply force to the left for one tick"
+            description: "Apply force to push the cart left."
         },
         right: {
             name: "right",
-            description: "Apply force to the right for one tick"
+            description: "Apply force to push the cart right."
         }
     }
 }
