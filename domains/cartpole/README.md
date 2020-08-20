@@ -17,7 +17,7 @@ domain.
 The feature vector provides a value for each sensor and is sent in JSON format.
 For example,
 
-'''
+```
 {
 	time_stamp: 1597953858.2,
 	cart_position: -1.0,
@@ -25,7 +25,7 @@ For example,
 	pole_angle: 0.01,
 	pole_angular_velocity: 0.03
 }
-'''
+```
 
 ## Feature label format
 
@@ -34,9 +34,9 @@ is sent in JSON format. This is only provided for novelty-level-0 training
 instances. For CartPole, the possible actions are "left" and "right". For
 example,
 
-'''
+```
 { action: left }
-'''
+```
 
 ## Performance format
 
@@ -45,11 +45,11 @@ feedback after each agent response and is sent in JSON format. For the CartPole
 domain, performance is defined as the number of seconds the pole has remained
 balanced from the start of the episode. For example,
 
-'''
+```
 { performance: 10.0 }
-'''
+```
 
 ## Response format
 
-The agent's response format is the same as the feature label format above.
+The agent`s response format is the same as the feature label format above.
 
