@@ -4,80 +4,81 @@
             type: "float",
             description: "Time since epoch. May be several years in the past."
         },
-    door_sensor: {
-        id: {
-            type: "int",
-            range_min: 0,
-            range_max: 128,
-            description: "Integer constant for sensor identification."
+        door_sensor: {
+            id: {
+                type: "int",
+                range_min: 0,
+                range_max: 128,
+                description: "Integer constant for sensor identification."
+            },
+            value: {
+                type: "float",
+                range_min: 0.0,
+                range_max: 1.0,
+                description: "Door sensor state: 0 = closed, 1 = open."
+            },
+            description: "Door sensor."
         },
-        value: {
+        light_switch_sensor: {
+            id: {
+                type: "int",
+                range_min: 0,
+                range_max: 128,
+                description: "Integer constant for sensor identification."
+            },
+            value: {
             type: "float",
-            range_min: 0.0,
-            range_max: 1.0,
-            description: "Door sensor state: 0 = closed, 1 = open."
+                range_min: 0.0,
+                range_max: 1.0,
+                description: "Light switch sensor state: 0 = off, 1 = on."
+            },
+            description: "Light switch sensor."
         },
-        description: "Door sensor."
-    },
-    light_switch_sensor: {
-        id: {
-            type: "int",
-            range_min: 0,
-            range_max: 128,
-            description: "Integer constant for sensor identification."
+        light_level_sensor: {
+            id: {
+                type: "int",
+                range_min: 0,
+                range_max: 128,
+                description: "Integer constant for sensor identification."
+            },
+            value: {
+                type: "float",
+                range_min: 0.0,
+                range_max: 100.0,
+                description: "Light level sensor value: 0 = fully off, 100 = fully on."
+            },
+            description: "Light level sensor."
         },
-        value: {
-        type: "float",
-            range_min: 0.0,
-            range_max: 1.0,
-            description: "Light switch sensor state: 0 = off, 1 = on."
+        motion_sensor: {
+            id: {
+                type: "int",
+                range_min: 0,
+                range_max: 128,
+                description: "Integer constant for sensor identification."
+            },
+            value: {
+                type: "float",
+                range_min: 0.0,
+                range_max: 1.0,
+                description: "Motion sensor state: 0 = off, 1 = on."
+            },
+            description: "Motion sensor."
         },
-        description: "Light switch sensor."
-    },
-    light_level_sensor: {
-        id: {
-            type: "int",
-            range_min: 0,
-            range_max: 128,
-            description: "Integer constant for sensor identification."
-        },
-        value: {
-            type: "float",
-            range_min: 0.0,
-            range_max: 100.0,
-            description: "Light level sensor value: 0 = fully off, 100 = fully on."
-        },
-        description: "Light level sensor."
-    },
-    motion_sensor: {
-        id: {
-            type: "int",
-            range_min: 0,
-            range_max: 128,
-            description: "Integer constant for sensor identification."
-        },
-        value: {
-            type: "float",
-            range_min: 0.0,
-            range_max: 1.0,
-            description: "Motion sensor state: 0 = off, 1 = on."
-        },
-        description: "Motion sensor."
-    },
-    motion_area_sensor: {
-        id: {
-            type: "int",
-            range_min: 0,
-            range_max: 128,
-            description: "Integer constant for sensor identification."
-        },
-        value: {
-            type: "float",
-            range_min: 0.0,
-            range_max: 1.0,
-            description: "Motion area sensor state: 0 = off, 1 = on."
-        },
-        description: "Motion area sensor."
+        motion_area_sensor: {
+            id: {
+                type: "int",
+                range_min: 0,
+                range_max: 128,
+                description: "Integer constant for sensor identification."
+            },
+            value: {
+                type: "float",
+                range_min: 0.0,
+                range_max: 1.0,
+                description: "Motion area sensor state: 0 = off, 1 = on."
+            },
+            description: "Motion area sensor."
+        }
     },
     performance: {
         type: float,
