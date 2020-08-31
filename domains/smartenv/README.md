@@ -25,13 +25,11 @@ For example,
 ```
 {
     time_stamp: 1597953858.2,
-    motion_sensor: { id: 1, value: 0.0 },
-    motion_sensor: { id: 2, value: 1.0 },
-    motion_area_sensor: { id: 7, value: 1.0 },
-    door_sensor: { id: 11, value: 0.0 },
-    light_switch_sensor: { id: 21, value: 1.0 },
-    light_switch_sensor: { id: 22, value: 0.0 },
-    light_level_sensor: { id: 25, value: 70.0 }
+    motion_sensors: [ { id: 1, value: 0.0 }, { id: 2, value: 1.0 } ],
+    motion_area_sensors: [ { id: 7, value: 1.0 } ],
+    door_sensors: [ { id: 11, value: 0.0 } ],
+    light_switch_sensors: [ { id: 21, value: 1.0 }, { id: 22, value: 0.0 } ],
+    light_level_sensors: [ { id: 25, value: 70.0 } ]
 }
 ```
 
