@@ -24,26 +24,26 @@ For example,
 
 ```
 {
-    time_stamp: 1597953858.2,
-    player: {
-        id: 1,
-        x_position: 10.0,
-        y_position: 10.0,
-        z_position: 0.0,
-        health: 50.0
+    "time_stamp": 1597953858.2,
+    "player": {
+        "id": 1,
+        "x_position": 10.0,
+        "y_position": 10.0,
+        "z_position": 0.0,
+        "health": 50.0
     },
-    enemy:
-        id: 2,
-        x_position: 10.0,
-        y_position: 20.0,
-        z_position: 0.0,
-        health: 100.0
+    "enemy:
+        "id": 2,
+        "x_position": 10.0,
+        "y_position": 20.0,
+        "z_position": 0.0,
+        "health": 100.0
     },
-    projectile:
-        id: 11,
-        x_position: 10.0,
-        y_position: 15.0,
-        z_position: 0.0
+    "projectile":
+        "id": 11,
+        "x_position": 10.0,
+        "y_position": 15.0,
+        "z_position": 0.0
     }
 }
 ```
@@ -56,22 +56,48 @@ instances. For VizDoom, the possible actions are "left", "right" and "shoot".
 For example,
 
 ```
-{ action: shoot }
+{ "action": "shoot" }
 ```
+
+## Action response format
+
+The agent's response format is the same as the feature label format above.
 
 ## Performance format
 
 The current performance of the agent on the current episode is provided as
-feedback after each agent response and is sent in JSON format. For CartPole,
-performance is defined as the number of seconds left in the episode.  For
-example,
+feedback after each agent response and is sent in JSON format. For VizDoom,
+performance is defined as the amount of time left in the episode divided by
+the maximium time for the episode. For example,
 
 ```
-{ performance: 10.0 }
+{ "performance": 0.9 }
 ```
 
-## Response format
+The performance at the end of the episode is recorded as the performance for
+that entire episode.
 
-The agent's response format is the same as the feature label format above.
+## Novelty indicator format
 
+After each sensor fecture vector, the novelty generate sends the novelty
+indicator, which indicates if the current episode is novel "true", not novel
+"false" (i.e., novelty level 0), or unknown "null". The novelty indicator will
+be the same for every interaction during an episode. For example,
+
+{ "novelty\_indicator": "true" }
+
+## Novelty prediction format
+
+After the agent returns the action response, it then returns the novelty 
+prediction. The novelty prediction is an integer (0-10) representing the
+novelty level that the agent assigns to the current episode. For example,
+
+{ "novelty\_prediction": 1 }
+
+The agent's novelty prediction can vary during an episode, but the final 
+novelty prediction for the last interaction of the episode is recorded as
+the agent's novelty prediction for the whole episode.
+
+Novelty detection is considered to have occurred at the first episode whose
+final novelty\_prediction > 0.
 

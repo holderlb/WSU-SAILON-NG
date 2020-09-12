@@ -24,12 +24,24 @@ For example,
 
 ```
 {
-    time_stamp: 1597953858.2,
-    motion_sensors: [ { id: 1, value: 0.0 }, { id: 2, value: 1.0 } ],
-    motion_area_sensors: [ { id: 7, value: 1.0 } ],
-    door_sensors: [ { id: 11, value: 0.0 } ],
-    light_switch_sensors: [ { id: 21, value: 1.0 }, { id: 22, value: 0.0 } ],
-    light_level_sensors: [ { id: 25, value: 70.0 } ]
+    "time_stamp": 1597953858.2,
+    "motion_sensors": [
+        { "id": "M01", "value": 0.0 },
+        { "id": "M02", "value": 1.0 }
+    ],
+    "motion_area_sensors": [
+        { "id": "MA07", "value": 1.0 }
+    ],
+    "door_sensors": [
+        { "id": "D11", "value": 0.0 }
+    ],
+    "light_switch_sensors": [
+        { "id": "L21", "value": 1.0 },
+        { "id": "L22", "value": 0.0 }
+    ],
+    "light_level_sensors": [
+        { "id": "LL25", "value": 70.0 }
+    ]
 }
 ```
 
@@ -43,23 +55,48 @@ leave\_home, work, enter\_home, eat. Note that we use "action" as the key name
 to be consistent with the other domains. For example,
 
 ```
-{ action: take_medicine }
-```
-
-## Performance format
-
-The current performance of the agent on the current episode is provided as
-feedback after each agent response and is sent in JSON format. For SmartEnv,
-performance is defined as the number of correct activity recognitions since
-the beginning of the episode.  For example,
-
-```
-{ performance: 10.0 }
+{ "action": "take_medicine" }
 ```
 
 ## Response format
 
 The agent's response format is the same as the feature label format above.
 
+## Performance format
 
+The current performance of the agent on the current episode is provided as
+feedback after each agent response and is sent in JSON format. For SmartEnv,
+performance is defined as classification accuracy so far, i.e. the number of
+correct predictions divided by the total number of predictions. For example,
+
+```
+{ "performance": 0.9 }
+```
+
+The performance at the end of the episode is recorded as the performance for
+that entire episode.
+
+## Novelty indicator format
+
+After each sensor fecture vector, the novelty generate sends the novelty
+indicator, which indicates if the current episode is novel "true", not novel 
+"false" (i.e., novelty level 0), or unknown "null". The novelty indicator will 
+be the same for every interaction during an episode. For example,
+
+{ "novelty\_indicator": "true" }
+
+## Novelty prediction format
+
+After the agent returns the action response, it then returns the novelty
+prediction. The novelty prediction is an integer (0-10) representing the
+novelty level that the agent assigns to the current episode. For example,
+
+{ "novelty\_prediction": 1 }
+
+The agent's novelty prediction can vary during an episode, but the final
+novelty prediction for the last interaction of the episode is recorded as
+the agent's novelty prediction for the whole episode.
+
+Novelty detection is considered to have occurred at the first episode whose
+final novelty\_prediction > 0.
 
