@@ -32,7 +32,7 @@ For example,
         "z_position": 0.0,
         "health": 50.0
     },
-    "enemy:
+    "enemy":
         "id": 2,
         "x_position": 10.0,
         "y_position": 20.0,
@@ -84,7 +84,9 @@ indicator, which indicates if the current episode is novel "true", not novel
 "false" (i.e., novelty level 0), or unknown "null". The novelty indicator will
 be the same for every interaction during an episode. For example,
 
+```
 { "novelty\_indicator": "true" }
+```
 
 ## Novelty prediction format
 
@@ -92,7 +94,9 @@ After the agent returns the action response, it then returns the novelty
 prediction. The novelty prediction is an integer (0-10) representing the
 novelty level that the agent assigns to the current episode. For example,
 
+```
 { "novelty\_prediction": 1 }
+```
 
 The agent's novelty prediction can vary during an episode, but the final 
 novelty prediction for the last interaction of the episode is recorded as
