@@ -1,121 +1,141 @@
 {
-    sensors: {
-        time_stamp: {
-            type: "float",
-            description: "Time since epoch."
+    "sensors": {
+        "time_stamp": {
+            "type": "float",
+            "description": "Time since epoch."
         }, 
-        player: {
-            description: "The player object stores x,y,z and id and health.",
-            id: {
-                type: "int",
-                range_min: 0,
-                range_max: 128,
-                description: "Integer constant for object identification."
+        "player": {
+            "description": "The player object stores x,y,z and id and health.",
+            "id": {
+                "type": "int",
+                "range_min": 0,
+                "range_max": 128,
+                "description": "Integer constant for object identification."
             },
-            health: {
-                type: "int",
-                range_min: 0,
-                range_max: 100,
-                description: "The player's health."
+            "health": {
+                "type": "int",
+                "range_min": 0,
+                "range_max": 100,
+                "description": "The player's health."
             },
-            x_position: {
-                type: "float",
-                range_min: -500.0,
-                range_max:  500.0,
-                description: "The player x-axis position, 1/32 meters."
+            "x_position": {
+                "type": "float",
+                "range_min": -500.0,
+                "range_max":  500.0,
+                "description": "The player x-axis position, 1/32 meters."
             },
-            y_position: {
-                type: "float",
-                range_min: -500.0,
-                range_max:  500.0,
-                description: "The player y-axis position, 1/32 meters."
+            "y_position": {
+                "type": "float",
+                "range_min": -500.0,
+                "range_max":  500.0,
+                "description": "The player y-axis position, 1/32 meters."
             },
-            z_position: {
-                type: "float",
-                range_min: -10.0,
-                range_max:  10.0,
-                description: "The player z-axis position, 1/32 meters."
+            "z_position": {
+                "type": "float",
+                "range_min": -10.0,
+                "range_max":  10.0,
+                "description": "The player z-axis position, 1/32 meters."
             }
         },
-        enemy: {
-            description: "The enemy object stores x,y,z and id and health.",
-            id: {
-                type: "int",
-                range_min: 0,
-                range_max: 128,
-                description: "Integer constant for object identification."
+        "enemy": {
+            "description": "The enemy object stores x,y,z and id and health.",
+            "id": {
+                "type": "int",
+                "range_min": 0,
+                "range_max": 128,
+                "description": "Integer constant for object identification."
             },
-            health: {
-                type: "int",
-                range_min: 0,
-                range_max: 100,
-                description: "The enemy's health."
+            "health": {
+                "type": "int",
+                "range_min": 0,
+                "range_max": 100,
+                "description": "The enemy's health."
             },
-            x_position: {
-                type: "float",
-                range_min: -500.0,
-                range_max:  500.0,
-                description: "The enemy x-axis position, 1/32 meters."
+            "x_position": {
+                "type": "float",
+                "range_min": -500.0,
+                "range_max":  500.0,
+                "description": "The enemy x-axis position, 1/32 meters."
             },
-            y_position: {
-                type: "float",
-                range_min: -500.0,
-                range_max:  500.0,
-                description: "The enemy y-axis position, 1/32 meters."
+            "y_position": {
+                "type": "float",
+                "range_min": -500.0,
+                "range_max":  500.0,
+                "description": "The enemy y-axis position, 1/32 meters."
             },
-            z_position: {
-                type: "float",
-                range_min: -10.0,
-                range_max:  10.0,
-                description: "The enemy z-axis position, 1/32 meteres."
+            "z_position": {
+                "type": "float",
+                "range_min": -10.0,
+                "range_max":  10.0,
+                "description": "The enemy z-axis position, 1/32 meteres."
             }
         },
-        projectile: {
-            description: "Holds projectile information when projectiles are present.",
-            id: {
-                type: "int",
-                range_min: 0,
-                range_max: 128,
-                description: "Integer constant for object identification."
+        "projectile": {
+            "description": "Holds projectile information when projectiles are present.",
+            "id": {
+                "type": "int",
+                "range_min": 0,
+                "range_max": 128,
+                "description": "Integer constant for object identification."
             },
-            x_position: {
-                type: "float",
-                range_min: -500.0,
-                range_max:  500.0,
-                description: "The projectile x-axis position, 1/32 meters."
+            "x_position": {
+                "type": "float",
+                "range_min": -500.0,
+                "range_max":  500.0,
+                "description": "The projectile x-axis position, 1/32 meters."
             },
-            y_position: {
-                type: "float",
-                range_min: -500.0,
-                range_max:  500.0,
-                description: "The projectile y-axis position, 1/32 meters."
+            "y_position": {
+                "type": "float",
+                "range_min": -500.0,
+                "range_max":  500.0,
+                "description": "The projectile y-axis position, 1/32 meters."
             },
-            z_position: {
-                type: "float",
-                range_min: -10.0,
-                range_max:  10.0,
-                description: "The projectile z-axis position, 1/32 meters."
+            "z_position": {
+                "type": "float",
+                "range_min": -10.0,
+                "range_max":  10.0,
+                "description": "The projectile z-axis position, 1/32 meters."
             }
         }
     },
-    performance: {
-        type: "float",
-        range_min: 0.0,
-        range_max: 2000.0,
-        description: "Seconds remaining in the episode; starts high and decreases over time."
-    },
-    actions: {
-        left: {
-            name: "left",
-            description: "Move player left."
+    "actions": {
+        "left": {
+            "name": "left",
+            "description": "Move player left."
         },
-        right: {
-            name: "right",
-            description: "Move player right."
+        "right": {
+            "name": "right",
+            "description": "Move player right."
         },
-        shoot: {
-            name: "shoot",
-            description: "Player shoots once."
+        "shoot": {
+            "name": "shoot",
+            "description": "Player shoots once."
         }
+    },
+    "performance": {
+        "type": "float",
+        "range_min": 0.0,
+        "range_max": 1.0,
+        "description": "Time remaining in episode divided by maximum time."
+    },
+    "novelty_indicator": {
+        "true": {
+            "name": "true",
+            "description": "The current episode is novelty level > 1."
+        },
+        "false": {
+            "name": "false",
+            "description": "The current episode is novelty level 0."
+        },
+        "null": {
+            "name": "null",
+            "description": "No information about novelty of episode."
+        }
+    },
+    "novelty_prediction": {
+        "type": "int",
+        "range_min": 0,
+        "range_max": 10,
+        "description": "Agent's prediction of current episode's novelty level."
     }
 }

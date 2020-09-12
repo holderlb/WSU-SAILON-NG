@@ -1,48 +1,68 @@
 {
-    sensors: {
-        time_stamp: {
-            type: "float",
-            description: "Time since epoch."
+    "sensors": {
+        "time_stamp": {
+            "type": "float",
+            "description": "Time since epoch."
         }, 
-        cart_position: {
-            type: "float",
-            range_min: -5.0,
-            range_max:  5.0,
-            description: "The Cart position in the world, in meters from origin"
+        "cart_position": {
+            "type": "float",
+            "range_min": -5.0,
+            "range_max":  5.0,
+            "description": "The Cart position in the world, in meters from origin"
         },
-        cart_velocity: {
-            type: "float",
-            range_min: -150.0,
-            range_max:  150.0,
-            description: "The Cart Velocity (speed), in meters per second"
+        "cart_velocity": {
+            "type": "float",
+            "range_min": -150.0,
+            "range_max":  150.0,
+            "description": "The Cart Velocity (speed), in meters per second"
         },
-        pole_angle: {
-            type: "float",
-            range_min: -0.5,
-            range_max:  0.5,
-            description: "The Pole Angle in Radians. 0.0 is straight up."
+        "pole_angle": {
+            "type": "float",
+            "range_min": -0.5,
+            "range_max":  0.5,
+            "description": "The Pole Angle in Radians. 0.0 is straight up."
         },
-        pole_angular_velocity: {
-            type: "float",
-            range_min: -50.0,
-            range_max:  50.0,
-            description: "The angular velocity of the pole in Radians per second."
+        "pole_angular_velocity": {
+            "type": "float",
+            "range_min": -50.0,
+            "range_max":  50.0,
+            "description": "The angular velocity of the pole in Radians per second."
         }
     },
-    performance: {
-        type: "float",
-        range_min: 0.0,
-        range_max: 2000.0,
-        description: "Number of seconds the pole is kept balanced."
-    },
-    actions: {
-        left: {
-            name: "left",
-            description: "Apply force to push the cart left."
+    "actions": {
+        "left": {
+            "name": "left",
+            "description": "Apply force to push the cart left."
         },
-        right: {
-            name: "right",
-            description: "Apply force to push the cart right."
+        "right": {
+            "name": "right",
+            "description": "Apply force to push the cart right."
         }
+    },
+    "performance": {
+        "type": "float",
+        "range_min": 0.0,
+        "range_max": 1.0,
+        "description": "Time in episode pole is kept balanced divided by maximum time."
+    },
+    "novelty_indicator": {
+        "true": {
+            "name": "true",
+            "description": "The current episode is novelty level > 1."
+        },
+	"false": {
+            "name": "false",
+            "description": "The current episode is novelty level 0."
+        },
+	"null": {
+            "name": "null",
+            "description": "No information about novelty of episode."
+        }
+    },
+    "novelty_prediction": {
+        "type": "int",
+        "range_min": 0,
+        "range_max": 10,
+        "description": "Agent's prediction of current episode's novelty level."
     }
 }
