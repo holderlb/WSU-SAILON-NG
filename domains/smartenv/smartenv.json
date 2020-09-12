@@ -6,10 +6,8 @@
         },
         "door_sensor": {
             "id": {
-                "type": "int",
-                "range_min": 0,
-                "range_max": 128,
-                "description": "Integer constant for sensor identification."
+                "type": "string",
+                "description": "String ID that uniquely identifies a door sensor."
             },
             "value": {
                 "type": "float",
@@ -21,10 +19,8 @@
         },
         "light_switch_sensor": {
             "id": {
-                "type": "int",
-                "range_min": 0,
-                "range_max": 128,
-                "description": "Integer constant for sensor identification."
+                "type": "string",
+                "description": "String ID that uniquely identifies a light switch sensor."
             },
             "value": {
                 "type": "float",
@@ -36,10 +32,8 @@
         },
         "light_level_sensor": {
             "id": {
-                "type": "int",
-                "range_min": 0,
-                "range_max": 128,
-                "description": "Integer constant for sensor identification."
+                "type": "string",
+                "description": "String ID that uniquely identifies a light level sensor."
             },
             "value": {
                 "type": "float",
@@ -51,10 +45,8 @@
         },
         "motion_sensor": {
             "id": {
-                "type": "int",
-                "range_min": 0,
-                "range_max": 128,
-                "description": "Integer constant for sensor identification."
+                "type": "string",
+                "description": "String ID that uniquely identifies a motion sensor."
             },
             "value": {
                 "type": "float",
@@ -66,10 +58,8 @@
         },
         "motion_area_sensor": {
             "id": {
-                "type": "int",
-                "range_min": 0,
-                "range_max": 128,
-                "description": "Integer constant for sensor identification."
+                "type": "string",
+                "description": "String ID that uniquely identifies a motion area sensor."
             },
             "value": {
                 "type": "float",
