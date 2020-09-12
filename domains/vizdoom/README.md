@@ -85,7 +85,7 @@ indicator, which indicates if the current episode is novel "true", not novel
 be the same for every interaction during an episode. For example,
 
 ```
-{ "novelty\_indicator": "true" }
+{ "novelty_indicator": "true" }
 ```
 
 ## Novelty prediction format
@@ -95,7 +95,7 @@ prediction. The novelty prediction is an integer (0-10) representing the
 novelty level that the agent assigns to the current episode. For example,
 
 ```
-{ "novelty\_prediction": 1 }
+{ "novelty_prediction": 1 }
 ```
 
 The agent's novelty prediction can vary during an episode, but the final 
