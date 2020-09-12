@@ -26,21 +26,21 @@ For example,
 {
     "time_stamp": 1597953858.2,
     "motion_sensors": [
-        { "id": "M01", "value": 0.0 },
-        { "id": "M02", "value": 1.0 }
+        { "id": "M001", "value": 0.0 },
+        { "id": "M002", "value": 1.0 }
     ],
     "motion_area_sensors": [
-        { "id": "MA07", "value": 1.0 }
+        { "id": "MA007", "value": 1.0 }
     ],
     "door_sensors": [
-        { "id": "D11", "value": 0.0 }
+        { "id": "D011", "value": 0.0 }
     ],
     "light_switch_sensors": [
-        { "id": "L21", "value": 1.0 },
-        { "id": "L22", "value": 0.0 }
+        { "id": "L021", "value": 1.0 },
+        { "id": "L022", "value": 0.0 }
     ],
     "light_level_sensors": [
-        { "id": "LL25", "value": 70.0 }
+        { "id": "LL025", "value": 70.0 }
     ]
 }
 ```
