@@ -1,6 +1,6 @@
 # Installing and Running Novelty Generator
 
-This package provides a sample client, configuation file, and auxiliary files
+This package provides a sample TA2 client, configuation file, and auxiliary files
 for interacting with the WSU SAIL-ON Novelty Generator (NG). The client
 connects to the NG server and calls various methods in the TA2Agent class.
 
@@ -20,7 +20,7 @@ Contact Larry Holder (holder@wsu.edu) for more information.
 
 ## Installation
 
-The package is available [here](https://www.example.com). The code requires
+The package is available here in the src directory. The code requires
 some Python setup, which we describe below based on the Anaconda environment.
 
 1. Install Anaconda.
@@ -101,22 +101,24 @@ experiment with all novelty levels, contact us for different credentials.
 
 To run the client on the provided `demo-client.config` configuration file, do the following.
 1. Ensure that you are in the conda environment initialized above (e.g., `aiq-env`).
-2. Run the client agent.
+2. Run the TA2 client.
 ```
-(aiq-env) [user@host client]$ python client.py --config=demo-client.config --printout --debug --logfile=log
+(aiq-env) [user@host client]$ python TA2.py --config=demo-client.config --printout --debug --logfile=log.txt
 ```
-All command line arguments are described with `python client.py --help`.
+All command line arguments are described with `python TA2.py --help`.
 
 <a name="programflow">
 
 ## Program Flow
 
-Running the client results in the following program flow. As the client enters different phases of the experiment, the corresponding method in the TA2Agent is called.
+Running the client results in the following program flow. As the client enters different phases of 
+the experiment, the corresponding method in the TA2Agent class is called.
 
 *  The client connects to the RabbitMQ server and requests to start an
     experiment.
 
-*  The server requests benchmarking information and waits for the results. Currently, this is just hardware information from the client, but eventually will be a benchmarking script.
+*  The server requests benchmarking information and waits for the results. Currently, this is just 
+   hardware information from the client, but eventually will be a benchmarking script.
 
 *  The experiment starts!
 
@@ -128,28 +130,28 @@ Running the client results in the following program flow. As the client enters d
 
         *  Train on `feature vector` and return `prediction`.
 
-*  Training is over, you may optionally stop the RabbitMQ connection here and
-    bulk train your model if needed, afterwards start the RabbitMQ connection
-    back up.
+*  Training is over, you may optionally train your model here.
 
 *  TA2 should save the current state of the model so you can revert back to this
     state at the start of each trial.
 
 *  For `novelty` in `novelty levels`:
 
-    *  For `novelty_visibility` in [`no visibility`, `novelty visible`]:
+    * For `difficulty` in `difficulty levels`:
 
-        *  For `trial` in `number of trials`:
+        *  For `novelty_visibility` in [`no visibility`, `novelty visible`]:
+        
+            * Testing begins.
 
-            *  TA2 should reset the model to the saved state at this point.
+            *  For `trial` in `number of trials`:
 
-            *  Testing begins.
+                *  TA2 should reset the model to the saved state at this point.
 
-            *  For `episode` in `testing episodes`:
+                *  For `episode` in `testing episodes`:
 
-                *  For `feature vector` in `episode`:
+                    *  For `feature vector` in `episode`:
 
-                    *  Evaluate `feature vector` and return your `prediction`.
+                        *  Evaluate `feature vector` and return your `prediction`.
 
             *  Testing ends.
 
@@ -163,8 +165,8 @@ Running the client results in the following program flow. As the client enters d
 
 ## TA2 Agent
 
-The sample TA2 agent in `TA2Agent.py` provides stubs for the methods that are
+The sample TA2 client in `TA2.py` provides stubs for the methods that are
 called for each of the different phases of the program flow above. This is
 where you implement your TA2/AI agent. See the documentation comments on these
-methods in the `TA2Agent.py` file.
+methods in the `TA2.py` file.
 

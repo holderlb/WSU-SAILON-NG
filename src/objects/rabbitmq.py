@@ -461,6 +461,47 @@ class Connection:
                                             disable_timeout=True)
         return response
 
+    def start_generator(self, domain: str, novelty: int, difficulty: str, seed: int,
+                        trial_novelty: int):
+        self.log.debug('start_generator()')
+
+        if self._client_rpc_queue is None:
+            self._client_rpc_queue = objects.SERVER_RPC_QUEUE + '.{}'.format(str(uuid.uuid4().hex))
+            # Subscribe to the callback queue.
+            self.setup_subscribe_to_queue(
+                queue_name=self._client_rpc_queue,
+                queue_exclusive=True,
+                queue_auto_delete=True,
+                casas_events=True,
+                callback_function=self.process_system_request_callback,
+                callback_full_params=True)
+
+        start_gen = objects.StartGenerator(
+            domain=domain,
+            novelty=novelty,
+            difficulty=difficulty,
+            seed=seed,
+            server_rpc_queue=self._client_rpc_queue,
+            trial_novelty=trial_novelty)
+
+        response = self._set_system_request(casas_object=start_gen,
+                                            queue_name=objects.LIVE_GENERATOR_QUEUES[domain],
+                                            client_callback_queue=self._client_rpc_queue,
+                                            disable_timeout=True)
+        return response
+
+    def send_generator_data(self, data_request):
+        self.log.debug('send_generator_data()')
+
+        if self._server_experiment_rpc_queue is None:
+            raise objects.CasasRabbitMQException('You have not established a generator yet!')
+
+        response = self._set_system_request(casas_object=data_request,
+                                            queue_name=self._server_experiment_rpc_queue,
+                                            declare_server_queue=False,
+                                            client_callback_queue=self._client_rpc_queue)
+        return response
+
     def send_benchmark_data(self, benchmark_data: dict):
         self.log.debug('send_benchmark_data()')
 
@@ -491,8 +532,8 @@ class Connection:
                                             client_callback_queue=self._client_rpc_queue)
         return response
 
-    def send_training_predictions(self, training_data: objects.TrainingData, label_prediction: list,
-                                  novelty_detected: bool = False, novelty: int = 0):
+    def send_training_predictions(self, label_prediction: dict, novelty_detected: bool = False,
+                                  novelty: int = 0):
         self.log.debug('send_training_prediction()')
 
         if self._server_experiment_rpc_queue is None:
@@ -500,7 +541,6 @@ class Connection:
 
         training_prediction = objects.TrainingDataPrediction(
             secret=self._model_experiment_secret,
-            feature_vector_id='feature_vector_id',
             label_prediction=label_prediction,
             novelty_detected=novelty_detected,
             novelty=novelty)
@@ -541,8 +581,8 @@ class Connection:
                                             client_callback_queue=self._client_rpc_queue)
         return response
 
-    def send_testing_predictions(self, testing_data: objects.TestingData, label_prediction: list,
-                                 novelty_detected: bool = False, novelty: int = 0):
+    def send_testing_predictions(self, label_prediction: dict, novelty_detected: bool = False,
+                                 novelty: int = 0):
         self.log.debug('send_testing_predictions()')
 
         if self._server_experiment_rpc_queue is None:
@@ -550,7 +590,6 @@ class Connection:
 
         testing_prediction = objects.TestingDataPrediction(
             secret=self._model_experiment_secret,
-            feature_vector_id=testing_data.feature_vector_id,
             label_prediction=label_prediction,
             novelty_detected=novelty_detected,
             novelty=novelty)
@@ -614,7 +653,7 @@ class Connection:
                                                  'right now!')
         self._waiting_on_request = True
         start_time = float(time.time())
-        max_time_delta = 60.0
+        max_time_delta = 60.0 * 20.0  # 20 minutes
         response = None
         while response is None:
             if not disable_timeout:
@@ -666,7 +705,7 @@ class Connection:
 
                 if disable_timeout:
                     while self._request_response[corr_id] is None:
-                        self.process_data_events(time_limit=0.1)
+                        self.process_data_events(time_limit=0.02)
                     response = copy.deepcopy(self._request_response[corr_id])
                     del self._request_response[corr_id]
                 else:
@@ -720,6 +759,8 @@ class Connection:
                 self._model_experiment_id = response.model_experiment_id
                 self._model_experiment_secret = response.experiment_secret
                 self._server_experiment_rpc_queue = response.server_rpc_queue
+            elif isinstance(response, objects.GeneratorResponse):
+                self._server_experiment_rpc_queue = response.generator_rpc_queue
             elif isinstance(response, objects.ExperimentEnd):
                 self.remove_subscribe_to_queue(self._client_rpc_queue)
                 self._client_rpc_queue = None
