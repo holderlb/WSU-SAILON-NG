@@ -81,7 +81,7 @@ experiment with all novelty levels, contact us for different credentials.
 *  `domain` selects which domain you would like to test on.  The current
     available domains are `cartpole` and `smartenv`.
     
-*  `vizdoom` will become available shortly. Running it now will not provide
+*  *  `vizdoom` will become available shortly. Running it now will not provide
     accurate simulator data.
 
 ### [amqp]
