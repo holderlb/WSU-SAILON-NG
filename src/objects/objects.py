@@ -35,7 +35,7 @@ import types
 import uuid
 
 __major_version__ = '0.3'
-__minor_version__ = '0'
+__minor_version__ = '1'
 __version__ = '{}.{}'.format(__major_version__, __minor_version__)
 
 log = logging.getLogger(__name__)
