@@ -35,10 +35,13 @@ import types
 import uuid
 
 __major_version__ = '0.3'
-__minor_version__ = '1'
+__minor_version__ = '2'
 __version__ = '{}.{}'.format(__major_version__, __minor_version__)
 
 log = logging.getLogger(__name__)
+
+# AIQ Global Timeout
+GLOBAL_TIMEOUT_SECONDS = 60 * 20  # 20 minutes
 
 # AIQ Object Strings
 REQ_MODEL = 'request_model'
@@ -91,6 +94,7 @@ OBJ_NOVELTY_GRP = 'object_novelty_group'
 OBJ_TRIAL = 'object_trial'
 OBJ_EXPERIMENT = 'object_experiment'
 GENERATOR_IDLE = 'generator_idle'
+GENERATOR_RESET = 'generator_reset'
 START_GENERATOR = 'start_generator'
 GENERATOR_RESPONSE = 'generator_response'
 SEED_NUM_TRAINING = 42949672
@@ -4080,9 +4084,12 @@ class BasicData(AiqObject):
         self.obj_type = BASIC_DATA
         self.feature_vector = feature_vector
         self.feature_label = dict()
+        valid_label = False
         if 'action' in feature_label:
             self.feature_label['action'] = feature_label['action']
-        else:
+            if isinstance(self.feature_label['action'], str):
+                valid_label = True
+        if not valid_label:
             raise AiqDataException('A feature label must be a dict({"action": str(value)})!')
         return
 
@@ -4098,9 +4105,12 @@ class BasicDataPrediction(AiqObject):
         super().__init__()
         self.obj_type = BASIC_DATA_PREDICTION
         self.label_prediction = dict()
+        valid_label = False
         if 'action' in label_prediction:
             self.label_prediction['action'] = label_prediction['action']
-        else:
+            if isinstance(self.label_prediction['action'], str):
+                valid_label = True
+        if not valid_label:
             raise AiqDataException('A label prediction must be a dict({"action": str(value)})!')
         self.utc_remote_epoch_received = None
         self.utc_remote_epoch_sent = None
@@ -4174,9 +4184,12 @@ class TrainingData(AiqObject):
         self.secret = secret
         self.feature_vector = copy.deepcopy(feature_vector)
         self.feature_label = dict()
+        valid_label = False
         if 'action' in feature_label:
             self.feature_label['action'] = feature_label['action']
-        else:
+            if isinstance(self.feature_label['action'], str):
+                valid_label = True
+        if not valid_label:
             raise AiqDataException('A feature label must be a dict({"action": str(value)})!')
         self.utc_remote_epoch_received = utc_remote_epoch_received
         if self.utc_remote_epoch_received is None:
@@ -4206,9 +4219,12 @@ class TrainingDataPrediction(BasicDataPrediction):
             self.utc_remote_epoch_received = time.time()
         self.utc_remote_epoch_sent = utc_remote_epoch_sent
         self.label_prediction = dict()
+        valid_label = False
         if 'action' in label_prediction:
             self.label_prediction['action'] = label_prediction['action']
-        else:
+            if isinstance(self.label_prediction['action'], str):
+                valid_label = True
+        if not valid_label:
             raise AiqDataException('A label prediction must be a dict({"action": str(value)})!')
         self.novelty_detected = novelty_detected
         self.novelty = novelty
@@ -4363,9 +4379,12 @@ class TestingDataPrediction(BasicDataPrediction):
             self.utc_remote_epoch_received = time.time()
         self.utc_remote_epoch_sent = utc_remote_epoch_sent
         self.label_prediction = dict()
+        valid_label = False
         if 'action' in label_prediction:
             self.label_prediction['action'] = label_prediction['action']
-        else:
+            if isinstance(self.label_prediction['action'], str):
+                valid_label = True
+        if not valid_label:
             raise AiqDataException('A label prediction must be a dict({"action": str(value)})!')
         self.novelty_detected = novelty_detected
         self.novelty = novelty
@@ -4541,6 +4560,17 @@ class GeneratorIdle(AiqObject):
     def __init__(self):
         super().__init__()
         self.obj_type = GENERATOR_IDLE
+        return
+
+    def get_json_obj(self):
+        obj = {'obj_type': self.obj_type}
+        return copy.deepcopy(obj)
+
+
+class GeneratorReset(AiqObject):
+    def __init__(self):
+        super().__init__()
+        self.obj_type = GENERATOR_RESET
         return
 
     def get_json_obj(self):
@@ -5330,6 +5360,9 @@ def build_objects_from_json(message):
                 elif obj['obj_type'] == GENERATOR_IDLE:
                     if len(errormsgs) == 0:
                         result = GeneratorIdle()
+                elif obj['obj_type'] == GENERATOR_RESET:
+                    if len(errormsgs) == 0:
+                        result = GeneratorReset()
                 elif obj['obj_type'] == START_GENERATOR:
                     if 'domain' not in obj:
                         errormsgs.append('Could not obtain attribute domain, '

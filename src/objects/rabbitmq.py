@@ -174,7 +174,7 @@ class Connection:
 
     def __init__(self, agent_name, amqp_user, amqp_pass, amqp_host, amqp_port,
                  amqp_vhost='/', amqp_ssl=True, translations=None,
-                 timezone=None):
+                 timezone=None, request_timeout=None):
         """
         Create a new instance of the CASAS RammitMQ Connection class.
 
@@ -200,6 +200,8 @@ class Connection:
         timezone : dict,optional
             A dictionary of sites as keys, with the value as the timezone string for that site.
             Assumes all sites are 'America/Los_Angeles' unless given in dict().
+        request_timeout : int,optional
+            An integer of the global timeout to use.
         """
         self.name = re.sub('\s', '', str(agent_name))
         self.log = logging.getLogger(__name__).getChild('Connection')
@@ -256,6 +258,10 @@ class Connection:
         if isinstance(timezone, dict):
             for key in list(timezone.keys()):
                 self.timezone[str(key)] = pytz.timezone(str(timezone[key]))
+
+        self._request_timeout = objects.GLOBAL_TIMEOUT_SECONDS
+        if request_timeout is not None:
+            self._request_timeout = request_timeout
 
         self._url = "{}{}:{}@{}:{}{}".format(str(self.amqp_url_start),
                                              str(self.amqp_user),
@@ -653,7 +659,7 @@ class Connection:
                                                  'right now!')
         self._waiting_on_request = True
         start_time = float(time.time())
-        max_time_delta = 60.0 * 20.0  # 20 minutes
+        max_time_delta = self._request_timeout
         response = None
         while response is None:
             if not disable_timeout:
@@ -2020,9 +2026,10 @@ class Connection:
                 if self._channel:
                     self.log.debug('stop() self._channel.close()')
                     self._channel.close()
-                if self._connection.is_open:
-                    self.log.debug('stop() self._connection.close()')
-                    self._connection.close()
+                if self._connection:
+                    if self._connection.is_open:
+                        self.log.debug('stop() self._connection.close()')
+                        self._connection.close()
             except pika.exceptions.AMQPError as err:
                 self.log.error('stop() AMQPError: {}'.format(err))
             self._reset_all_exchanges_queues()
