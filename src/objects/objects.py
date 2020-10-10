@@ -34,11 +34,15 @@ import time
 import types
 import uuid
 
-__major_version__ = '0.3'
-__minor_version__ = '2'
+__major_version__ = '0.4'
+__minor_version__ = '0'
 __version__ = '{}.{}'.format(__major_version__, __minor_version__)
+__database_version__ = re.sub('[.]', '_', __major_version__)
 
 log = logging.getLogger(__name__)
+
+# Database naming pattern.
+DATABASE_PATTERN = '{}_v{}'.format('{}', __database_version__)
 
 # AIQ Global Timeout
 GLOBAL_TIMEOUT_SECONDS = 60 * 20  # 20 minutes
@@ -93,6 +97,8 @@ OBJ_TRAINING = 'object_training'
 OBJ_NOVELTY_GRP = 'object_novelty_group'
 OBJ_TRIAL = 'object_trial'
 OBJ_EXPERIMENT = 'object_experiment'
+REQ_NOVELTY_DESCRIPTION = 'request_novelty_description'
+OBJ_NOVELTY_DESCRIPTION = 'object_novelty_description'
 GENERATOR_IDLE = 'generator_idle'
 GENERATOR_RESET = 'generator_reset'
 START_GENERATOR = 'start_generator'
@@ -146,12 +152,23 @@ VALID_DATA_TYPE = list([DTYPE_TRAIN,
 SERVER_MODEL_QUEUE = 'model.request.v{}'.format(__major_version__)
 SERVER_EXPERIMENT_QUEUE = 'experiment.request.v{}'.format(__major_version__)
 REGISTER_SOTA_QUEUE = 'register.sota.v{}'.format(__major_version__)
+ANALYSIS_READY_QUEUE = 'analysis.ready.v{}'.format(__major_version__)
 CLIENT_RPC_QUEUE = 'rpc.client.v{}'.format(__major_version__)
 SERVER_RPC_QUEUE = 'rpc.server.v{}'.format(__major_version__)
 GENERATOR_RPC_QUEUE = 'rpc.generator.v{}'.format(__major_version__)
+NOVELTY_DESC_RPC_QUEUE = 'rpc.novelty_description.v{}'.format(__major_version__)
 LIVE_GENERATOR_QUEUES = dict()
 for domain in VALID_DOMAINS:
     LIVE_GENERATOR_QUEUES[domain] = 'live.generator.{}.v{}'.format(domain, __major_version__)
+
+# TA1 default command line arg values.
+DEFAULT_TA1_DEBUG = False
+DEFAULT_TA1_FULLDEBUG = False
+DEFAULT_TA1_PRINTOUT = False
+DEFAULT_TA1_TESTING = False
+DEFAULT_TA1_DEMO = False
+DEFAULT_TA1_SHORTDEMO = False
+DEFAULT_TA1_LOGFILE = None
 
 # CASAS object strings
 CASAS_ERROR = 'casas_error'
@@ -3966,19 +3983,24 @@ class NoveltyEnd(AiqObject):
 
 
 class TrialStart(AiqObject):
-    def __init__(self, trial_number: int = 0, total_trials: int = 0, message: str = None):
+    def __init__(self, trial_number: int = 0, total_trials: int = 0, message: str = None,
+                 novelty_description: dict = None):
         super().__init__()
         self.obj_type = TRIAL_START
         self.trial_number = trial_number
         self.total_trials = total_trials
         self.message = message
+        self.novelty_description = copy.deepcopy(novelty_description)
+        if self.novelty_description is None:
+            self.novelty_description = dict()
         return
 
     def get_json_obj(self):
         obj = {'obj_type': self.obj_type,
                'trial_number': self.trial_number,
                'total_trials': self.total_trials,
-               'message': self.message}
+               'message': self.message,
+               'novelty_description': self.novelty_description}
         return copy.deepcopy(obj)
 
 
@@ -4114,8 +4136,10 @@ class BasicDataPrediction(AiqObject):
             raise AiqDataException('A label prediction must be a dict({"action": str(value)})!')
         self.utc_remote_epoch_received = None
         self.utc_remote_epoch_sent = None
-        self.novelty_detected = None
+        self.novelty_probability = None
         self.novelty = None
+        self.novelty_characterization = None
+        self.end_early = False
         return
 
     def get_json_obj(self):
@@ -4210,7 +4234,8 @@ class TrainingData(AiqObject):
 class TrainingDataPrediction(BasicDataPrediction):
     def __init__(self, secret: str, utc_remote_epoch_received: float = None,
                  utc_remote_epoch_sent: float = None, label_prediction: dict = None,
-                 novelty_detected: bool = None, novelty: int = None):
+                 novelty_probability: float = None, novelty: int = None,
+                 novelty_characterization: dict = None, end_early: bool = False):
         super().__init__(label_prediction=label_prediction)
         self.obj_type = TRAIN_DATA_PRED
         self.secret = secret
@@ -4226,8 +4251,12 @@ class TrainingDataPrediction(BasicDataPrediction):
                 valid_label = True
         if not valid_label:
             raise AiqDataException('A label prediction must be a dict({"action": str(value)})!')
-        self.novelty_detected = novelty_detected
+        self.novelty_probability = novelty_probability
         self.novelty = novelty
+        self.novelty_characterization = copy.deepcopy(novelty_characterization)
+        if self.novelty_characterization is None:
+            self.novelty_characterization = dict()
+        self.end_early = end_early
         return
 
     def get_json_obj(self):
@@ -4236,8 +4265,10 @@ class TrainingDataPrediction(BasicDataPrediction):
                'utc_remote_epoch_received': self.utc_remote_epoch_received,
                'utc_remote_epoch_sent': time.time(),
                'label_prediction': self.label_prediction,
-               'novelty_detected': self.novelty_detected,
-               'novelty': self.novelty}
+               'novelty_probability': self.novelty_probability,
+               'novelty': self.novelty,
+               'novelty_characterization': self.novelty_characterization,
+               'end_early': self.end_early}
         return copy.deepcopy(obj)
 
 
@@ -4370,7 +4401,8 @@ class TestingData(AiqObject):
 class TestingDataPrediction(BasicDataPrediction):
     def __init__(self, secret: str, utc_remote_epoch_received: float = None,
                  utc_remote_epoch_sent: float = None, label_prediction: dict = None,
-                 novelty_detected: bool = None, novelty: int = None):
+                 novelty_probability: float = None, novelty: int = None,
+                 novelty_characterization: dict = None, end_early: bool = False):
         super().__init__(label_prediction=label_prediction)
         self.obj_type = TEST_DATA_PRED
         self.secret = secret
@@ -4386,8 +4418,12 @@ class TestingDataPrediction(BasicDataPrediction):
                 valid_label = True
         if not valid_label:
             raise AiqDataException('A label prediction must be a dict({"action": str(value)})!')
-        self.novelty_detected = novelty_detected
+        self.novelty_probability = novelty_probability
         self.novelty = novelty
+        self.novelty_characterization = copy.deepcopy(novelty_characterization)
+        if self.novelty_characterization is None:
+            self.novelty_characterization = dict()
+        self.end_early = end_early
         return
 
     def get_json_obj(self):
@@ -4396,8 +4432,10 @@ class TestingDataPrediction(BasicDataPrediction):
                'utc_remote_epoch_received': self.utc_remote_epoch_received,
                'utc_remote_epoch_sent': time.time(),
                'label_prediction': self.label_prediction,
-               'novelty_detected': self.novelty_detected,
-               'novelty': self.novelty}
+               'novelty_probability': self.novelty_probability,
+               'novelty': self.novelty,
+               'novelty_characterization': self.novelty_characterization,
+               'end_early': self.end_early}
         return copy.deepcopy(obj)
 
 
@@ -4455,7 +4493,8 @@ class SotaIdle(AiqObject):
 
 class Episode(AiqObject):
     def __init__(self, novelty: int, difficulty: str, seed: int, domain: str, data_type: str,
-                 episode_index: int = None, episode_id: int = None):
+                 episode_index: int = None, episode_id: int = None,
+                 trial_novelty: int = NOVELTY_0):
         super().__init__()
         self.obj_type = OBJ_EPISODE
         self.novelty = novelty
@@ -4473,6 +4512,9 @@ class Episode(AiqObject):
             raise AiqDataException('{} is not a valid data type.'.format(self.data_type))
         self.episode_index = episode_index
         self.episode_id = episode_id
+        self.trial_novelty = trial_novelty
+        if self.trial_novelty not in VALID_NOVELTY:
+            raise AiqDataException('{} is not a valid trial_novelty.'.format(self.trial_novelty))
         return
 
     def get_json_obj(self):
@@ -4483,7 +4525,8 @@ class Episode(AiqObject):
                'domain': self.domain,
                'data_type': self.data_type,
                'episode_index': self.episode_index,
-               'episode_id': self.episode_id}
+               'episode_id': self.episode_id,
+               'trial_novelty': self.trial_novelty}
         return copy.deepcopy(obj)
 
 
@@ -4553,6 +4596,42 @@ class Experiment(AiqObject):
                'novelty_groups': list()}
         for nov_group in self.novelty_groups:
             obj['novelty_groups'].append(nov_group.get_json_obj())
+        return copy.deepcopy(obj)
+
+
+class RequestNoveltyDescription(AiqObject):
+    def __init__(self, r_domain: str, novelty: int, difficulty: str):
+        super().__init__()
+        self.obj_type = REQ_NOVELTY_DESCRIPTION
+        if r_domain not in VALID_DOMAINS:
+            raise AiqDataException('INVALID r_domain provided! {}'.format(r_domain))
+        self.domain = r_domain
+        if novelty not in VALID_NOVELTY:
+            raise AiqDataException('INVALID novelty provided! {}'.format(novelty))
+        self.novelty = novelty
+        if difficulty not in VALID_DIFFICULTY:
+            raise AiqDataException('INVALID difficulty provided! {}'.format(difficulty))
+        self.difficulty = difficulty
+        return
+
+    def get_json_obj(self):
+        obj = {'obj_type': self.obj_type,
+               'domain': self.domain,
+               'novelty': self.novelty,
+               'difficulty': self.difficulty}
+        return copy.deepcopy(obj)
+
+
+class NoveltyDescription(AiqObject):
+    def __init__(self, novelty_description: dict):
+        super().__init__()
+        self.obj_type = OBJ_NOVELTY_DESCRIPTION
+        self.novelty_description = copy.deepcopy(novelty_description)
+        return
+
+    def get_json_obj(self):
+        obj = {'obj_type': self.obj_type,
+               'novelty_description': self.novelty_description}
         return copy.deepcopy(obj)
 
 
@@ -5001,10 +5080,14 @@ def build_objects_from_json(message):
                     if 'message' not in obj:
                         errormsgs.append('Could not obtain attribute message, '
                                          'please include json attribute message.')
+                    if 'novelty_description' not in obj:
+                        errormsgs.append('Could not obtain attribute novelty_description, '
+                                         'please include json attribute novelty_description.')
                     if len(errormsgs) == 0:
                         result = TrialStart(trial_number=obj['trial_number'],
                                             total_trials=obj['total_trials'],
-                                            message=obj['message'])
+                                            message=obj['message'],
+                                            novelty_description=obj['novelty_description'])
                 elif obj['obj_type'] == TRIAL_END:
                     if len(errormsgs) == 0:
                         result = TrialEnd()
@@ -5119,20 +5202,28 @@ def build_objects_from_json(message):
                     if 'label_prediction' not in obj:
                         errormsgs.append('Could not obtain attribute label_prediction, '
                                          'please include json attribute label_prediction.')
-                    if 'novelty_detected' not in obj:
-                        errormsgs.append('Could not obtain attribute novelty_detected, '
-                                         'please include json attribute novelty_detected.')
+                    if 'novelty_probability' not in obj:
+                        errormsgs.append('Could not obtain attribute novelty_probability, '
+                                         'please include json attribute novelty_probability.')
                     if 'novelty' not in obj:
                         errormsgs.append('Could not obtain attribute novelty, '
                                          'please include json attribute novelty.')
+                    if 'novelty_characterization' not in obj:
+                        errormsgs.append('Could not obtain attribute novelty_characterization, '
+                                         'please include json attribute novelty_characterization.')
+                    if 'end_early' not in obj:
+                        errormsgs.append('Could not obtain attribute end_early, '
+                                         'please include json attribute end_early.')
                     if len(errormsgs) == 0:
                         result = TrainingDataPrediction(
                             secret=obj['secret'],
                             utc_remote_epoch_received=obj['utc_remote_epoch_received'],
                             utc_remote_epoch_sent=obj['utc_remote_epoch_sent'],
                             label_prediction=obj['label_prediction'],
-                            novelty_detected=obj['novelty_detected'],
-                            novelty=obj['novelty'])
+                            novelty_probability=obj['novelty_probability'],
+                            novelty=obj['novelty'],
+                            novelty_characterization=obj['novelty_characterization'],
+                            end_early=obj['end_early'])
                 elif obj['obj_type'] == TRAIN_DATA_ACK:
                     if 'secret' not in obj:
                         errormsgs.append('Could not obtain attribute secret, '
@@ -5218,20 +5309,28 @@ def build_objects_from_json(message):
                     if 'label_prediction' not in obj:
                         errormsgs.append('Could not obtain attribute label_prediction, '
                                          'please include json attribute label_prediction.')
-                    if 'novelty_detected' not in obj:
-                        errormsgs.append('Could not obtain attribute novelty_detected, '
-                                         'please include json attribute novelty_detected.')
+                    if 'novelty_probability' not in obj:
+                        errormsgs.append('Could not obtain attribute novelty_probability, '
+                                         'please include json attribute novelty_probability.')
                     if 'novelty' not in obj:
                         errormsgs.append('Could not obtain attribute novelty, '
                                          'please include json attribute novelty.')
+                    if 'novelty_characterization' not in obj:
+                        errormsgs.append('Could not obtain attribute novelty_characterization, '
+                                         'please include json attribute novelty_characterization.')
+                    if 'end_early' not in obj:
+                        errormsgs.append('Could not obtain attribute end_early, '
+                                         'please include json attribute end_early.')
                     if len(errormsgs) == 0:
                         result = TestingDataPrediction(
                             secret=obj['secret'],
                             utc_remote_epoch_received=obj['utc_remote_epoch_received'],
                             utc_remote_epoch_sent=obj['utc_remote_epoch_sent'],
                             label_prediction=obj['label_prediction'],
-                            novelty_detected=obj['novelty_detected'],
-                            novelty=obj['novelty'])
+                            novelty_probability=obj['novelty_probability'],
+                            novelty=obj['novelty'],
+                            novelty_characterization=obj['novelty_characterization'],
+                            end_early=obj['end_early'])
                 elif obj['obj_type'] == TEST_DATA_ACK:
                     if 'secret' not in obj:
                         errormsgs.append('Could not obtain attribute secret, '
@@ -5280,6 +5379,9 @@ def build_objects_from_json(message):
                     if 'episode_id' not in obj:
                         errormsgs.append('Could not obtain attribute episode_id, '
                                          'please include json attribute episode_id.')
+                    if 'trial_novelty' not in obj:
+                        errormsgs.append('Could not obtain attribute trial_novelty, '
+                                         'please include json attribute trial_novelty.')
                     if len(errormsgs) == 0:
                         result = Episode(novelty=obj['novelty'],
                                          difficulty=obj['difficulty'],
@@ -5287,7 +5389,8 @@ def build_objects_from_json(message):
                                          data_type=obj['data_type'],
                                          seed=obj['seed'],
                                          episode_index=obj['episode_index'],
-                                         episode_id=obj['episode_id'])
+                                         episode_id=obj['episode_id'],
+                                         trial_novelty=obj['trial_novelty'])
                 elif obj['obj_type'] == OBJ_TRAINING:
                     if 'episodes' not in obj:
                         errormsgs.append('Could not obtain attribute episodes, '
@@ -5357,6 +5460,26 @@ def build_objects_from_json(message):
                     if len(errormsgs) == 0:
                         result = Experiment(training=training,
                                             novelty_groups=nov_groups)
+                elif obj['obj_type'] == REQ_NOVELTY_DESCRIPTION:
+                    if 'domain' not in obj:
+                        errormsgs.append('Could not obtain attribute domain, '
+                                         'please include json attribute domain.')
+                    if 'novelty' not in obj:
+                        errormsgs.append('Could not obtain attribute novelty, '
+                                         'please include json attribute novelty.')
+                    if 'difficulty' not in obj:
+                        errormsgs.append('Could not obtain attribute difficulty, '
+                                         'please include json attribute difficulty.')
+                    if len(errormsgs) == 0:
+                        result = RequestNoveltyDescription(r_domain=obj['domain'],
+                                                           novelty=obj['novelty'],
+                                                           difficulty=obj['difficulty'])
+                elif obj['obj_type'] == OBJ_NOVELTY_DESCRIPTION:
+                    if 'novelty_description' not in obj:
+                        errormsgs.append('Coule not obtain attribute novelty_description, '
+                                         'please include json attribute novelty_description.')
+                    if len(errormsgs) == 0:
+                        result = NoveltyDescription(novelty_description=obj['novelty_description'])
                 elif obj['obj_type'] == GENERATOR_IDLE:
                     if len(errormsgs) == 0:
                         result = GeneratorIdle()

@@ -496,6 +496,17 @@ class Connection:
                                             disable_timeout=True)
         return response
 
+    def get_novelty_description(self, domain: str, novelty: int, difficulty: str):
+        self.log.debug('get_novelty_description(domain={}, novelty={}, difficulty={})'.format(
+            domain, novelty, difficulty))
+
+        req_nov_desc = objects.RequestNoveltyDescription(r_domain=domain,
+                                                         novelty=novelty,
+                                                         difficulty=difficulty)
+        response = self._set_system_request(casas_object=req_nov_desc,
+                                            queue_name=objects.NOVELTY_DESC_RPC_QUEUE)
+        return response
+
     def send_generator_data(self, data_request):
         self.log.debug('send_generator_data()')
 
@@ -538,8 +549,9 @@ class Connection:
                                             client_callback_queue=self._client_rpc_queue)
         return response
 
-    def send_training_predictions(self, label_prediction: dict, novelty_detected: bool = False,
-                                  novelty: int = 0):
+    def send_training_predictions(self, label_prediction: dict, novelty_characterization: dict,
+                                  novelty_probability: float = 0.0, novelty: int = 0,
+                                  end_early: bool = False):
         self.log.debug('send_training_prediction()')
 
         if self._server_experiment_rpc_queue is None:
@@ -548,8 +560,10 @@ class Connection:
         training_prediction = objects.TrainingDataPrediction(
             secret=self._model_experiment_secret,
             label_prediction=label_prediction,
-            novelty_detected=novelty_detected,
-            novelty=novelty)
+            novelty_probability=novelty_probability,
+            novelty=novelty,
+            novelty_characterization=novelty_characterization,
+            end_early=end_early)
 
         response = self._set_system_request(casas_object=training_prediction,
                                             queue_name=self._server_experiment_rpc_queue,
@@ -587,8 +601,9 @@ class Connection:
                                             client_callback_queue=self._client_rpc_queue)
         return response
 
-    def send_testing_predictions(self, label_prediction: dict, novelty_detected: bool = False,
-                                 novelty: int = 0):
+    def send_testing_predictions(self, label_prediction: dict, novelty_characterization: dict,
+                                 novelty_probability: float = 0.0, novelty: int = 0,
+                                 end_early: bool = False):
         self.log.debug('send_testing_predictions()')
 
         if self._server_experiment_rpc_queue is None:
@@ -597,8 +612,10 @@ class Connection:
         testing_prediction = objects.TestingDataPrediction(
             secret=self._model_experiment_secret,
             label_prediction=label_prediction,
-            novelty_detected=novelty_detected,
-            novelty=novelty)
+            novelty_probability=novelty_probability,
+            novelty=novelty,
+            novelty_characterization=novelty_characterization,
+            end_early=end_early)
 
         response = self._set_system_request(casas_object=testing_prediction,
                                             queue_name=self._server_experiment_rpc_queue,

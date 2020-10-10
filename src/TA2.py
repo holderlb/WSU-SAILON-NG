@@ -37,6 +37,13 @@ class TA2Agent(TA2Logic):
                          logfile=options.logfile)
 
         self.possible_answers = list()
+        # This variable can be set to true and the system will attempt to end training at the
+        # completion of the current episode, or sooner if possible.
+        self.end_training_early = False
+        # This variable is checked only during the evaluation phase.  If set to True the system
+        # will attempt to cleanly end the experiment at the conclusion of the current episode,
+        # or sooner if possible.
+        self.end_experiment_early = False
         return
 
     def experiment_start(self):
@@ -65,7 +72,8 @@ class TA2Agent(TA2Logic):
         self.log.info('Training Episode Start: #{}'.format(episode_number))
         return
 
-    def training_instance(self, feature_vector: dict, feature_label: dict) -> (dict, bool, int):
+    def training_instance(self, feature_vector: dict, feature_label: dict) -> \
+            (dict, float, int, dict):
         """Process a training
 
         Parameters
@@ -81,11 +89,12 @@ class TA2Agent(TA2Logic):
 
         Returns
         -------
-        dict, bool, int
+        dict, float, int, dict
             A dictionary of your label prediction of the format {'action': label}.  This is
                 strictly enforced and the incorrect format will result in an exception being thrown.
-            A boolean as to whether agent detects novelty.
+            A float of the probability of there being novelty.
             Integer representing the predicted novelty level.
+            A JSON-valid dict characterizing the novelty.
         """
         self.log.debug('Training Instance: feature_vector={}  feature_label={}'.format(
             feature_vector, feature_label))
@@ -93,10 +102,11 @@ class TA2Agent(TA2Logic):
             self.possible_answers.append(copy.deepcopy(feature_label))
 
         label_prediction = random.choice(self.possible_answers)
-        novelty_detected = False
+        novelty_probability = random.random()
         novelty = 0
+        novelty_characterization = dict()
 
-        return label_prediction, novelty_detected, novelty
+        return label_prediction, novelty_probability, novelty, novelty_characterization
 
     def training_performance(self, performance: float):
         """Provides the current performance on training after each instance.
@@ -174,15 +184,18 @@ class TA2Agent(TA2Logic):
         self.log.info('Testing Start')
         return
 
-    def trial_start(self, trial_number: int):
+    def trial_start(self, trial_number: int, novelty_description: dict):
         """This is called at the start of a trial with the current 0-based number.
 
         Parameters
         ----------
         trial_number : int
             This is the 0-based trial number in the novelty group.
+        novelty_description : dict
+            A dictionary that will have a description of the trial's novelty.
         """
-        self.log.info('Trial Start: #{}'.format(trial_number))
+        self.log.info('Trial Start: #{}  novelty_desc: {}'.format(trial_number,
+                                                                  str(novelty_description)))
         return
 
     def testing_episode_start(self, episode_number: int):
@@ -198,7 +211,7 @@ class TA2Agent(TA2Logic):
         return
 
     def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> \
-            (dict, bool, int):
+            (dict, float, int, dict):
         """Evaluate a testing instance.  Returns the predicted label or action, if you believe
         this episode is novel, and what novelty level you beleive it to be.
 
@@ -215,21 +228,23 @@ class TA2Agent(TA2Logic):
 
         Returns
         -------
-        dict, bool, int
+        dict, float, int, dict
             A dictionary of your label prediction of the format {'action': label}.  This is
                 strictly enforced and the incorrect format will result in an exception being thrown.
-            A boolean as to whether agent detects novelty.
+            A float of the probability of there being novelty.
             Integer representing the predicted novelty level.
+            A JSON-valid dict characterizing the novelty.
         """
         self.log.debug('Testing Instance: feature_vector={}, novelty_indicator={}'.format(
             feature_vector, novelty_indicator))
 
         # Return dummy random choices, but should be determined by trained model
         label_prediction = random.choice(self.possible_answers)
-        novelty_detected = random.choice([True, False])
+        novelty_probability = random.random()
         novelty = random.choice(list(range(4)))
+        novelty_characterization = dict()
 
-        return label_prediction, novelty_detected, novelty
+        return label_prediction, novelty_probability, novelty, novelty_characterization
 
     def testing_performance(self, performance: float):
         """Provides the current performance on training after each instance.

@@ -153,6 +153,8 @@ class TA2Logic(object):
         self._model_filename = 'model.TA2.{}.{}.{}.data'.format(self._sail_on_domain,
                                                                 str(now.date()),
                                                                 str(now.time()))
+        self.end_training_early = False
+        self.end_experiment_early = False
         return
 
     @staticmethod
@@ -222,16 +224,18 @@ class TA2Logic(object):
                     test_data = self._amqp.get_testing_data()
 
                     # Evaluate the testing data.
-                    label_prediction, novelty_detected, novelty = self.testing_instance(
-                        feature_vector=test_data.feature_vector,
-                        novelty_indicator=test_data.novelty_indicator)
+                    label_prediction, novelty_probability, novelty, novelty_characterization = \
+                        self.testing_instance(feature_vector=test_data.feature_vector,
+                                              novelty_indicator=test_data.novelty_indicator)
 
                     # Send the prediction and update my_state, expecting TestingDataAck until
                     # the training episode is over.
                     my_state = self._amqp.send_testing_predictions(
                         label_prediction=label_prediction,
-                        novelty_detected=novelty_detected,
-                        novelty=novelty)
+                        novelty_probability=novelty_probability,
+                        novelty=novelty,
+                        novelty_characterization=novelty_characterization,
+                        end_early=self.end_experiment_early)
                     if isinstance(my_state, objects.TestingDataAck):
                         self.testing_performance(performance=my_state.performance)
 
@@ -294,16 +298,18 @@ class TA2Logic(object):
                 training_data = self._amqp.get_training_data()
 
                 # Handle the training data.
-                label_prediction, novelty_detected, novelty = self.training_instance(
-                    feature_vector=training_data.feature_vector,
-                    feature_label=training_data.feature_label)
+                label_prediction, novelty_probability, novelty, novelty_characterization = \
+                    self.training_instance(feature_vector=training_data.feature_vector,
+                                           feature_label=training_data.feature_label)
 
                 # Send the prediction and update my_state, expecting TrainingDataAck until
                 # the training episode is over.
                 my_state = self._amqp.send_training_predictions(
                     label_prediction=label_prediction,
-                    novelty_detected=novelty_detected,
-                    novelty=novelty)
+                    novelty_probability=novelty_probability,
+                    novelty=novelty,
+                    novelty_characterization=novelty_characterization,
+                    end_early=self.end_training_early)
                 if isinstance(my_state, objects.TrainingDataAck):
                     self.training_performance(performance=my_state.performance)
 
@@ -346,7 +352,8 @@ class TA2Logic(object):
             # Iterate over the trials we will run.
             while isinstance(my_state, objects.TrialStart):
                 # We just received an objects.TrialStart.
-                self.trial_start(trial_number=my_state.trial_number)
+                self.trial_start(trial_number=my_state.trial_number,
+                                 novelty_description=my_state.novelty_description)
 
                 # Run the trial.
                 self._run_sail_on_trial()
@@ -439,7 +446,8 @@ class TA2Logic(object):
         """
         raise ValueError('training_episode_start() not defined.')
 
-    def training_instance(self, feature_vector: dict, feature_label: dict) -> (dict, bool, int):
+    def training_instance(self, feature_vector: dict, feature_label: dict) -> \
+            (dict, float, int, dict):
         """Process a training
 
         Parameters
@@ -455,11 +463,12 @@ class TA2Logic(object):
 
         Returns
         -------
-        dict, bool, int
+        dict, float, int, dict
             A dictionary of your label prediction of the format {'action': label}.  This is
                 strictly enforced and the incorrect format will result in an exception being thrown.
-            A boolean as to whether agent detects novelty.
+            A float of the probability of there being novelty.
             Integer representing the predicted novelty level.
+            A JSON-valid dict characterizing the novelty.
         """
         raise ValueError('training_instance() not defined.')
 
@@ -526,13 +535,15 @@ class TA2Logic(object):
         """
         raise ValueError('testing_start() not defined.')
 
-    def trial_start(self, trial_number: int):
+    def trial_start(self, trial_number: int, novelty_description: dict):
         """This is called at the start of a trial with the current 0-based number.
 
         Parameters
         ----------
         trial_number : int
             This is the 0-based trial number in the novelty group.
+        novelty_description : dict
+            A dictionary that will have a description of the trial's novelty.
         """
         raise ValueError('trial_start() not defined.')
 
@@ -548,7 +559,7 @@ class TA2Logic(object):
         raise ValueError('testing_episode_start() not defined.')
 
     def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> \
-            (dict, bool, int):
+            (dict, float, int, dict):
         """Evaluate a testing instance.  Returns the predicted label or action, if you believe
         this episode is novel, and what novelty level you beleive it to be.
 
@@ -565,11 +576,12 @@ class TA2Logic(object):
 
         Returns
         -------
-        dict, bool, int
+        dict, float, int, dict
             A dictionary of your label prediction of the format {'action': label}.  This is
                 strictly enforced and the incorrect format will result in an exception being thrown.
-            A boolean as to whether agent detects novelty.
+            A float of the probability of there being novelty.
             Integer representing the predicted novelty level.
+            A JSON-valid dict characterizing the novelty.
         """
         raise ValueError('testing_instance() not defined.')
 
