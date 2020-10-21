@@ -146,7 +146,7 @@ There are 4 differnt modes the TA2 can run in, here are the variations using the
 --- | --- | --- | ---
 Not Defined | False | True | **Exception Thrown**
 Not Defined | False | False | Mode #1 - Full Linear Experiment
-* | True | * | Mode #2 - No Testing
+\* | True | * | Mode #2 - No Testing
 Defined | False | True | Mode #3 - Just One Trial
 Defined | False | False | Mode #4 - Trials Until Done
 
