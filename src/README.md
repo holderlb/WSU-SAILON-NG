@@ -150,6 +150,10 @@ Not Defined | False | False | Mode #1 - Full Linear Experiment
 Defined | False | True | Mode #3 - Just One Trial
 Defined | False | False | Mode #4 - Trials Until Done
 
+For Mode #3 and Mode #4, if the experiment is complete you will receive an error message that the
+experiment is already complete before cleanly exiting.  None of the functions (other than
+`__init__()`) in TA2.py will be called when this happens, a function can be added requested.
+
 <a name="runmodeone">
 
 ### Mode #1 - Full Linear Experiment
@@ -161,17 +165,36 @@ Defined | False | False | Mode #4 - Trials Until Done
 * Train model.
 * Iterate through experiment trials.
 
+#### Example Use
+
+This assumes `experiment_secret` is either not defined in the config file or you add the
+`--ignore-secret` flag to the command line.
+```
+(aiq-env) [user@host client]$ python TA2.py --config=demo-client.config --printout
+```
+
 <a name="runmodetwo">
 
 ### Mode #2 - No Testing
 
 **No testing** informs the TA1 that the TA2 does not with to iterate through the trials on this
 connection.  This is intended for use in creating the experiment before starting multiple TA2
-instances running in modes [3](#runmodethree) or [4](#runmodefour).
+instances running in Modes [#3](#runmodethree) or [#4](#runmodefour).
 
 * Create experiment in database.
 * Iterate through training episodes.
 * Train model.
+
+#### Example Use
+
+Here we initially run in Mode #2 to go through any training data, if needed, and training of the
+model.
+```
+(aiq-env) [user@host client]$ python TA2.py --config=demo-client.config --printout --no-testing
+```
+After this runs the `experiment_secret` has been updated in the config file, and we can now use
+this config (and a trained model) to run in Mode #3 or Mode #4, with just one instance or many
+at the same time.
 
 <a name="runmodethree">
 
@@ -182,6 +205,13 @@ defined `experiment_secret` and then cleanly exit.  This is intended for running
 versions of TA2 on a cluster using a job queue with a limited runtime.
 
 * Process a single experiment trial.
+
+#### Example Use
+
+This requires that `experiment_secret` is set in the config file, if not it will throw an exception.
+```
+(aiq-env) [user@host client]$ python TA2.py --config=demo-client.config --printout --just-one-trial
+```
 
 <a name="runmodefour">
 
@@ -198,6 +228,14 @@ method for providing feedback on if an experiment is complete or if there are no
 currently available to process, this may be considered in a future version if requested.
 
 * Iterate through experiment trials.
+
+#### Example Use
+
+This requires that `experiment_secret` is set in the config file, if not it will actually run in
+Mode #1 and create a new experiment.
+```
+(aiq-env) [user@host client]$ python TA2.py --config=demo-client.config --printout
+```
 
 <a name="programflow">
 
