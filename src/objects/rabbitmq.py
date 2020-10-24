@@ -395,7 +395,7 @@ class Connection:
                                             disable_timeout=True)
         return response
 
-    def start_sail_on_experiment(self, model: objects.Model, domain: str,
+    def start_sail_on_experiment(self, model: objects.Model, domain: str, no_testing: bool,
                                  seed: int = None):
         self.log.debug('start_sail_on_experiment()')
 
@@ -423,6 +423,37 @@ class Connection:
             git_version=objects.__version__,
             experiment_type=objects.TYPE_EXPERIMENT_SAIL_ON,
             seed=seed,
+            domain_dict=domain_dict,
+            no_testing=no_testing)
+
+        response = self._set_system_request(casas_object=experiment_request,
+                                            queue_name=objects.SERVER_EXPERIMENT_QUEUE,
+                                            client_callback_queue=self._client_rpc_queue,
+                                            disable_timeout=True)
+        return response
+
+    def start_work_on_experiment_trials(self, model: objects.Model, experiment_secret: str,
+                                        just_one_trial: bool, domain: str):
+        self.log.debug('start_work_on_experiment_trials()')
+
+        if self._client_rpc_queue is None:
+            self._client_rpc_queue = objects.CLIENT_RPC_QUEUE + '.{}'.format(str(uuid.uuid4().hex))
+            # Subscribe to the callback queue.
+            self.setup_subscribe_to_queue(
+                queue_name=self._client_rpc_queue,
+                queue_exclusive=True,
+                queue_auto_delete=True,
+                casas_events=True,
+                callback_function=self.process_system_request_callback,
+                callback_full_params=True)
+
+        domain_dict = dict({domain: True})
+
+        experiment_request = objects.RequestExperimentTrials(
+            model=model,
+            experiment_secret=experiment_secret,
+            client_rpc_queue=self._client_rpc_queue,
+            just_one_trial=just_one_trial,
             domain_dict=domain_dict)
 
         response = self._set_system_request(casas_object=experiment_request,
@@ -431,7 +462,7 @@ class Connection:
                                             disable_timeout=True)
         return response
 
-    def register_as_sota(self, model: objects.Model, domain: str,
+    def register_as_sota(self, model: objects.Model, domain: str, no_testing: bool,
                          seed: int = None):
         self.log.debug('start_sail_on_experiment()')
 
@@ -459,6 +490,37 @@ class Connection:
             git_version=objects.__version__,
             experiment_type=objects.TYPE_EXPERIMENT_SAIL_ON,
             seed=seed,
+            domain_dict=domain_dict,
+            no_testing=no_testing)
+
+        response = self._set_system_request(casas_object=experiment_request,
+                                            queue_name=objects.REGISTER_SOTA_QUEUE,
+                                            client_callback_queue=self._client_rpc_queue,
+                                            disable_timeout=True)
+        return response
+
+    def start_work_on_sota_trials(self, model: objects.Model, experiment_secret: str,
+                                  just_one_trial: bool, domain: str):
+        self.log.debug('start_work_on_sota_trials()')
+
+        if self._client_rpc_queue is None:
+            self._client_rpc_queue = objects.CLIENT_RPC_QUEUE + '.{}'.format(str(uuid.uuid4().hex))
+            # Subscribe to the callback queue.
+            self.setup_subscribe_to_queue(
+                queue_name=self._client_rpc_queue,
+                queue_exclusive=True,
+                queue_auto_delete=True,
+                casas_events=True,
+                callback_function=self.process_system_request_callback,
+                callback_full_params=True)
+
+        domain_dict = dict({domain: True})
+
+        experiment_request = objects.RequestExperimentTrials(
+            model=model,
+            experiment_secret=experiment_secret,
+            client_rpc_queue=self._client_rpc_queue,
+            just_one_trial=just_one_trial,
             domain_dict=domain_dict)
 
         response = self._set_system_request(casas_object=experiment_request,
@@ -468,7 +530,7 @@ class Connection:
         return response
 
     def start_generator(self, domain: str, novelty: int, difficulty: str, seed: int,
-                        trial_novelty: int):
+                        trial_novelty: int, day_offset: int):
         self.log.debug('start_generator()')
 
         if self._client_rpc_queue is None:
@@ -488,7 +550,8 @@ class Connection:
             difficulty=difficulty,
             seed=seed,
             server_rpc_queue=self._client_rpc_queue,
-            trial_novelty=trial_novelty)
+            trial_novelty=trial_novelty,
+            day_offset=day_offset)
 
         response = self._set_system_request(casas_object=start_gen,
                                             queue_name=objects.LIVE_GENERATOR_QUEUES[domain],
@@ -779,6 +842,7 @@ class Connection:
             if isinstance(response, (objects.TrainingData, objects.TestingData)):
                 self._local_epoch_received = response.utc_remote_epoch_received
             elif isinstance(response, objects.ExperimentResponse):
+                self._request_timeout = response.experiment_timeout
                 self._model_experiment_id = response.model_experiment_id
                 self._model_experiment_secret = response.experiment_secret
                 self._server_experiment_rpc_queue = response.server_rpc_queue

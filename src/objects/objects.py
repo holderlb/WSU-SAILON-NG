@@ -34,10 +34,11 @@ import time
 import types
 import uuid
 
-__major_version__ = '0.4'
+__major_version__ = '0.5'
 __minor_version__ = '0'
+__db_version__ = '0.4'
 __version__ = '{}.{}'.format(__major_version__, __minor_version__)
-__database_version__ = re.sub('[.]', '_', __major_version__)
+__database_version__ = re.sub('[.]', '_', __db_version__)
 
 log = logging.getLogger(__name__)
 
@@ -52,6 +53,7 @@ REQ_MODEL = 'request_model'
 REQ_STATE = 'request_state'
 MODEL = 'model'
 REQ_EXPERIMENT = 'request_experiment'
+REQ_EXP_TRIALS = 'request_experiment_trials'
 EXPERIMENT_RESP = 'experiment_response'
 EXPERIMENT_START = 'experiment_start'
 EXPERIMENT_END = 'experiment_end'
@@ -66,6 +68,7 @@ TRIAL_END = 'trial_end'
 TRAINING_START = 'training_start'
 TRAINING_ACTIVE = 'training_active'
 TRAINING_END = 'training_end'
+TRAINING_MODEL_END = 'training_model_end'
 TRAINING_END_EARLY = 'training_end_early'
 TRAIN_EPISODE_START = 'training_episode_start'
 TRAIN_EPISODE_ACTIVE = 'training_episode_active'
@@ -3826,7 +3829,7 @@ class Model(AiqObject):
 class RequestExperiment(AiqObject):
     def __init__(self, model: Model, novelty: int, novelty_visibility: int, client_rpc_queue: str,
                  git_version: str, experiment_type: str, seed: int = None,
-                 domain_dict: dict = None, epoch: float = None):
+                 domain_dict: dict = None, epoch: float = None, no_testing: bool = False):
         super().__init__()
         self.obj_type = REQ_EXPERIMENT
         self.model = copy.deepcopy(model)
@@ -3847,6 +3850,7 @@ class RequestExperiment(AiqObject):
         self.epoch = epoch
         if self.epoch is None:
             self.epoch = time.time()
+        self.no_testing = no_testing
 
         # Verify that we have at least one domain chosen.
         true_domain = False
@@ -3867,24 +3871,60 @@ class RequestExperiment(AiqObject):
                'seed': self.seed,
                'domain_dict': self.domain_dict,
                'epoch': self.epoch,
+               'no_testing': self.no_testing,
                'experiment_type': self.experiment_type}
         return copy.deepcopy(obj)
 
 
+class RequestExperimentTrials(RequestExperiment):
+    def __init__(self, model: Model, experiment_secret: str, client_rpc_queue: str,
+                 just_one_trial: bool = False, epoch: float = None, domain_dict: dict = None):
+        super().__init__(model=model,
+                         novelty=0,
+                         novelty_visibility=0,
+                         client_rpc_queue=client_rpc_queue,
+                         git_version=__version__,
+                         experiment_type=TYPE_EXPERIMENT_SAIL_ON,
+                         domain_dict=domain_dict,
+                         epoch=epoch)
+        self.obj_type = REQ_EXP_TRIALS
+        self.model = copy.deepcopy(model)
+        self.experiment_secret = experiment_secret
+        self.client_rpc_queue = client_rpc_queue
+        self.just_one_trial = just_one_trial
+        self.epoch = epoch
+        if self.epoch is None:
+            self.epoch = time.time()
+        return
+
+    def get_json_obj(self):
+        obj = {'obj_type': self.obj_type,
+               'model': self.model.get_json_str(),
+               'experiment_secret': self.experiment_secret,
+               'client_rpc_queue': self.client_rpc_queue,
+               'just_one_trial': self.just_one_trial,
+               'domain_dict': self.domain_dict,
+               'epoch': self.epoch}
+        return copy.deepcopy(obj)
+
+
 class ExperimentResponse(AiqObject):
-    def __init__(self, server_rpc_queue: str, experiment_secret: str, model_experiment_id: int):
+    def __init__(self, server_rpc_queue: str, experiment_secret: str, model_experiment_id: int,
+                 experiment_timeout: float):
         super().__init__()
         self.obj_type = EXPERIMENT_RESP
         self.server_rpc_queue = server_rpc_queue
         self.experiment_secret = experiment_secret
         self.model_experiment_id = model_experiment_id
+        self.experiment_timeout = experiment_timeout
         return
 
     def get_json_obj(self):
         obj = {'obj_type': self.obj_type,
                'server_rpc_queue': self.server_rpc_queue,
                'experiment_secret': self.experiment_secret,
-               'model_experiment_id': self.model_experiment_id}
+               'model_experiment_id': self.model_experiment_id,
+               'experiment_timeout': self.experiment_timeout}
         return copy.deepcopy(obj)
 
 
@@ -4047,6 +4087,17 @@ class TrainingEnd(AiqObject):
     def get_json_obj(self):
         obj = {'obj_type': self.obj_type,
                'message': self.message}
+        return copy.deepcopy(obj)
+
+
+class TrainingModelEnd(AiqObject):
+    def __init__(self):
+        super().__init__()
+        self.obj_type = TRAINING_MODEL_END
+        return
+
+    def get_json_obj(self):
+        obj = {'obj_type': self.obj_type}
         return copy.deepcopy(obj)
 
 
@@ -4494,7 +4545,7 @@ class SotaIdle(AiqObject):
 class Episode(AiqObject):
     def __init__(self, novelty: int, difficulty: str, seed: int, domain: str, data_type: str,
                  episode_index: int = None, episode_id: int = None,
-                 trial_novelty: int = NOVELTY_0):
+                 trial_novelty: int = NOVELTY_0, day_offset: int = 0):
         super().__init__()
         self.obj_type = OBJ_EPISODE
         self.novelty = novelty
@@ -4515,6 +4566,7 @@ class Episode(AiqObject):
         self.trial_novelty = trial_novelty
         if self.trial_novelty not in VALID_NOVELTY:
             raise AiqDataException('{} is not a valid trial_novelty.'.format(self.trial_novelty))
+        self.day_offset = day_offset
         return
 
     def get_json_obj(self):
@@ -4526,7 +4578,8 @@ class Episode(AiqObject):
                'data_type': self.data_type,
                'episode_index': self.episode_index,
                'episode_id': self.episode_id,
-               'trial_novelty': self.trial_novelty}
+               'trial_novelty': self.trial_novelty,
+               'day_offset': self.day_offset}
         return copy.deepcopy(obj)
 
 
@@ -4659,7 +4712,7 @@ class GeneratorReset(AiqObject):
 
 class StartGenerator(AiqObject):
     def __init__(self, domain: str, novelty: int, difficulty: str, seed: int, server_rpc_queue: str,
-                 trial_novelty: int, epoch: float = None):
+                 trial_novelty: int, epoch: float = None, day_offset: int = 0):
         super().__init__()
         self.obj_type = START_GENERATOR
         if domain not in VALID_DOMAINS:
@@ -4679,6 +4732,7 @@ class StartGenerator(AiqObject):
         self.epoch = epoch
         if self.epoch is None:
             self.epoch = time.time()
+        self.day_offset = day_offset
         return
 
     def get_json_obj(self):
@@ -4689,7 +4743,8 @@ class StartGenerator(AiqObject):
                'seed': self.seed,
                'server_rpc_queue': self.server_rpc_queue,
                'trial_novelty': self.trial_novelty,
-               'epoch': self.epoch}
+               'epoch': self.epoch,
+               'day_offset': self.day_offset}
         return copy.deepcopy(obj)
 
 
@@ -5011,6 +5066,9 @@ def build_objects_from_json(message):
                     if 'experiment_type' not in obj:
                         errormsgs.append('Could not obtain attribute experiment_type, '
                                          'please include json attribute experiment_type.')
+                    if 'no_testing' not in obj:
+                        errormsgs.append('Could not obtain attribute no_testing, '
+                                         'please include json attribute no_testing.')
                     if 'epoch' in obj:
                         epoch = obj['epoch']
                     if len(errormsgs) == 0:
@@ -5022,7 +5080,39 @@ def build_objects_from_json(message):
                                                    experiment_type=obj['experiment_type'],
                                                    seed=obj['seed'],
                                                    domain_dict=obj['domain_dict'],
-                                                   epoch=epoch)
+                                                   epoch=epoch,
+                                                   no_testing=obj['no_testing'])
+                elif obj['obj_type'] == REQ_EXP_TRIALS:
+                    model = None
+                    epoch = None
+                    if 'model' in obj:
+                        model = get_subobject(casas_object=obj['model'],
+                                              errormsgs=errormsgs)
+                    else:
+                        errormsgs.append('Could not obtain attribute model, '
+                                         'please include json attribute model.')
+                    if 'experiment_secret' not in obj:
+                        errormsgs.append('Could not obtain attribute experiment_secret, '
+                                         'please include json attribute experiment_secret.')
+                    if 'client_rpc_queue' not in obj:
+                        errormsgs.append('Could not obtain attribute client_rpc_queue, '
+                                         'please include json attribute client_rpc_queue.')
+                    if 'just_one_trial' not in obj:
+                        errormsgs.append('Could not obtain attribute just_one_trial, '
+                                         'please include json attribute just_one_trial.')
+                    if 'domain_dict' not in obj:
+                        errormsgs.append('Could not obtain attribute domain_dict, '
+                                         'please include json attribute domain_dict.')
+                    if 'epoch' in obj:
+                        epoch = obj['epoch']
+                    if len(errormsgs) == 0:
+                        result = RequestExperimentTrials(
+                            model=model,
+                            experiment_secret=obj['experiment_secret'],
+                            client_rpc_queue=obj['client_rpc_queue'],
+                            just_one_trial=obj['just_one_trial'],
+                            domain_dict=obj['domain_dict'],
+                            epoch=epoch)
                 elif obj['obj_type'] == EXPERIMENT_RESP:
                     if 'server_rpc_queue' not in obj:
                         errormsgs.append('Could not obtain attribute server_rpc_queue, '
@@ -5033,10 +5123,14 @@ def build_objects_from_json(message):
                     if 'model_experiment_id' not in obj:
                         errormsgs.append('Could not obtain attribute model_experiment_id, '
                                          'please include json attribute model_experiment_id.')
+                    if 'experiment_timeout' not in obj:
+                        errormsgs.append('Could not obtain attribute experiment_timeout, '
+                                         'please include json attribute experiment_timeout.')
                     if len(errormsgs) == 0:
                         result = ExperimentResponse(server_rpc_queue=obj['server_rpc_queue'],
                                                     experiment_secret=obj['experiment_secret'],
-                                                    model_experiment_id=obj['model_experiment_id'])
+                                                    model_experiment_id=obj['model_experiment_id'],
+                                                    experiment_timeout=obj['experiment_timeout'])
                 elif obj['obj_type'] == EXPERIMENT_START:
                     if len(errormsgs) == 0:
                         result = ExperimentStart()
@@ -5103,6 +5197,9 @@ def build_objects_from_json(message):
                                          'please include json attribute message.')
                     if len(errormsgs) == 0:
                         result = TrainingEnd(message=obj['message'])
+                elif obj['obj_type'] == TRAINING_MODEL_END:
+                    if len(errormsgs) == 0:
+                        result = TrainingModelEnd()
                 elif obj['obj_type'] == TRAINING_END_EARLY:
                     if len(errormsgs) == 0:
                         result = TrainingEndEarly()
@@ -5382,6 +5479,9 @@ def build_objects_from_json(message):
                     if 'trial_novelty' not in obj:
                         errormsgs.append('Could not obtain attribute trial_novelty, '
                                          'please include json attribute trial_novelty.')
+                    if 'day_offset' not in obj:
+                        errormsgs.append('Could not obtain attribute day_offset, '
+                                         'please include json attribute day_offset.')
                     if len(errormsgs) == 0:
                         result = Episode(novelty=obj['novelty'],
                                          difficulty=obj['difficulty'],
@@ -5390,7 +5490,8 @@ def build_objects_from_json(message):
                                          seed=obj['seed'],
                                          episode_index=obj['episode_index'],
                                          episode_id=obj['episode_id'],
-                                         trial_novelty=obj['trial_novelty'])
+                                         trial_novelty=obj['trial_novelty'],
+                                         day_offset=obj['day_offset'])
                 elif obj['obj_type'] == OBJ_TRAINING:
                     if 'episodes' not in obj:
                         errormsgs.append('Could not obtain attribute episodes, '
@@ -5508,6 +5609,9 @@ def build_objects_from_json(message):
                     if 'epoch' not in obj:
                         errormsgs.append('Could not obtain attribute epoch, '
                                          'please include json attribute epoch.')
+                    if 'day_offset' not in obj:
+                        errormsgs.append('Could not obtain attribute day_offset, '
+                                         'please include json attribute day_offset.')
                     if len(errormsgs) == 0:
                         result = StartGenerator(domain=obj['domain'],
                                                 novelty=obj['novelty'],
@@ -5515,7 +5619,8 @@ def build_objects_from_json(message):
                                                 seed=obj['seed'],
                                                 server_rpc_queue=obj['server_rpc_queue'],
                                                 trial_novelty=obj['trial_novelty'],
-                                                epoch=obj['epoch'])
+                                                epoch=obj['epoch'],
+                                                day_offset=obj['day_offset'])
                 elif obj['obj_type'] == GENERATOR_RESPONSE:
                     if 'generator_rpc_queue' not in obj:
                         errormsgs.append('Could not obtain attribute generator_rpc_queue, '

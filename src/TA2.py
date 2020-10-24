@@ -22,10 +22,41 @@
 
 import copy
 import optparse
+import queue
 import random
+import threading
 import time
 
 from objects.TA2_logic import TA2Logic
+
+
+class ThreadedProcessingExample(threading.Thread):
+    def __init__(self, processing_object: list, response_queue: queue.Queue):
+        threading.Thread.__init__(self)
+        self.processing_object = processing_object
+        self.response_queue = response_queue
+        self.is_done = False
+        return
+
+    def run(self):
+        """All work tasks should happen or be called from within this function.
+        """
+        is_novel = False
+        message = ''
+
+        # Do some fake work here.
+        for work in self.processing_object:
+            sum = 0
+            for i in range(work):
+                sum += i
+            message += 'Did sum of {}. '.format(work)
+
+        self.response_queue.put((is_novel, message))
+        return
+
+    def stop(self):
+        self.is_done = True
+        return
 
 
 class TA2Agent(TA2Logic):
@@ -34,7 +65,10 @@ class TA2Agent(TA2Logic):
                          printout=options.printout,
                          debug=options.debug,
                          fulldebug=options.fulldebug,
-                         logfile=options.logfile)
+                         logfile=options.logfile,
+                         no_testing=options.no_testing,
+                         just_one_trial=options.just_one_trial,
+                         ignore_secret=options.ignore_secret)
 
         self.possible_answers = list()
         # This variable can be set to true and the system will attempt to end training at the
@@ -172,18 +206,6 @@ class TA2Agent(TA2Logic):
         self.log.info('Load model from disk.')
         return
 
-    def novelty_start(self):
-        """This indicates the start of a series of trials at a novelty level/difficulty.
-        """
-        self.log.info('Novelty Space Start')
-        return
-
-    def testing_start(self):
-        """This is called before the trials in the novelty level/difficulty.
-        """
-        self.log.info('Testing Start')
-        return
-
     def trial_start(self, trial_number: int, novelty_description: dict):
         """This is called at the start of a trial with the current 0-based number.
 
@@ -196,6 +218,15 @@ class TA2Agent(TA2Logic):
         """
         self.log.info('Trial Start: #{}  novelty_desc: {}'.format(trial_number,
                                                                   str(novelty_description)))
+        if len(self.possible_answers) == 0:
+            self.possible_answers.append(dict({'action': 'left'}))
+        return
+
+    def testing_start(self):
+        """This is called after a trial has started but before we begin going through the
+        episodes.
+        """
+        self.log.info('Testing Start')
         return
 
     def testing_episode_start(self, episode_number: int):
@@ -208,6 +239,38 @@ class TA2Agent(TA2Logic):
             This is the 0-based episode number in the current trial.
         """
         self.log.info('Testing Episode Start: #{}'.format(episode_number))
+
+        # Throw something together to create work.
+        work_list = list([500000])
+        for i in range(3 + episode_number):
+            work_list.append(5000000)
+        response_queue = queue.Queue()
+        response = None
+        # Initialize the example of doing work safely outside the main thread.
+        # Remember, in Python all objects beyond int, float, bool, and str are passed by reference.
+        threaded_work = ThreadedProcessingExample(processing_object=work_list,
+                                                  response_queue=response_queue)
+        # Start the work in a separate thread.
+        threaded_work.start()
+
+        while response is None:
+            try:
+                # Try to get the response from the queue for 5 seconds before we let the AMQP
+                # network event loop do any required work (such as sending heartbeats) for
+                # 0.5 seconds.  By having the get(block=True) we ensure that there is basically
+                # no wait for the result once it is put in the queue.
+                response = response_queue.get(block=True, timeout=5)
+            except queue.Empty:
+                # Process any amqp events for 0.5 seconds before we try to get the results again.
+                self.process_amqp_events()
+
+        # Safely end and clean up the threaded work object.
+        threaded_work.stop()
+        threaded_work.join()
+
+        self.log.info('message from threaded work: {}'.format(response[1]))
+        self.log.warning('Please remove this sample threaded work object from '
+                         'testing_episode_start() before running actual experiments.')
         return
 
     def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> \
@@ -267,22 +330,16 @@ class TA2Agent(TA2Logic):
         self.log.info('Testing Episode End: performance={}'.format(performance))
         return
 
-    def trial_end(self):
-        """This is called at the end of each trial.
-        """
-        self.log.info('Trial End')
-        return
-
     def testing_end(self):
-        """This is called after the trials in a novelty level/difficulty are completed.
+        """This is called after the last episode of a trial has completed, before trial_end().
         """
         self.log.info('Testing End')
         return
 
-    def novelty_end(self):
-        """This is called when we are done with a novelty level/difficulty.
+    def trial_end(self):
+        """This is called at the end of each trial.
         """
-        self.log.info('Novelty Space End')
+        self.log.info('Trial End')
         return
 
     def experiment_end(self):
@@ -315,6 +372,24 @@ if __name__ == "__main__":
                       dest="printout",
                       action="store_true",
                       help="Print output to the screen at given logging level.",
+                      default=False)
+    parser.add_option("--no-testing",
+                      dest="no_testing",
+                      action="store_true",
+                      help=('Instruct the TA2 to just create the experiment, update the config, '
+                            'consume training data (if any), train the model (if needed), saves '
+                            'the model to disk, and then exits. This disables the use of '
+                            '--just-one-trial when set.'),
+                      default=False)
+    parser.add_option("--just-one-trial",
+                      dest="just_one_trial",
+                      action="store_true",
+                      help="Process just one trial and then exit.",
+                      default=False)
+    parser.add_option("--ignore-secret",
+                      dest="ignore_secret",
+                      action="store_true",
+                      help='Causes the program to ignore any secret stored in experiment_secret.',
                       default=False)
     (options, args) = parser.parse_args()
     if options.fulldebug:

@@ -43,7 +43,7 @@ from . import objects
 
 class TA2Logic(object):
     def __init__(self, config_file: str, printout: bool, debug: bool, fulldebug: bool,
-                 logfile: str):
+                 logfile: str, no_testing: bool, just_one_trial: bool, ignore_secret: bool):
         self._agent_name = "TA2"
 
         # First check that the config file exists.
@@ -122,12 +122,20 @@ class TA2Logic(object):
         self._seed = None
         self._sail_on_domain = None
         self._novelty = None
+        self._experiment_secret = None
+        self._no_testing = False
+        self._just_one_trial = False
 
         self._experiment_type = self._config.get('aiq-sail-on', 'experiment_type')
         if self._experiment_type not in objects.VALID_EXPERIMENT_TYPES:
             raise objects.AiqDataException('Invalid experiment type provided in config: {}'.format(
                 self._experiment_type))
+        if not self._config.has_option('aiq-sail-on', 'model_name'):
+            raise objects.AiqDataException('Missing configfile entry for [aiq-sail-on].model_name.')
         self._model_name = self._config.get('aiq-sail-on', 'model_name')
+        if not self._config.has_option('aiq-sail-on', 'organization'):
+            raise objects.AiqDataException('Missing configfile entry for [aiq-sail-on].'
+                                           'organization.')
         self._organization = self._config.get('aiq-sail-on', 'organization')
         if self._config.has_option('aiq-sail-on', 'description'):
             self._description = self._config.get('aiq-sail-on', 'description')
@@ -141,6 +149,30 @@ class TA2Logic(object):
             raise objects.AiqDataException('Invalid domain provided in config: {}'.format(
                 self._sail_on_domain))
 
+        # Attempt to load things from the config file if they are there.
+        if self._config.has_option('sail-on', 'experiment_secret'):
+            self._experiment_secret = self._config.get('sail-on', 'experiment_secret')
+        if self._config.has_option('sail-on', 'no_testing'):
+            self._no_testing = self._config.getbool('sail-on', 'no_testing')
+        if self._config.has_option('sail-on', 'just_one_trial'):
+            self._just_one_trial = self._config.getbool('sail-on', 'just_one_trial')
+
+        # Let any command line args overwrite settings from config file if needed.
+        if no_testing:
+            self._no_testing = no_testing
+        if just_one_trial:
+            self._just_one_trial = just_one_trial
+        if ignore_secret:
+            self._experiment_secret = None
+
+        # Apply logic.
+        if self._no_testing:
+            self._just_one_trial = False
+
+        if self._just_one_trial and self._experiment_secret is None:
+            raise objects.AiqDataException('You cannot request just one trial of work without '
+                                           'providing the experiment_secret in the config.')
+
         self._amqp = rabbitmq.Connection(agent_name=self._agent_name,
                                          amqp_user=self._amqp_user,
                                          amqp_pass=self._amqp_pass,
@@ -149,12 +181,13 @@ class TA2Logic(object):
                                          amqp_vhost=self._amqp_vhost,
                                          amqp_ssl=self._amqp_ssl)
 
-        now = datetime.datetime.now()
-        self._model_filename = 'model.TA2.{}.{}.{}.data'.format(self._sail_on_domain,
-                                                                str(now.date()),
-                                                                str(now.time()))
+        self._model_filename = 'model.TA2.{}.{}.file'.format(self._sail_on_domain, '{}')
         self.end_training_early = False
         self.end_experiment_early = False
+        return
+
+    def _set_model_filename(self):
+        self._model_filename = self._model_filename.format(self._experiment_secret)
         return
 
     @staticmethod
@@ -162,9 +195,9 @@ class TA2Logic(object):
         config = configparser.ConfigParser()
         # Base section for both experiment types.
         config.add_section('aiq-sail-on')
-        config.set('aiq-sail-on', 'experiment_type', objects.TYPE_EXPERIMENT_AIQ)
-        config.set('aiq-sail-on', 'model_name', 'model_name')
-        config.set('aiq-sail-on', 'organization', 'organization')
+        config.set('aiq-sail-on', 'experiment_type', objects.TYPE_EXPERIMENT_SAIL_ON)
+        # config.set('aiq-sail-on', 'model_name', 'model_name')
+        # config.set('aiq-sail-on', 'organization', 'organization')
         config.set('aiq-sail-on', 'username', 'username')
         config.set('aiq-sail-on', 'secret', 'secret')
         # Details for SAIL-ON experiments.
@@ -179,6 +212,14 @@ class TA2Logic(object):
         config.set("amqp", "port", "5671")
         config.set("amqp", "ssl", "True")
         return config
+
+    def _write_config_file(self):
+        if self._experiment_secret is not None:
+            self._config.set('sail-on', 'experiment_secret', self._experiment_secret)
+
+        with open(self._config_file, 'w') as configfile:
+            self._config.write(configfile)
+        return
 
     @staticmethod
     def _get_benchmark_data() -> dict:
@@ -327,7 +368,7 @@ class TA2Logic(object):
             self.training_end()
 
             # Now stop the connection for training.
-            self.log.debug('Stopping connection to train model if needed.')
+            self.log.info('Stopping connection to train model if needed.')
             self._amqp.stop()
 
             # Call the function to train our model
@@ -339,41 +380,60 @@ class TA2Logic(object):
             self.log.info('Starting the connection back up.')
             self._amqp.run()
 
-        # Must have received TrainingEnd, this should get objects.NoveltyStart.
+            # Expect to get objects.TrainingModelEnd here.
+            my_state = self._amqp.get_state()
+
+        self._run_sail_on_testing()
+        return
+
+    def _run_jump_to_sail_on_testing(self):
+        self.log.debug('_run_jump_to_sail_on_testing()')
         my_state = self._amqp.get_state()
-        # self.log.info(str(my_state))
-        while isinstance(my_state, objects.NoveltyStart):
-            # We just received an objects.NoveltyStart.
-            self.novelty_start()
-
-            my_state = self._amqp.get_state()
+        self.log.debug(str(my_state))
+        if isinstance(my_state, objects.BenchmarkRequest):
             # self.log.info(str(my_state))
+            benchmark_data = self._get_benchmark_data()
+            my_state = self._amqp.send_benchmark_data(benchmark_data=benchmark_data)
+            self.log.debug(str(my_state))
 
-            # Iterate over the trials we will run.
-            while isinstance(my_state, objects.TrialStart):
-                # We just received an objects.TrialStart.
-                self.trial_start(trial_number=my_state.trial_number,
-                                 novelty_description=my_state.novelty_description)
-
-                # Run the trial.
-                self._run_sail_on_trial()
-
-                # Check to see if we get another go at this loop or continue.
-                # This will either be objects.NoveltyEnd of objects.TrialStart.
-                my_state = self._amqp.get_state()
-                # self.log.info(str(my_state))
-
-            # We just received an objects.Novelty End.
-            self.novelty_end()
-
-            # Find out if we get another NoveltyStart or ExperimentEnd.
+        # Wait until we are ready to start experiment.
+        while not isinstance(my_state, objects.ExperimentStart):
             my_state = self._amqp.get_state()
-            # self.log.info(str(my_state))
+            self.log.info(str(my_state))
+
+        # We have received objects.ExperimentStart.
+        # Be nice and call experiment_start() before we begin jumping into testing.
+        self.experiment_start()
+
+        self._run_sail_on_testing()
+        return
+
+    def _run_sail_on_testing(self):
+        self.log.debug('_run_sail_on_testing()')
+        # Based on which path we took to reach here, the current state must be
+        # objects.ExperimentStart or objects.TrainingModelEnd, the next state should be either
+        # objects.TrialStart or objects.ExperimentEnd.
+        my_state = self._amqp.get_state()
+        self.log.info(str(my_state))
+
+        # Iterate over the trials we will run.
+        while isinstance(my_state, objects.TrialStart):
+            # We just received an objects.TrialStart.
+            self.trial_start(trial_number=my_state.trial_number,
+                             novelty_description=my_state.novelty_description)
+
+            # Run the trial.
+            self._run_sail_on_trial()
+
+            # Check to see if we get another go at this loop or continue.
+            # This will either be objects.ExperimentEnd of objects.TrialStart.
+            my_state = self._amqp.get_state()
+            self.log.info(str(my_state))
 
         # Get Confirmation of ExperimentEnd.
         while not isinstance(my_state, objects.ExperimentEnd):
             my_state = self._amqp.get_state()
-            # self.log.info(str(my_state))
+            self.log.info(str(my_state))
         self.experiment_end()
 
         self._amqp.process_data_events(time_limit=1)
@@ -399,13 +459,45 @@ class TA2Logic(object):
                 print(message)
 
             # Start a SAIL-ON experiment!
-            my_experiment = self._amqp.start_sail_on_experiment(model=model,
-                                                                domain=self._sail_on_domain,
-                                                                seed=self._seed)
-            self.log.info('experiment is gathering requirements!')
-            # self.log.debug(str(my_experiment))
+            if self._experiment_secret is None or self._no_testing:
+                # Based on these variables, we need to start a new experiment.
+                my_experiment = self._amqp.start_sail_on_experiment(model=model,
+                                                                    domain=self._sail_on_domain,
+                                                                    no_testing=self._no_testing,
+                                                                    seed=self._seed)
+                self.log.info('experiment is gathering requirements!')
+                # self.log.debug(str(my_experiment))
+                # Store the experiment_secret locally.
+                self._experiment_secret = my_experiment.experiment_secret
+                if self._experiment_secret is not None:
+                    # Now we can set the model filename.
+                    self._set_model_filename()
+                    # Set the experiment_secret in the config object.
+                    self._config.set('sail-on', 'experiment_secret', self._experiment_secret)
+                    # Write out the config with the new experiment_secret value.
+                    self._write_config_file()
 
-            self._run_sail_on_experiment()
+                    # Run the SAIL-ON experiment!
+                    self._run_sail_on_experiment()
+            else:
+                self._set_model_filename()
+                # Here we don't need to start a new experiment, just register to work on 1 or
+                # many trials for the given experiment.
+                my_experiment = self._amqp.start_work_on_experiment_trials(
+                    model=model,
+                    experiment_secret=self._experiment_secret,
+                    just_one_trial=self._just_one_trial,
+                    domain=self._sail_on_domain)
+                if isinstance(my_experiment, objects.CasasResponse):
+                    if my_experiment.status == 'error':
+                        for casas_error in my_experiment.error_list:
+                            self.log.error(casas_error.message)
+                            self.log.error(str(casas_error.error_dict))
+                else:
+                    # We have our response.
+                    # Start working on trials until TA1 tells us the experiment is done, or at
+                    # least we are done with what we requested.
+                    self._run_jump_to_sail_on_testing()
 
         except KeyboardInterrupt:
             self._stop()
@@ -421,6 +513,10 @@ class TA2Logic(object):
 
     def _stop(self):
         self._amqp.stop()
+        return
+
+    def process_amqp_events(self):
+        self._amqp.process_data_events(time_limit=0.5)
         return
 
     def experiment_start(self):
@@ -525,16 +621,6 @@ class TA2Logic(object):
         """
         raise ValueError('reset_model() not defined.')
 
-    def novelty_start(self):
-        """This indicates the start of a series of trials at a novelty level/difficulty.
-        """
-        raise ValueError('novelty_start() not defined.')
-
-    def testing_start(self):
-        """This is called before the trials in the novelty level/difficulty.
-        """
-        raise ValueError('testing_start() not defined.')
-
     def trial_start(self, trial_number: int, novelty_description: dict):
         """This is called at the start of a trial with the current 0-based number.
 
@@ -546,6 +632,12 @@ class TA2Logic(object):
             A dictionary that will have a description of the trial's novelty.
         """
         raise ValueError('trial_start() not defined.')
+
+    def testing_start(self):
+        """This is called after a trial has started but before we begin going through the
+        episodes.
+        """
+        raise ValueError('testing_start() not defined.')
 
     def testing_episode_start(self, episode_number: int):
         """This is called at the start of each testing episode in a trial, you are provided the
@@ -605,20 +697,15 @@ class TA2Logic(object):
         """
         raise ValueError('testing_episode_end() not defined.')
 
+    def testing_end(self):
+        """This is called after the last episode of a trial has completed, before trial_end().
+        """
+        raise ValueError('testing_end() not defined.')
+
     def trial_end(self):
         """This is called at the end of each trial.
         """
         raise ValueError('trial_end() not defined.')
-
-    def testing_end(self):
-        """This is called after the trials in a novelty level/difficulty are completed.
-        """
-        raise ValueError('testing_end() not defined.')
-
-    def novelty_end(self):
-        """This is called when we are done with a novelty level/difficulty.
-        """
-        raise ValueError('novelty_end() not defined.')
 
     def experiment_end(self):
         """This is called when the experiment is done.
