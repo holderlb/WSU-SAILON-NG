@@ -153,9 +153,9 @@ class TA2Logic(object):
         if self._config.has_option('sail-on', 'experiment_secret'):
             self._experiment_secret = self._config.get('sail-on', 'experiment_secret')
         if self._config.has_option('sail-on', 'no_testing'):
-            self._no_testing = self._config.getbool('sail-on', 'no_testing')
+            self._no_testing = self._config.getboolean('sail-on', 'no_testing')
         if self._config.has_option('sail-on', 'just_one_trial'):
-            self._just_one_trial = self._config.getbool('sail-on', 'just_one_trial')
+            self._just_one_trial = self._config.getboolean('sail-on', 'just_one_trial')
 
         # Let any command line args overwrite settings from config file if needed.
         if no_testing:
