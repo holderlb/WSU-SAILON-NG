@@ -106,8 +106,7 @@ class TA2Agent(TA2Logic):
         self.log.info('Training Episode Start: #{}'.format(episode_number))
         return
 
-    def training_instance(self, feature_vector: dict, feature_label: dict) -> \
-            (dict, float, int, dict):
+    def training_instance(self, feature_vector: dict, feature_label: dict) -> dict:
         """Process a training
 
         Parameters
@@ -123,12 +122,9 @@ class TA2Agent(TA2Logic):
 
         Returns
         -------
-        dict, float, int, dict
+        dict
             A dictionary of your label prediction of the format {'action': label}.  This is
                 strictly enforced and the incorrect format will result in an exception being thrown.
-            A float of the probability of there being novelty.
-            Integer representing the predicted novelty level.
-            A JSON-valid dict characterizing the novelty.
         """
         self.log.debug('Training Instance: feature_vector={}  feature_label={}'.format(
             feature_vector, feature_label))
@@ -136,24 +132,25 @@ class TA2Agent(TA2Logic):
             self.possible_answers.append(copy.deepcopy(feature_label))
 
         label_prediction = random.choice(self.possible_answers)
-        novelty_probability = random.random()
-        novelty = 0
-        novelty_characterization = dict()
 
-        return label_prediction, novelty_probability, novelty, novelty_characterization
+        return label_prediction
 
-    def training_performance(self, performance: float):
+    def training_performance(self, performance: float, feedback: dict = None):
         """Provides the current performance on training after each instance.
 
         Parameters
         ----------
         performance : float
             The normalized performance score.
+        feedback : dict, optional
+            A dictionary that may provide additional feedback on your prediction based on the
+            budget set in the TA1. If there is no feedback, the object will be None.
         """
         self.log.debug('Training Performance: {}'.format(performance))
         return
 
-    def training_episode_end(self, performance: float):
+    def training_episode_end(self, performance: float, feedback: dict = None) -> \
+            (float, float, int, dict):
         """Provides the final performance on the training episode and indicates that the training
         episode has ended.
 
@@ -161,9 +158,26 @@ class TA2Agent(TA2Logic):
         ----------
         performance : float
             The final normalized performance score of the episode.
+        feedback : dict, optional
+            A dictionary that may provide additional feedback on your prediction based on the
+            budget set in the TA1. If there is no feedback, the object will be None.
+
+        Returns
+        -------
+        float, float, int, dict
+            A float of the probability of there being novelty.
+            A float of the probability threshold for this to evaluate as novelty detected.
+            Integer representing the predicted novelty level.
+            A JSON-valid dict characterizing the novelty.
         """
         self.log.info('Training Episode End: performance={}'.format(performance))
-        return
+
+        novelty_probability = random.random()
+        novelty_threshold = 0.8
+        novelty = 0
+        novelty_characterization = dict()
+
+        return novelty_probability, novelty_threshold, novelty, novelty_characterization
 
     def training_end(self):
         """This function is called when we have completed the training episodes.
@@ -273,8 +287,7 @@ class TA2Agent(TA2Logic):
                          'testing_episode_start() before running actual experiments.')
         return
 
-    def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> \
-            (dict, float, int, dict):
+    def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> dict:
         """Evaluate a testing instance.  Returns the predicted label or action, if you believe
         this episode is novel, and what novelty level you beleive it to be.
 
@@ -291,44 +304,59 @@ class TA2Agent(TA2Logic):
 
         Returns
         -------
-        dict, float, int, dict
+        dict
             A dictionary of your label prediction of the format {'action': label}.  This is
                 strictly enforced and the incorrect format will result in an exception being thrown.
-            A float of the probability of there being novelty.
-            Integer representing the predicted novelty level.
-            A JSON-valid dict characterizing the novelty.
         """
         self.log.debug('Testing Instance: feature_vector={}, novelty_indicator={}'.format(
             feature_vector, novelty_indicator))
 
         # Return dummy random choices, but should be determined by trained model
         label_prediction = random.choice(self.possible_answers)
-        novelty_probability = random.random()
-        novelty = random.choice(list(range(4)))
-        novelty_characterization = dict()
 
-        return label_prediction, novelty_probability, novelty, novelty_characterization
+        return label_prediction
 
-    def testing_performance(self, performance: float):
+    def testing_performance(self, performance: float, feedback: dict = None):
         """Provides the current performance on training after each instance.
 
         Parameters
         ----------
         performance : float
             The normalized performance score.
+        feedback : dict, optional
+            A dictionary that may provide additional feedback on your prediction based on the
+            budget set in the TA1. If there is no feedback, the object will be None.
         """
         return
 
-    def testing_episode_end(self, performance: float):
+    def testing_episode_end(self, performance: float, feedback: dict = None) -> \
+            (float, float, int, dict):
         """Provides the final performance on the testing episode.
 
         Parameters
         ----------
         performance : float
             The final normalized performance score of the episode.
+        feedback : dict, optional
+            A dictionary that may provide additional feedback on your prediction based on the
+            budget set in the TA1. If there is no feedback, the object will be None.
+
+        Returns
+        -------
+        float, float, int, dict
+            A float of the probability of there being novelty.
+            A float of the probability threshold for this to evaluate as novelty detected.
+            Integer representing the predicted novelty level.
+            A JSON-valid dict characterizing the novelty.
         """
         self.log.info('Testing Episode End: performance={}'.format(performance))
-        return
+
+        novelty_probability = random.random()
+        novelty_threshold = 0.8
+        novelty = random.choice(list(range(4)))
+        novelty_characterization = dict()
+
+        return novelty_probability, novelty_threshold, novelty, novelty_characterization
 
     def testing_end(self):
         """This is called after the last episode of a trial has completed, before trial_end().

@@ -87,7 +87,7 @@ class TA2Logic(object):
         if logfile is not None:
             fh = logging.handlers.TimedRotatingFileHandler(logfile,
                                                            when='midnight',
-                                                           backupCount=7)
+                                                           backupCount=30)
             fh.setLevel(log_level)
             fh.setFormatter(formatter)
             # Only set the handler for one of the two, otherwise you will see output doubled for
@@ -181,13 +181,14 @@ class TA2Logic(object):
                                          amqp_vhost=self._amqp_vhost,
                                          amqp_ssl=self._amqp_ssl)
 
-        self._model_filename = 'model.TA2.{}.{}.file'.format(self._sail_on_domain, '{}')
+        self._model_filename_pat = 'model/model.TA2.{}.{}.file'.format(self._sail_on_domain, '{}')
+        self._model_filename = None
         self.end_training_early = False
         self.end_experiment_early = False
         return
 
     def _set_model_filename(self):
-        self._model_filename = self._model_filename.format(self._experiment_secret)
+        self._model_filename = self._model_filename_pat.format(self._experiment_secret)
         return
 
     @staticmethod
@@ -265,7 +266,7 @@ class TA2Logic(object):
                     test_data = self._amqp.get_testing_data()
 
                     # Evaluate the testing data.
-                    label_prediction, novelty_probability, novelty, novelty_characterization = \
+                    label_prediction = \
                         self.testing_instance(feature_vector=test_data.feature_vector,
                                               novelty_indicator=test_data.novelty_indicator)
 
@@ -273,16 +274,23 @@ class TA2Logic(object):
                     # the training episode is over.
                     my_state = self._amqp.send_testing_predictions(
                         label_prediction=label_prediction,
-                        novelty_probability=novelty_probability,
-                        novelty=novelty,
-                        novelty_characterization=novelty_characterization,
                         end_early=self.end_experiment_early)
                     if isinstance(my_state, objects.TestingDataAck):
-                        self.testing_performance(performance=my_state.performance)
+                        self.testing_performance(performance=my_state.performance,
+                                                 feedback=my_state.feedback)
 
                 # We are done with the training episode.
                 if isinstance(my_state, objects.TestingEpisodeEnd):
-                    self.testing_episode_end(performance=my_state.performance)
+                    novelty_probability, novelty_threshold, novelty, novelty_characterization = \
+                        self.testing_episode_end(performance=my_state.performance,
+                                                 feedback=my_state.feedback)
+                    my_state = self._amqp.send_training_episode_novelty(
+                        novelty_characterization=novelty_characterization,
+                        novelty_probability=novelty_probability,
+                        novelty_threshold=novelty_threshold,
+                        novelty=novelty)
+
+                self.log.debug(str(my_state))
 
                 # Find out if we have another episode or if the trial is over.
                 my_state = self._amqp.get_state()
@@ -339,7 +347,7 @@ class TA2Logic(object):
                 training_data = self._amqp.get_training_data()
 
                 # Handle the training data.
-                label_prediction, novelty_probability, novelty, novelty_characterization = \
+                label_prediction = \
                     self.training_instance(feature_vector=training_data.feature_vector,
                                            feature_label=training_data.feature_label)
 
@@ -347,18 +355,23 @@ class TA2Logic(object):
                 # the training episode is over.
                 my_state = self._amqp.send_training_predictions(
                     label_prediction=label_prediction,
-                    novelty_probability=novelty_probability,
-                    novelty=novelty,
-                    novelty_characterization=novelty_characterization,
                     end_early=self.end_training_early)
                 if isinstance(my_state, objects.TrainingDataAck):
-                    self.training_performance(performance=my_state.performance)
+                    self.training_performance(performance=my_state.performance,
+                                              feedback=my_state.feedback)
 
             if isinstance(my_state, objects.TrainingEpisodeEnd):
                 # We have received objects.TrainingEpisodeEnd.
-                self.training_episode_end(performance=my_state.performance)
+                novelty_probability, novelty_threshold, novelty, novelty_characterization = \
+                    self.training_episode_end(performance=my_state.performance,
+                                              feedback=my_state.feedback)
+                my_state = self._amqp.send_training_episode_novelty(
+                    novelty_characterization=novelty_characterization,
+                    novelty_probability=novelty_probability,
+                    novelty_threshold=novelty_threshold,
+                    novelty=novelty)
 
-            # self.log.info(str(my_state))
+            self.log.debug(str(my_state))
 
             # Find out if we are going to start another episode or not.
             my_state = self._amqp.get_state()
@@ -542,8 +555,7 @@ class TA2Logic(object):
         """
         raise ValueError('training_episode_start() not defined.')
 
-    def training_instance(self, feature_vector: dict, feature_label: dict) -> \
-            (dict, float, int, dict):
+    def training_instance(self, feature_vector: dict, feature_label: dict) -> dict:
         """Process a training
 
         Parameters
@@ -559,26 +571,27 @@ class TA2Logic(object):
 
         Returns
         -------
-        dict, float, int, dict
+        dict
             A dictionary of your label prediction of the format {'action': label}.  This is
                 strictly enforced and the incorrect format will result in an exception being thrown.
-            A float of the probability of there being novelty.
-            Integer representing the predicted novelty level.
-            A JSON-valid dict characterizing the novelty.
         """
         raise ValueError('training_instance() not defined.')
 
-    def training_performance(self, performance: float):
+    def training_performance(self, performance: float, feedback: dict = None):
         """Provides the current performance on training after each instance.
 
         Parameters
         ----------
         performance : float
             The normalized performance score.
+        feedback : dict, optional
+            A dictionary that may provide additional feedback on your prediction based on the
+            budget set in the TA1. If there is no feedback, the object will be None.
         """
         raise ValueError('training_performance() not defined.')
 
-    def training_episode_end(self, performance: float):
+    def training_episode_end(self, performance: float, feedback: dict = None) -> \
+            (float, float, int, dict):
         """Provides the final performance on the training episode and indicates that the training
         episode has ended.
 
@@ -586,6 +599,17 @@ class TA2Logic(object):
         ----------
         performance : float
             The final normalized performance score of the episode.
+        feedback : dict, optional
+            A dictionary that may provide additional feedback on your prediction based on the
+            budget set in the TA1. If there is no feedback, the object will be None.
+
+        Returns
+        -------
+        float, float, int, dict
+            A float of the probability of there being novelty.
+            A float of the probability threshold for this to evaluate as novelty detected.
+            Integer representing the predicted novelty level.
+            A JSON-valid dict characterizing the novelty.
         """
         raise ValueError('training_episode_end() not defined.')
 
@@ -650,8 +674,7 @@ class TA2Logic(object):
         """
         raise ValueError('testing_episode_start() not defined.')
 
-    def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> \
-            (dict, float, int, dict):
+    def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> dict:
         """Evaluate a testing instance.  Returns the predicted label or action, if you believe
         this episode is novel, and what novelty level you beleive it to be.
 
@@ -668,32 +691,44 @@ class TA2Logic(object):
 
         Returns
         -------
-        dict, float, int, dict
+        dict
             A dictionary of your label prediction of the format {'action': label}.  This is
                 strictly enforced and the incorrect format will result in an exception being thrown.
-            A float of the probability of there being novelty.
-            Integer representing the predicted novelty level.
-            A JSON-valid dict characterizing the novelty.
         """
         raise ValueError('testing_instance() not defined.')
 
-    def testing_performance(self, performance: float):
+    def testing_performance(self, performance: float, feedback: dict = None):
         """Provides the current performance on training after each instance.
 
         Parameters
         ----------
         performance : float
             The normalized performance score.
+        feedback : dict, optional
+            A dictionary that may provide additional feedback on your prediction based on the
+            budget set in the TA1. If there is no feedback, the object will be None.
         """
         raise ValueError('testing_performance() not defined.')
 
-    def testing_episode_end(self, performance: float):
+    def testing_episode_end(self, performance: float, feedback: dict = None) -> \
+            (float, float, int, dict):
         """Provides the final performance on the testing episode.
 
         Parameters
         ----------
         performance : float
             The final normalized performance score of the episode.
+        feedback : dict, optional
+            A dictionary that may provide additional feedback on your prediction based on the
+            budget set in the TA1. If there is no feedback, the object will be None.
+
+        Returns
+        -------
+        float, float, int, dict
+            A float of the probability of there being novelty.
+            A float of the probability threshold for this to evaluate as novelty detected.
+            Integer representing the predicted novelty level.
+            A JSON-valid dict characterizing the novelty.
         """
         raise ValueError('testing_episode_end() not defined.')
 

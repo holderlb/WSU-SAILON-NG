@@ -612,9 +612,7 @@ class Connection:
                                             client_callback_queue=self._client_rpc_queue)
         return response
 
-    def send_training_predictions(self, label_prediction: dict, novelty_characterization: dict,
-                                  novelty_probability: float = 0.0, novelty: int = 0,
-                                  end_early: bool = False):
+    def send_training_predictions(self, label_prediction: dict, end_early: bool = False):
         self.log.debug('send_training_prediction()')
 
         if self._server_experiment_rpc_queue is None:
@@ -623,12 +621,29 @@ class Connection:
         training_prediction = objects.TrainingDataPrediction(
             secret=self._model_experiment_secret,
             label_prediction=label_prediction,
-            novelty_probability=novelty_probability,
-            novelty=novelty,
-            novelty_characterization=novelty_characterization,
             end_early=end_early)
 
         response = self._set_system_request(casas_object=training_prediction,
+                                            queue_name=self._server_experiment_rpc_queue,
+                                            declare_server_queue=False,
+                                            client_callback_queue=self._client_rpc_queue)
+        return response
+
+    def send_training_episode_novelty(self, novelty_characterization: dict,
+                                      novelty_probability: float = 0.0,
+                                      novelty_threshold: float = 0.0, novelty: int = 0):
+        self.log.debug('send_training_episode_novelty()')
+
+        if self._server_experiment_rpc_queue is None:
+            raise objects.CasasRabbitMQException('You have not established an experiment yet!')
+
+        training_episode_novelty = objects.TrainingEpisodeNovelty(
+            novelty_probability=novelty_probability,
+            novelty_threshold=novelty_threshold,
+            novelty=novelty,
+            novelty_characterization=novelty_characterization)
+
+        response = self._set_system_request(casas_object=training_episode_novelty,
                                             queue_name=self._server_experiment_rpc_queue,
                                             declare_server_queue=False,
                                             client_callback_queue=self._client_rpc_queue)
@@ -664,9 +679,7 @@ class Connection:
                                             client_callback_queue=self._client_rpc_queue)
         return response
 
-    def send_testing_predictions(self, label_prediction: dict, novelty_characterization: dict,
-                                 novelty_probability: float = 0.0, novelty: int = 0,
-                                 end_early: bool = False):
+    def send_testing_predictions(self, label_prediction: dict, end_early: bool = False):
         self.log.debug('send_testing_predictions()')
 
         if self._server_experiment_rpc_queue is None:
@@ -675,12 +688,29 @@ class Connection:
         testing_prediction = objects.TestingDataPrediction(
             secret=self._model_experiment_secret,
             label_prediction=label_prediction,
-            novelty_probability=novelty_probability,
-            novelty=novelty,
-            novelty_characterization=novelty_characterization,
             end_early=end_early)
 
         response = self._set_system_request(casas_object=testing_prediction,
+                                            queue_name=self._server_experiment_rpc_queue,
+                                            declare_server_queue=False,
+                                            client_callback_queue=self._client_rpc_queue)
+        return response
+
+    def send_testing_episode_novelty(self, novelty_characterization: dict,
+                                     novelty_probability: float = 0.0,
+                                     novelty_threshold: float = 0.0, novelty: int = 0):
+        self.log.debug('send_testing_episode_novelty()')
+
+        if self._server_experiment_rpc_queue is None:
+            raise objects.CasasRabbitMQException('You have not established an experiment yet!')
+
+        testing_episode_novelty = objects.TestingEpisodeNovelty(
+            novelty_probability=novelty_probability,
+            novelty_threshold=novelty_threshold,
+            novelty=novelty,
+            novelty_characterization=novelty_characterization)
+
+        response = self._set_system_request(casas_object=testing_episode_novelty,
                                             queue_name=self._server_experiment_rpc_queue,
                                             declare_server_queue=False,
                                             client_callback_queue=self._client_rpc_queue)
