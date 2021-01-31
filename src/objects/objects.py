@@ -36,7 +36,7 @@ import uuid
 
 __major_version__ = '0.6'
 __minor_version__ = '0'
-__db_version__ = '0.4'
+__db_version__ = '0.5'
 __version__ = '{}.{}'.format(__major_version__, __minor_version__)
 __database_version__ = re.sub('[.]', '_', __db_version__)
 
@@ -3845,7 +3845,8 @@ class Model(AiqObject):
 class RequestExperiment(AiqObject):
     def __init__(self, model: Model, novelty: int, novelty_visibility: int, client_rpc_queue: str,
                  git_version: str, experiment_type: str, seed: int = None,
-                 domain_dict: dict = None, epoch: float = None, no_testing: bool = False):
+                 domain_dict: dict = None, epoch: float = None, no_testing: bool = False,
+                 description: str = None):
         super().__init__()
         self.obj_type = REQ_EXPERIMENT
         self.model = copy.deepcopy(model)
@@ -3875,6 +3876,7 @@ class RequestExperiment(AiqObject):
                 true_domain = True
         if not true_domain:
             raise AiqDataException('An experiment MUST have at least one domain selected.')
+        self.description = description
         return
 
     def get_json_obj(self):
@@ -3888,7 +3890,8 @@ class RequestExperiment(AiqObject):
                'domain_dict': self.domain_dict,
                'epoch': self.epoch,
                'no_testing': self.no_testing,
-               'experiment_type': self.experiment_type}
+               'experiment_type': self.experiment_type,
+               'description': self.description}
         return copy.deepcopy(obj)
 
 
@@ -4632,7 +4635,8 @@ class SotaIdle(AiqObject):
 class Episode(AiqObject):
     def __init__(self, novelty: int, difficulty: str, seed: int, domain: str, data_type: str,
                  episode_index: int = None, episode_id: int = None,
-                 trial_novelty: int = NOVELTY_0, day_offset: int = 0):
+                 trial_novelty: int = NOVELTY_0, day_offset: int = 0,
+                 trial_episode_index: int = None):
         super().__init__()
         self.obj_type = OBJ_EPISODE
         self.novelty = novelty
@@ -4654,6 +4658,7 @@ class Episode(AiqObject):
         if self.trial_novelty not in VALID_NOVELTY:
             raise AiqDataException('{} is not a valid trial_novelty.'.format(self.trial_novelty))
         self.day_offset = day_offset
+        self.trial_episode_index = trial_episode_index
         return
 
     def get_json_obj(self):
@@ -4666,7 +4671,8 @@ class Episode(AiqObject):
                'episode_index': self.episode_index,
                'episode_id': self.episode_id,
                'trial_novelty': self.trial_novelty,
-               'day_offset': self.day_offset}
+               'day_offset': self.day_offset,
+               'trial_episode_index': self.trial_episode_index}
         return copy.deepcopy(obj)
 
 
@@ -4722,18 +4728,20 @@ class NoveltyGroup(AiqObject):
 
 
 class Experiment(AiqObject):
-    def __init__(self, training: Training, novelty_groups: list):
+    def __init__(self, training: Training, novelty_groups: list, budget: float):
         super().__init__()
         self.obj_type = OBJ_EXPERIMENT
         self.training = copy.deepcopy(training)
         self.novelty_groups = copy.deepcopy(novelty_groups)
+        self.budget = budget
         self.model_experiment_id = None
         return
 
     def get_json_obj(self):
         obj = {'obj_type': self.obj_type,
                'training': self.training.get_json_obj(),
-               'novelty_groups': list()}
+               'novelty_groups': list(),
+               'budget': self.budget}
         for nov_group in self.novelty_groups:
             obj['novelty_groups'].append(nov_group.get_json_obj())
         return copy.deepcopy(obj)
@@ -5184,6 +5192,9 @@ def build_objects_from_json(message):
                     if 'no_testing' not in obj:
                         errormsgs.append('Could not obtain attribute no_testing, '
                                          'please include json attribute no_testing.')
+                    if 'description' not in obj:
+                        errormsgs.append('Could not obtain attribute description, '
+                                         'please include json attribute description.')
                     if 'epoch' in obj:
                         epoch = obj['epoch']
                     if len(errormsgs) == 0:
@@ -5196,7 +5207,8 @@ def build_objects_from_json(message):
                                                    seed=obj['seed'],
                                                    domain_dict=obj['domain_dict'],
                                                    epoch=epoch,
-                                                   no_testing=obj['no_testing'])
+                                                   no_testing=obj['no_testing'],
+                                                   description=obj['description'])
                 elif obj['obj_type'] == REQ_EXP_TRIALS:
                     model = None
                     epoch = None
@@ -5660,6 +5672,9 @@ def build_objects_from_json(message):
                     if 'day_offset' not in obj:
                         errormsgs.append('Could not obtain attribute day_offset, '
                                          'please include json attribute day_offset.')
+                    if 'trial_episode_index' not in obj:
+                        errormsgs.append('Could not obtain attribute trial_episode_index, '
+                                         'please include json attribute trial_episode_index.')
                     if len(errormsgs) == 0:
                         result = Episode(novelty=obj['novelty'],
                                          difficulty=obj['difficulty'],
@@ -5669,7 +5684,8 @@ def build_objects_from_json(message):
                                          episode_index=obj['episode_index'],
                                          episode_id=obj['episode_id'],
                                          trial_novelty=obj['trial_novelty'],
-                                         day_offset=obj['day_offset'])
+                                         day_offset=obj['day_offset'],
+                                         trial_episode_index=obj['trial_episode_index'])
                 elif obj['obj_type'] == OBJ_TRAINING:
                     if 'episodes' not in obj:
                         errormsgs.append('Could not obtain attribute episodes, '
@@ -5725,6 +5741,9 @@ def build_objects_from_json(message):
                     if 'novelty_groups' not in obj:
                         errormsgs.append('Could not obtain attribute novelty_groups, '
                                          'please include json attribute novelty_groups.')
+                    if 'budget' not in obj:
+                        errormsgs.append('Could not obtain attribute budget, '
+                                         'please include json attribute budget.')
                     training = None
                     nov_groups = list()
                     if len(errormsgs) == 0:
@@ -5738,7 +5757,8 @@ def build_objects_from_json(message):
                                 errormsgs=errormsgs)
                     if len(errormsgs) == 0:
                         result = Experiment(training=training,
-                                            novelty_groups=nov_groups)
+                                            novelty_groups=nov_groups,
+                                            budget=obj['budget'])
                 elif obj['obj_type'] == REQ_NOVELTY_DESCRIPTION:
                     if 'domain' not in obj:
                         errormsgs.append('Could not obtain attribute domain, '

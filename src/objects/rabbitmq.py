@@ -366,7 +366,7 @@ class Connection:
         return response
 
     def start_aiq_experiment(self, model: objects.Model, seed: int = None,
-                             domain_dict: dict = None):
+                             domain_dict: dict = None, description: str = None):
         self.log.debug('start_aiq_experiment()')
 
         if self._client_rpc_queue is None:
@@ -387,7 +387,8 @@ class Connection:
                                                        git_version=objects.__version__,
                                                        experiment_type=objects.TYPE_EXPERIMENT_AIQ,
                                                        seed=seed,
-                                                       domain_dict=domain_dict)
+                                                       domain_dict=domain_dict,
+                                                       description=description)
 
         response = self._set_system_request(casas_object=experiment_request,
                                             queue_name=objects.SERVER_EXPERIMENT_QUEUE,
@@ -396,7 +397,7 @@ class Connection:
         return response
 
     def start_sail_on_experiment(self, model: objects.Model, domain: str, no_testing: bool,
-                                 seed: int = None):
+                                 seed: int = None, description: str = None):
         self.log.debug('start_sail_on_experiment()')
 
         if domain not in objects.VALID_DOMAINS:
@@ -424,7 +425,8 @@ class Connection:
             experiment_type=objects.TYPE_EXPERIMENT_SAIL_ON,
             seed=seed,
             domain_dict=domain_dict,
-            no_testing=no_testing)
+            no_testing=no_testing,
+            description=description)
 
         response = self._set_system_request(casas_object=experiment_request,
                                             queue_name=objects.SERVER_EXPERIMENT_QUEUE,
@@ -463,7 +465,7 @@ class Connection:
         return response
 
     def register_as_sota(self, model: objects.Model, domain: str, no_testing: bool,
-                         seed: int = None):
+                         seed: int = None, description: str = None):
         self.log.debug('start_sail_on_experiment()')
 
         if domain not in objects.VALID_DOMAINS:
@@ -491,7 +493,8 @@ class Connection:
             experiment_type=objects.TYPE_EXPERIMENT_SAIL_ON,
             seed=seed,
             domain_dict=domain_dict,
-            no_testing=no_testing)
+            no_testing=no_testing,
+            description=description)
 
         response = self._set_system_request(casas_object=experiment_request,
                                             queue_name=objects.REGISTER_SOTA_QUEUE,

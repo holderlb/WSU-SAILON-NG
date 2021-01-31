@@ -477,7 +477,8 @@ class TA2Logic(object):
                 my_experiment = self._amqp.start_sail_on_experiment(model=model,
                                                                     domain=self._sail_on_domain,
                                                                     no_testing=self._no_testing,
-                                                                    seed=self._seed)
+                                                                    seed=self._seed,
+                                                                    description=self._description)
                 self.log.info('experiment is gathering requirements!')
                 # self.log.debug(str(my_experiment))
                 # Store the experiment_secret locally.
