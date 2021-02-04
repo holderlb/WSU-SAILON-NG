@@ -284,7 +284,7 @@ class TA2Logic(object):
                     novelty_probability, novelty_threshold, novelty, novelty_characterization = \
                         self.testing_episode_end(performance=my_state.performance,
                                                  feedback=my_state.feedback)
-                    my_state = self._amqp.send_training_episode_novelty(
+                    my_state = self._amqp.send_testing_episode_novelty(
                         novelty_characterization=novelty_characterization,
                         novelty_probability=novelty_probability,
                         novelty_threshold=novelty_threshold,
