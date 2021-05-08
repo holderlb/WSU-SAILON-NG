@@ -80,10 +80,7 @@ experiment with all novelty levels, contact us for different credentials.
 ### [sail-on]
 
 *  `domain` selects which domain you would like to test on.  The current
-    available domains are `cartpole` and `smartenv`.
-    
-    *  `vizdoom` will become available shortly. Running it now will not provide
-    accurate simulator data.
+    available domains are `cartpole`, `vizdoom` and `smartenv`.
 
 *  `experiment_secret` is a secret generated when a new experiment is created.  This field is
     optional if you just wish to run the system in a single linear experiment, but is required
