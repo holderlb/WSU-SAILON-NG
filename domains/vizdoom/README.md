@@ -24,27 +24,28 @@ For example,
 
 ```
 {
-    "time_stamp": 1597953858.2,
+    "time_stamp": 1622067743.7375498,
     "player": {
-        "id": 1,
+        "id": 0,
         "x_position": 10.0,
         "y_position": 10.0,
         "z_position": 0.0,
-        "health": 50.0
+        "health": 10.0
     },
-    "enemy":
-        "id": 2,
+    "enemy": {
+        "id": 1,
         "x_position": 10.0,
         "y_position": 20.0,
         "z_position": 0.0,
-        "health": 100.0
+        "health": 1.0
     },
-    "projectile":
-        "id": 11,
-        "x_position": 10.0,
-        "y_position": 15.0,
-        "z_position": 0.0
-    }
+    "projectiles": [{
+        "id": 3, 
+        "x_position": 60.03, 
+        "y_position": 25.16, 
+        "z_position": 31.30
+        }
+    ]
 }
 ```
 
@@ -52,7 +53,10 @@ For example,
 
 The feature label provides the correct action according to our SOTA agent and
 is sent in JSON format. This is only provided for novelty level-0 training
-instances. For VizDoom, the possible actions are "left", "right" and "shoot".
+instances. For VizDoom, the possible actions are:
+
+"left", "right", "forward", "backward", "shoot", "nothing".
+
 For example,
 
 ```
