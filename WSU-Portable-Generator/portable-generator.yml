@@ -1,0 +1,88 @@
+version: '2'
+
+services:
+  rabbit:
+    hostname: rabbit
+    image: rabbitmq:latest
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=bunny
+      - RABBITMQ_DEFAULT_PASS=gvC1Ik5i3w
+
+  pgdb:
+    hostname: pgdb
+    build:
+      context: ./
+      dockerfile: Dockerfile-PostgreSQL
+    restart: always
+    environment:
+      - POSTGRES_USER=aiq_user
+      - POSTGRES_PASSWORD=gvC1Ik5i3w
+      - POSTGRES_DB=aiq_data_v0_5
+
+  # The TA1 service.
+  # We use a custom service name for each service variant so we can have multiple versions
+  # running at the same time, just with slightly modified docker-compose files.
+  mockn-ta1:
+    build:
+      context: ./
+      dockerfile: Dockerfile-PARTIAL-TA1
+    command: python -u TA1.py --config=config/TA1.config --printout
+    restart: always
+    links:
+      - rabbit
+      - pgdb
+    depends_on:
+      - rabbit
+      - pgdb
+
+  # The cartpole service.
+  # We use a custom service name for each service variant so we can have multiple versions
+  # running at the same time, just with slightly modified docker-compose files.
+  mockn-gen-cartpole:
+    build:
+      context: ./
+      dockerfile: Dockerfile-PARTIAL-GENERATOR
+    command: python -u GENERATOR.py --domain=cartpole --config=config/generator.config --printout
+    restart: always
+    links:
+      - rabbit
+    depends_on:
+      - rabbit
+      - pgdb
+      - mockn-ta1
+
+  # The vizdoom service.
+  # We use a custom service name for each service variant so we can have multiple versions
+  # running at the same time, just with slightly modified docker-compose files.
+  mockn-gen-vizdoom:
+    build:
+      context: ./
+      dockerfile: Dockerfile-PARTIAL-GENERATOR
+    command: python -u GENERATOR.py --domain=vizdoom --config=config/generator.config --printout
+    restart: always
+    links:
+      - rabbit
+    depends_on:
+      - rabbit
+      - pgdb
+      - mockn-ta1
+
+  # The TA2 demo agent.
+  # We use a custom service name for each service variant so we can have multiple versions
+  # running at the same time, just with slightly modified docker-compose files.
+  mockn-demo-ta2:
+    # The volume we mount determines which config files will be available to the services.
+    volumes:
+      - ./configs/partial:/aiq-sail-on/config:rw
+      - ./logs:/aiq-sail-on/logs:rw
+    build:
+      context: ./
+      dockerfile: Dockerfile-PARTIAL-TA2
+    command: python -u TA2.py --config=config/demo-client.config --printout --logfile=logs/log.TA2.txt
+    links:
+      - rabbit
+    depends_on:
+      - rabbit
+      - pgdb
+      - mockn-ta1

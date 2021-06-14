@@ -1,0 +1,58 @@
+FROM python:3.6.9
+
+# ZDoom dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential zlib1g-dev libsdl2-dev libjpeg-dev \
+    nasm tar libbz2-dev libgtk2.0-dev cmake git libfluidsynth-dev libgme-dev \
+    libopenal-dev timidity libwildmidi-dev unzip
+
+# Boost libraries
+RUN apt-get install -y libboost-all-dev
+
+# git clone smart env repo
+# RUN git clone https://github.com/jb3dahmen/SynSys-Updated.git synsys
+RUN echo "Skipping install of smartenv for the moment!"
+
+## This was a part of vizdoom but doesn't seem to be required
+# Python 3 dependencies
+# RUN apt-get install python3-dev python3-pip
+
+# pip libraries
+ADD requirements-GENERATOR.txt requirements.txt
+RUN pip install -r requirements.txt
+
+# RUN pip show numpy
+
+# pip libraries
+ADD requirements-GENERATOR2.txt requirements2.txt
+RUN pip install -r requirements2.txt
+
+# Smart env installation
+# WORKDIR synsys/SynSys
+# RUN ls
+# RUN python3.6 setup.py build_ext --inplace install
+WORKDIR /
+
+RUN echo 'loading.....'
+
+# Load generator environments.
+ADD source/partial_env_generator /aiq-sail-on/env_generator/
+
+# ADD valdidator
+# ADD source/VALIDATOR.py /aiq-sail-on/
+
+# Add test_random_action
+# ADD source/test_random_action.py /aiq-sail-on/
+
+# Add SAILON stuff
+ADD source/objects /aiq-sail-on/objects/
+ADD source/GENERATOR.py /aiq-sail-on/
+
+# Add configs
+ADD configs/partial /aiq-sail-on/config/
+
+# Change local dir
+WORKDIR /aiq-sail-on/
+
+# Test tests?
+# RUN python test_random_action.py
