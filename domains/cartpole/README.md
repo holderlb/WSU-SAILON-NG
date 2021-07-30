@@ -19,12 +19,43 @@ For example,
 
 ```
 {
-    "time_stamp": 1597953858.2,
-    "cart_position": -1.0,
-    "cart_veloctiy": 1.0,
-    "pole_angle": 0.01,
-    "pole_angular_velocity": 0.03
+    "cart": {
+        "x_position": -0.885514,
+        "y_position": -1.605059,
+        "z_position": 0.1,
+        "x_velocity": -11.970514,
+        "y_velocity": 1.005748,
+        "z_velocity": 0.0
+    },
+    "pole": {
+        "x_quaternion": 0.064607,
+        "y_quaternion": -0.065981,
+        "z_quaternion": 0.67565,
+        "w_quaternion": 0.731416,
+        "x_velocity": 2.085099,
+        "y_velocity": -0.892353,
+        "z_velocity": 11.80254
+    },
+    "block_0": {
+        "x_position": 4.051929,
+        "y_position": -3.224569,
+        "z_position": 2.41116,
+        "x_velocity": 7.785026,
+        "y_velocity": 9.065675,
+        "z_velocity": 6.467906
+    },
+    "block_1": {
+        "x_position": -0.057339,
+        "y_position": -3.611403,
+        "z_position": 5.08273,
+        "x_velocity": 8.733008,
+        "y_velocity": -7.7752,
+        "z_velocity": 7.471741
+    }
+    "time_stamp": 1627668897.4486113,
+    "image": null
 }
+
 ```
 
 ## Feature label format
