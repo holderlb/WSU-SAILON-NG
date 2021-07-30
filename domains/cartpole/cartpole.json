@@ -69,38 +69,45 @@
                 "range_max":  500.0
             }
         },
-        "block_(0-3)": {
-            "x_position": {
-                "type": "float",
-                "range_min": -5.0,
-                "range_max":  5.0
-            },
-            "y_position": {
-                "type": "float",
-                "range_min": -5.0,
-                "range_max":  5.0
-            },
-            "z_position": {
-                "type": "float",
-                "range_min": 0.0,
-                "range_max": 10.0
-            },
-            "x_velocity": {
-                "type": "float",
-                "range_min": -500.0,
-                "range_max":  500.0
-            },
-            "y_velocity": {
-                "type": "float",
-                "range_min": -500.0,
-                "range_max":  500.0
-            },
-            "z_velocity": {
-                "type": "float",
-                "range_min": -500.0,
-                "range_max":  500.0
+        "blocks": [
+            {
+                "id": {
+                    "type": "int"
+                    "range_min": 0,
+                    "range_max": 1024
+                }   
+                "x_position": {
+                    "type": "float",
+                    "range_min": -5.0,
+                    "range_max":  5.0
+                },
+                "y_position": {
+                    "type": "float",
+                    "range_min": -5.0,
+                    "range_max":  5.0
+                },
+                "z_position": {
+                    "type": "float",
+                    "range_min": 0.0,
+                    "range_max": 10.0
+                },
+                "x_velocity": {
+                    "type": "float",
+                    "range_min": -500.0,
+                    "range_max":  500.0
+                },
+                "y_velocity": {
+                    "type": "float",
+                    "range_min": -500.0,
+                    "range_max":  500.0
+                },
+                "z_velocity": {
+                    "type": "float",
+                    "range_min": -500.0,
+                    "range_max":  500.0
+                }
             }
-        },
+        ],
         "time_stamp": {
             "type": "float",
             "description": "Time since epoch plus tick time."
