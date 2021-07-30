@@ -36,7 +36,7 @@ For example,
         "y_velocity": -0.892353,
         "z_velocity": 11.80254
     },
-        "blocks": [
+    "blocks": [
         {
             "id": 2,
             "x_position": -1.86226,
