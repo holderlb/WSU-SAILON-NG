@@ -1,104 +1,245 @@
-{
+{   
     "sensors": {
-        "time_stamp": {
-            "type": "float",
-            "description": "Time since epoch."
-        }, 
         "player": {
             "description": "The player object stores x,y,z and id and health.",
             "id": {
                 "type": "int",
                 "range_min": 0,
-                "range_max": 128,
+                "range_max": 1024,
                 "description": "Integer constant for object identification."
             },
             "health": {
                 "type": "int",
                 "range_min": 0,
-                "range_max": 100,
+                "range_max": 200,
                 "description": "The player's health."
             },
             "x_position": {
                 "type": "float",
-                "range_min": -500.0,
-                "range_max":  500.0,
+                "range_min": -512.0,
+                "range_max":  512.0,
                 "description": "The player x-axis position, 1/32 meters."
             },
             "y_position": {
                 "type": "float",
-                "range_min": -500.0,
-                "range_max":  500.0,
+                "range_min": -512.0,
+                "range_max":  512.0,
                 "description": "The player y-axis position, 1/32 meters."
             },
             "z_position": {
                 "type": "float",
-                "range_min": -10.0,
-                "range_max":  10.0,
+                "range_min": 0.0,
+                "range_max": 0.0,
                 "description": "The player z-axis position, 1/32 meters."
+            },
+            "angle": {
+                "type": "float",
+                "range_min": 0,
+                "range_max": 359.99,
+                "description": "Angle of actor"
             }
         },
-        "enemy": {
-            "description": "The enemy object stores x,y,z and id and health.",
-            "id": {
-                "type": "int",
-                "range_min": 0,
-                "range_max": 128,
-                "description": "Integer constant for object identification."
-            },
-            "health": {
-                "type": "int",
-                "range_min": 0,
-                "range_max": 100,
-                "description": "The enemy's health."
-            },
-            "x_position": {
-                "type": "float",
-                "range_min": -500.0,
-                "range_max":  500.0,
-                "description": "The enemy x-axis position, 1/32 meters."
-            },
-            "y_position": {
-                "type": "float",
-                "range_min": -500.0,
-                "range_max":  500.0,
-                "description": "The enemy y-axis position, 1/32 meters."
-            },
-            "z_position": {
-                "type": "float",
-                "range_min": -10.0,
-                "range_max":  10.0,
-                "description": "The enemy z-axis position, 1/32 meteres."
+        "enemies": [
+            {
+                "description": "The enemy object stores x,y,z and id and health.",
+                "id": {
+                    "type": "int",
+                    "range_min": 0,
+                    "range_max": 1024,
+                    "description": "Integer constant for object identification."
+                },
+                "health": {
+                    "type": "int",
+                    "range_min": 0,
+                    "range_max": 200,
+                    "description": "The enemy's health."
+                },
+                "x_position": {
+                    "type": "float",
+                    "range_min": -500.0,
+                    "range_max": 500.0,
+                    "description": "The enemy x-axis position, 1/32 meters."
+                },
+                "y_position": {
+                    "type": "float",
+                    "range_min": -500.0,
+                    "range_max": 500.0,
+                    "description": "The enemy y-axis position, 1/32 meters."
+                },
+                "z_position": {
+                    "type": "float",
+                    "range_min": 0.0,
+                    "range_max": 0.0,
+                    "description": "The enemy z-axis position, 1/32 meteres."
+                },
+                "angle": {
+                    "type": "float",
+                    "range_min": 0,
+                    "range_max": 359.99,
+                    "description": "Angle of actor"
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Name/class of enemy"
+                }
             }
+        ],
+        "items": {
+            "health": [
+                {
+                    "description": "Used for gaining some amount of health.",
+                    "id": {
+                        "type": "int",
+                        "range_min": 0,
+                        "range_max": 1024,
+                        "description": "Integer constant for object identification."
+                    },
+                    "x_position": {
+                        "type": "float",
+                        "range_min": -500.0,
+                        "range_max": 500.0,
+                        "description": "The enemy x-axis position, 1/32 meters."
+                    },
+                    "y_position": {
+                        "type": "float",
+                        "range_min": -500.0,
+                        "range_max": 500.0,
+                        "description": "The enemy y-axis position, 1/32 meters."
+                    },
+                    "z_position": {
+                        "type": "float",
+                        "range_min": 0.0,
+                        "range_max": 0.0,
+                        "description": "The enemy z-axis position, 1/32 meteres."
+                    },
+                    "angle": {
+                        "type": "float",
+                        "range_min": 0,
+                        "range_max": 359.99,
+                        "description": "Angle of actor"
+                    }
+                }
+            ],
+            "ammo": [
+                {
+                    "description": "Used for gaining some amount of ammo to pistol.",
+                    "id": {
+                        "type": "int",
+                        "range_min": 0,
+                        "range_max": 1024,
+                        "description": "Integer constant for object identification."
+                    },
+                    "x_position": {
+                        "type": "float",
+                        "range_min": -500.0,
+                        "range_max": 500.0,
+                        "description": "The enemy x-axis position, 1/32 meters."
+                    },
+                    "y_position": {
+                        "type": "float",
+                        "range_min": -500.0,
+                        "range_max": 500.0,
+                        "description": "The enemy y-axis position, 1/32 meters."
+                    },
+                    "z_position": {
+                        "type": "float",
+                        "range_min": 0.0,
+                        "range_max": 0.0,
+                        "description": "The enemy z-axis position, 1/32 meteres."
+                    },
+                    "angle": {
+                        "type": "float",
+                        "range_min": 0,
+                        "range_max": 359.99,
+                        "description": "Angle of actor"
+                    }
+                }
+            ],
+            "trap": [
+                {
+                    "description": "Will damage player by some amount",
+                    "id": {
+                        "type": "int",
+                        "range_min": 0,
+                        "range_max": 1024,
+                        "description": "Integer constant for object identification."
+                    },
+                    "x_position": {
+                        "type": "float",
+                        "range_min": -500.0,
+                        "range_max": 500.0,
+                        "description": "The enemy x-axis position, 1/32 meters."
+                    },
+                    "y_position": {
+                        "type": "float",
+                        "range_min": -500.0,
+                        "range_max": 500.0,
+                        "description": "The enemy y-axis position, 1/32 meters."
+                    },
+                    "z_position": {
+                        "type": "float",
+                        "range_min": 0.0,
+                        "range_max": 0.0,
+                        "description": "The enemy z-axis position, 1/32 meteres."
+                    },
+                    "angle": {
+                        "type": "float",
+                        "range_min": 0,
+                        "range_max": 359.99,
+                        "description": "Angle of actor"
+                    }
+                }
+            ],
+            "obstacle": [
+                {
+                    "description": "immovable (mostly) pillar that stops shots.",
+                    "id": {
+                        "type": "int",
+                        "range_min": 0,
+                        "range_max": 1024,
+                        "description": "Integer constant for object identification."
+                    },
+                    "x_position": {
+                        "type": "float",
+                        "range_min": -500.0,
+                        "range_max": 500.0,
+                        "description": "The enemy x-axis position, 1/32 meters."
+                    },
+                    "y_position": {
+                        "type": "float",
+                        "range_min": -500.0,
+                        "range_max": 500.0,
+                        "description": "The enemy y-axis position, 1/32 meters."
+                    },
+                    "z_position": {
+                        "type": "float",
+                        "range_min": 0.0,
+                        "range_max": 0.0,
+                        "description": "The enemy z-axis position, 1/32 meteres."
+                    },
+                    "angle": {
+                        "type": "float",
+                        "range_min": 0,
+                        "range_max": 359.99,
+                        "description": "Angle of actor"
+                    }
+                }
+            ]
         },
-        "projectile": {
-            "description": "Holds projectile information when projectiles are present.",
-            "id": {
-                "type": "int",
-                "range_min": 0,
-                "range_max": 128,
-                "description": "Integer constant for object identification."
-            },
-            "x_position": {
-                "type": "float",
-                "range_min": -500.0,
-                "range_max":  500.0,
-                "description": "The projectile x-axis position, 1/32 meters."
-            },
-            "y_position": {
-                "type": "float",
-                "range_min": -500.0,
-                "range_max":  500.0,
-                "description": "The projectile y-axis position, 1/32 meters."
-            },
-            "z_position": {
-                "type": "float",
-                "range_min": -10.0,
-                "range_max":  10.0,
-                "description": "The projectile z-axis position, 1/32 meters."
-            }
+        "time_stamp": {
+            "type": "float",
+            "description": "Time since epoch."
+        },
+        "image": {
+            "type": "ndarray / None",
+            "description": "If enabled will return a numpy img array of the camera. Otherwise it is none"
         }
     },
     "actions": {
+        "nothing": {
+            "name": "nothing",
+            "description": "Do nothing for a tick."
+        },
         "left": {
             "name": "left",
             "description": "Move player left."
@@ -106,6 +247,22 @@
         "right": {
             "name": "right",
             "description": "Move player right."
+        },
+        "forward": {
+            "name": "forward",
+            "description": "Move player forward."
+        },
+        "backward": {
+            "name": "backward",
+            "description": "Move player backward."
+        },
+        "turn_left": {
+            "name": "turn_left",
+            "description": "Turn the player left relative to player"
+        },
+        "turn_right": {
+            "name": "turn_right",
+            "description": "Turn the player right relative to player"
         },
         "shoot": {
             "name": "shoot",
