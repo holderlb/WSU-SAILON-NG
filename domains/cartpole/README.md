@@ -36,22 +36,27 @@ For example,
         "y_velocity": -0.892353,
         "z_velocity": 11.80254
     },
-    "block_0": {
-        "x_position": 4.051929,
-        "y_position": -3.224569,
-        "z_position": 2.41116,
-        "x_velocity": 7.785026,
-        "y_velocity": 9.065675,
-        "z_velocity": 6.467906
-    },
-    "block_1": {
-        "x_position": -0.057339,
-        "y_position": -3.611403,
-        "z_position": 5.08273,
-        "x_velocity": 8.733008,
-        "y_velocity": -7.7752,
-        "z_velocity": 7.471741
-    }
+        "blocks": [
+        {
+            "id": 2,
+            "x_position": -1.86226,
+            "y_position": 2.550503,
+            "z_position": 6.339546,
+            "x_velocity": 7.707002,
+            "y_velocity": -8.587865,
+            "z_velocity": 6.575934
+        },
+        {
+            "id": 3,
+            "x_position": -1.275671,
+            "y_position": 1.31081,
+            "z_position": 2.180347,
+            "x_velocity": 9.403932,
+            "y_velocity": -6.88735,
+            "z_velocity": 9.195959
+        }
+    ],
+
     "time_stamp": 1627668897.4486113,
     "image": null
 }
