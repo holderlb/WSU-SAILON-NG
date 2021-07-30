@@ -155,7 +155,7 @@ The feature label provides the correct action according to our SOTA agent and
 is sent in JSON format. This is only provided for novelty level-0 training
 instances. For VizDoom, the possible actions are:
 
-"left", "right", "forward", "backward", "shoot", "nothing".
+['nothing', 'left', 'right', 'backward', 'forward', 'shoot', 'turn_left', 'turn_right'].
 
 For example,
 
