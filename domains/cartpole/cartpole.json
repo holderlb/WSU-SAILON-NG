@@ -1,42 +1,135 @@
 {
     "sensors": {
+        "cart": {
+            "x_position": {
+                "type": "float",
+                "range_min": -5.0,
+                "range_max":  5.0
+            },
+            "y_position": {
+                "type": "float",
+                "range_min": -5.0,
+                "range_max":  5.0
+            },
+            "z_position": {
+                "type": "float",
+                "range_min": 0.1,
+                "range_max": 0.1
+            },
+            "x_velocity": {
+                "type": "float",
+                "range_min": -500.0,
+                "range_max":  500.0
+            },
+            "y_velocity": {
+                "type": "float",
+                "range_min": -500.0,
+                "range_max":  500.0
+            },
+            "z_velocity": {
+                "type": "float",
+                "range_min": -500.0,
+                "range_max":  500.0
+            }
+        },
+        "pole": {
+            "x_quaternion": {
+                "type": "float",
+                "range_min": -1.0,
+                "range_max":  1.0
+            },
+            "y_quaternion": {
+                "type": "float",
+                "range_min": -1.0,
+                "range_max":  1.0
+            },
+            "w_quaternion": {
+                "type": "float",
+                "range_min": -1.0,
+                "range_max":  1.0
+            },
+            "z_quaternion": {
+                "type": "float",
+                "range_min": -1.0,
+                "range_max":  1.0
+            },
+            "x_velocity": {
+                "type": "float",
+                "range_min": -500.0,
+                "range_max":  500.0
+            },
+            "y_velocity": {
+                "type": "float",
+                "range_min": -500.0,
+                "range_max":  500.0
+            },
+            "z_velocity": {
+                "type": "float",
+                "range_min": -500.0,
+                "range_max":  500.0
+            }
+        },
+        "block_(0-3)": {
+            "x_position": {
+                "type": "float",
+                "range_min": -5.0,
+                "range_max":  5.0
+            },
+            "y_position": {
+                "type": "float",
+                "range_min": -5.0,
+                "range_max":  5.0
+            },
+            "z_position": {
+                "type": "float",
+                "range_min": 0.0,
+                "range_max": 10.0
+            },
+            "x_velocity": {
+                "type": "float",
+                "range_min": -500.0,
+                "range_max":  500.0
+            },
+            "y_velocity": {
+                "type": "float",
+                "range_min": -500.0,
+                "range_max":  500.0
+            },
+            "z_velocity": {
+                "type": "float",
+                "range_min": -500.0,
+                "range_max":  500.0
+            }
+        },
         "time_stamp": {
             "type": "float",
-            "description": "Time since epoch."
-        }, 
-        "cart_position": {
-            "type": "float",
-            "range_min": -5.0,
-            "range_max":  5.0,
-            "description": "The Cart position in the world, in meters from origin"
+            "description": "Time since epoch plus tick time."
         },
-        "cart_velocity": {
-            "type": "float",
-            "range_min": -150.0,
-            "range_max":  150.0,
-            "description": "The Cart Velocity (speed), in meters per second"
-        },
-        "pole_angle": {
-            "type": "float",
-            "range_min": -0.5,
-            "range_max":  0.5,
-            "description": "The Pole Angle in Radians. 0.0 is straight up."
-        },
-        "pole_angular_velocity": {
-            "type": "float",
-            "range_min": -50.0,
-            "range_max":  50.0,
-            "description": "The angular velocity of the pole in Radians per second."
+        "image": {
+            "type": "ndarray / None",
+            "description": "If enabled will return a numpy img array of the camera. Otherwise it is none"
         }
     },
     "actions": {
+        "nothing": {
+            "name": "nothing",
+            "description": "Do not apply force"
+        },
         "left": {
             "name": "left",
-            "description": "Apply force to push the cart left."
+            "description": "Apply force to push the cart left. (in +x)"
         },
         "right": {
             "name": "right",
-            "description": "Apply force to push the cart right."
+            "description": "Apply force to push the cart right. (in -x)"
+        },
+        "forward": {
+            "name": "forward",
+            "description": "Apply force to push the cart forward. (in +y)"
+        },
+        "backward": {
+            "name": "backward",
+            "description": "Apply force to push the cart backward. (in -y)"
         }
     },
     "performance": {
