@@ -143,6 +143,7 @@ For example,
         "y_position": -284.8702,
         "z_position": 0.0,
         "health": 65.0
+        "ammo": 20.0
     },
     "time_stamp": 1627669530.0396042,
     "image": null
