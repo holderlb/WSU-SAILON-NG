@@ -14,6 +14,12 @@
                 "range_max": 200,
                 "description": "The player's health."
             },
+            "ammo": {
+                "type": "int",
+                "range_min": 0,
+                "range_max": 200,
+                "description": "The player's pistol ammo."
+            },
             "x_position": {
                 "type": "float",
                 "range_min": -512.0,
