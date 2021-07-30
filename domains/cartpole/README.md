@@ -75,7 +75,7 @@ The first call will have additional feature vector defining the corners of the c
 
 The feature label provides the correct action according to our SOTA agent and
 is sent in JSON format. This is only provided for novelty level-0 training
-instances. For CartPole, the possible actions are "left" and "right". For
+instances. For CartPole, the possible actions are ['nothing', 'left', 'right', 'forward', 'backward']. For
 example,
 
 ```
