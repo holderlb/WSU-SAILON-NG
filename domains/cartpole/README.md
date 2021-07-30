@@ -57,6 +57,19 @@ For example,
 }
 
 ```
+The first call will have additional feature vector defining the corners of the cube world.
+```
+    "walls": [
+        [-5,-5, 0],
+        [5,-5, 0],
+        [5,5, 0],
+        [-5,5, 0],
+        [-5,-5, 10],
+        [5,-5, 10],
+        [5,5, 10],
+        [-5,5, 10],
+    ]
+```
 
 ## Feature label format
 
