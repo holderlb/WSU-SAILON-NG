@@ -149,6 +149,23 @@ For example,
     "image": null
 }
 ```
+Additional wall sensor will be sent on the intial feature_vector:
+```
+    "walls": [
+        {
+            "x1": -320.0,
+            "x2": -64.0,
+            "y1": 320.0,
+            "y2": 320.0
+        },
+        {
+            "x1": 320.0,
+            "x2": 320.0,
+            "y1": 320.0,
+            "y2": 64.0
+        },
+        ...
+```
 
 ## Feature label format
 
