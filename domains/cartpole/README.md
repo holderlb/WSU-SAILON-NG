@@ -112,3 +112,15 @@ At the end of each episode, the agent provides a novelty characterization
 for the episode, which includes a probablity of novelty, probability threshold,
 novelty level, and a characterization string.
 
+## Sample (Mock) Novelty
+
+The CartPole novelty generator includes sample Phase 2 novelties for levels 1-5,
+also called Mock novelties. These are described below.
+
+* Level 1: The mass of the cart changes.
+* Level 2: The objects are immovable.
+* Level 3: The objects initially move toward some random point.
+* Level 4: The objects change size.
+* Level 5: The objects are attracted to each other.
+
+
