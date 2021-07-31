@@ -1,13 +1,20 @@
 # CartPole Domain
 
-The novelty level-0 CartPole task is for the agent to move a cart left and
-right in order to keep an attached pole balanced. The agent receives sensor
-data about the time, the position and velocity of the cart, and the angle and
-angular velocity of the pole. The agent also receives feedback about their
-current performance. The possible actions are move left and move right. The
-cart and pole have different starting positions each episode. An episode ends
-if the cart moves too far left or right, the absolute pole angle is too large,
-or a time limit is exceeded.
+![CartPole World](cartpole.png)
+
+For the Phase 2 novelty-level-0 CartPole task, the agent must keep the pole balanced
+by pushing the cart forward, backward, left or right. The cart is constrained to move
+in a 2D plane. The pole is affixed to the cart and can move around that fixed point
+in any direction. There are other objects in the environment that move in 3D and may
+collide with cart, pole, walls, or each other. The agent receives sensor
+data about the time, the position and velocity of the cart, and the angles and
+angular velocity of the pole, and the position and velocity of the objects. The agent
+also receives feedback about their current performance. The
+cart, pole and objects have different random starting states each episode. An episode ends
+if the cart moves too far from center, the absolute pole angle is too large,
+or a time limit is exceeded. The time limit is 200 ticks of the game, where each tick
+corresponds to 0.02 seconds. The agent's final score is T/200, where T the number of
+ticks they keep the pole balanced.
 
 See the [cartpole.json](cartpole.json) file for a precise specification of the
 domain, including ranges on sensor values.
@@ -63,6 +70,7 @@ For example,
 
 ```
 The first call will have additional feature vector defining the corners of the cube world.
+
 ```
     "walls": [
         [-5,-5, 0],
@@ -76,59 +84,31 @@ The first call will have additional feature vector defining the corners of the c
     ]
 ```
 
-## Feature label format
+## Action label
 
-The feature label provides the correct action according to our SOTA agent and
-is sent in JSON format. This is only provided for novelty level-0 training
-instances. For CartPole, the possible actions are ['nothing', 'left', 'right', 'forward', 'backward']. For
-example,
+Each turn, the agent provides an action to be performed, which is one of
+['nothing', 'left', 'right', 'forward', 'backward']. The returned action is
+referred to as the "label", which is an artifact of other domains in which
+the task is classification.
 
-```
-{ "action": "left" }
-```
-
-## Action response format
-
-The agent's response format is the same as the feature label format above.
-
-## Performance format
+## Performance
 
 The current performance of the agent on the current episode is provided as
 feedback after each agent response and is sent in JSON format. For CartPole,
 performance is defined as the amount of time the pole is kept balanced
-divided by the maximum time for the episode. For example,
-```
-{ "performance": 0.9 }
-```
+divided by the maximum time for the episode. The performance at the end of
+the episode is recorded as the performance for that entire episode.
 
-The performance at the end of the episode is recorded as the performance for
-that entire episode.
+## Novelty indicator
 
-## Novelty indicator format
-
-After each sensor fecture vector, the novelty generate sends the novelty
+After each sensor fecture vector, the novelty generator sends a novelty
 indicator, which indicates if the current episode is novel "true", not novel
 "false" (i.e., novelty level 0), or unknown "null". The novelty indicator will
-be the same for every interaction during an episode. For example,
+be the same for every turn during an episode.
 
-```
-{ "novelty_indicator": "true" }
-```
+## Novelty characterization
 
-## Novelty prediction format
-
-After the agent returns the action response, it then returns the novelty
-prediction. The novelty prediction is an integer (0-10) representing the
-novelty level that the agent assigns to the current episode. For example,
-
-```
-{ "novelty_prediction": 1 }
-```
-
-The agent's novelty prediction can vary during an episode, but the final
-novelty prediction for the last interaction of the episode is recorded as
-the agent's novelty prediction for the whole episode.
-
-Novelty detection is considered to have occurred at the first episode whose
-final novelty\_prediction > 0.
+At the end of each episode, the agent provides a novelty characterization
+for the episode, which includes a probablity of novelty, probability threshold,
+novelty level, and a characterization string.
 
