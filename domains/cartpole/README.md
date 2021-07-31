@@ -9,7 +9,7 @@ in any direction. There are other objects in the environment that move in 3D and
 collide with cart, pole, walls, or each other. The agent receives sensor
 data about the time, the position and velocity of the cart, and the angles and
 angular velocity of the pole, and the position and velocity of the objects. The agent
-also receives feedback about their current performance. The
+also receives feedback about their current performance and an optional image. The
 cart, pole and objects have different random starting states each episode. An episode ends
 if the cart moves too far from center, the absolute pole angle is too large,
 or a time limit is exceeded. The time limit is 200 ticks of the game, where each tick

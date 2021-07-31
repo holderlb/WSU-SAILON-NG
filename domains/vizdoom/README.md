@@ -1,13 +1,30 @@
 # VizDoom Domain
 
-The novelty level-0 VizDoom task is for the agent (player) to shoot a
-stationary enemy. The agent receives sensor data about the time, the player
-position and health, and the enemy position and health. The agent also receives
-feedback about their current performance, which is the number of seconds
-remaining in the episode, i.e., the quicker the agent kills the enemy, the
-better the score. The possible actions are move left, move right, and shoot.
-The player and enemy have random starting positions each episode. An episode
-ends when either the enemy dies, the player dies, or a time limit is exceeded.
+For the Phase 2 novelty-level-0 VizDoom task, the agent (player) must kill all
+the enemies in the environment. The map for all Phase 2 levels is fixed and
+shown below. The agent has seven actions: forward, backward, left, right, turn left
+45 degrees, turn right 45 degrees, and do nothing. The enemies have the same actions
+(except do nothing). In level 0, the agent and 2-4 enemies spawn in random locations
+in the map. Enemies move randomly, but can shoot at the agent if facing them. The
+agent and enemies all use the pistol for a weapon and bullets for ammo. The agent
+begins with some amount of health and ammo. Enemies also begin with some amount of
+health, but infinite ammo. There are objects in the environment: health packs,
+ammo packs, traps (negative health packs), and fixed obstacles. The player collects
+packs by moving over them. The enemies do not collect packs.
+
+On each turn, the agent receives sensor information about the state of the game,
+including the agent's location, orientation, health and ammo; each enemy's
+location, orientation and health; and the locations of all packs and obstacles.
+The geometry (walls) of the map are provided in the first set of sensor information.
+An optional image is also available.
+
+The agent has 2000 game ticks to kill all the enemies. A game tick corresponds to
+0.02 seconds in the game. An episode ends when either all the enemies are dead,
+the agent dies, or a time limit is exceeded. The score for the episode is
+(2000 - T) / 2000, where T is the time at which the agent wins the game (kills
+all the enemies). If the agent dies, or runs out of time, the score is zero.
+
+![VizDoom Map](vizdoom-map.png)
 
 See the [vizdoom.json](vizdoom.json) file for a precise specification of the
 domain, including ranges on sensor values.
@@ -15,12 +32,14 @@ domain, including ranges on sensor values.
 ## Feature vector format
 
 The feature vector provides a value for each sensor and is sent in JSON format.
-The high-level sensors player and enemy are further broken down by their ID,
-position, and health. There may be more than one enemy.  The high-level sensor
-projectile is broken down by ID and position. An example of a projectile is a
-slow-moving bullet. There may be more than one projectile.
+The high-level sensor information includes "enemies", "items", "player", "timestamp"
+and "image". The "enemies" array includes an entry for each live enemy, which
+includes their ID, orientation, position, and health. The player object includes
+the agent's ID, orientation, position, health and ammo. The "items" array includes
+subarrays for "health", "ammo", "trap" and "obstacle". Each of these subarrays
+includes ID, position and orientation information for uncollected items.
+See below for an example.
 
-For example,
 
 ```
 {
@@ -150,6 +169,7 @@ For example,
 }
 ```
 Additional wall sensor will be sent on the intial feature_vector:
+
 ```
     "walls": [
         {
@@ -167,63 +187,42 @@ Additional wall sensor will be sent on the intial feature_vector:
         ...
 ```
 
-## Feature label format
+## Action label
 
-The feature label provides the correct action according to our SOTA agent and
-is sent in JSON format. This is only provided for novelty level-0 training
-instances. For VizDoom, the possible actions are:
+Each turn, the agent provides an action to be performed, which is one of
+['nothing', 'left', 'right', 'forward', 'backward', 'shoot', 'turn_left', 'turn_right'].
+The returned action is
+referred to as the "label", which is an artifact of other domains in which
+the task is classification.
 
-['nothing', 'left', 'right', 'backward', 'forward', 'shoot', 'turn_left', 'turn_right'].
-
-For example,
-
-```
-{ "action": "shoot" }
-```
-
-## Action response format
-
-The agent's response format is the same as the feature label format above.
-
-## Performance format
+## Performance
 
 The current performance of the agent on the current episode is provided as
 feedback after each agent response and is sent in JSON format. For VizDoom,
 performance is defined as the amount of time left in the episode divided by
-the maximium time for the episode. For example,
+the maximium time for the episode. The performance at the end of
+the episode is recorded as the performance for that entire episode.
 
-```
-{ "performance": 0.9 }
-```
+## Novelty indicator
 
-The performance at the end of the episode is recorded as the performance for
-that entire episode.
-
-## Novelty indicator format
-
-After each sensor fecture vector, the novelty generate sends the novelty
+After each sensor fecture vector, the novelty generator sends a novelty
 indicator, which indicates if the current episode is novel "true", not novel
 "false" (i.e., novelty level 0), or unknown "null". The novelty indicator will
-be the same for every interaction during an episode. For example,
+be the same for every turn during an episode.
 
-```
-{ "novelty_indicator": "true" }
-```
+## Novelty characterization
 
-## Novelty prediction format
+At the end of each episode, the agent provides a novelty characterization
+for the episode, which includes a probablity of novelty, probability threshold,
+novelty level, and a characterization string.
 
-After the agent returns the action response, it then returns the novelty 
-prediction. The novelty prediction is an integer (0-10) representing the
-novelty level that the agent assigns to the current episode. For example,
+## Sample (Mock) Novelty
 
-```
-{ "novelty_prediction": 1 }
-```
+The VizDoom novelty generator includes sample Phase 2 novelties for levels 1-5,
+also called Mock novelties. These are described below.
 
-The agent's novelty prediction can vary during an episode, but the final 
-novelty prediction for the last interaction of the episode is recorded as
-the agent's novelty prediction for the whole episode.
-
-Novelty detection is considered to have occurred at the first episode whose
-final novelty\_prediction > 0.
-
+* Level 1: Change in number of health packs.
+* Level 2: Enemies have increased speed.
+* Level 3: Enemies move toward player.
+* Level 4: Enemy damage increases as closer to player.
+* Level 5: Enemies spread out.
