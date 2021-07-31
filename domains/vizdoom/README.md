@@ -226,3 +226,6 @@ also called Mock novelties. These are described below.
 * Level 3: Enemies move toward player.
 * Level 4: Enemy damage increases as closer to player.
 * Level 5: Enemies spread out.
+
+The implementations of these mock novelties can be found in the folder
+[WSU-Portable-Generator/source/partial_env_generator/envs/vizdoom](WSU-Portable-Generator/source/partial_env_generator/envs/vizdoom).
