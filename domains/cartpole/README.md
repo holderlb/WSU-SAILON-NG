@@ -109,7 +109,7 @@ be the same for every turn during an episode.
 ## Novelty characterization
 
 At the end of each episode, the agent provides a novelty characterization
-for the episode, which includes a probablity of novelty, probability threshold,
+for the episode, which includes a probability of novelty, probability threshold,
 novelty level, and a characterization string.
 
 ## Sample (Mock) Novelty

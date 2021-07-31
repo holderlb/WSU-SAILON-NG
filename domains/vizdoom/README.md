@@ -2,8 +2,8 @@
 
 For the Phase 2 novelty-level-0 VizDoom task, the agent (player) must kill all
 the enemies in the environment. The map for all Phase 2 levels is fixed and
-shown below. The agent has seven actions: forward, backward, left, right, turn left
-45 degrees, turn right 45 degrees, and do nothing. The enemies have the same actions
+shown below. The agent has eight actions: forward, backward, left, right, turn left
+45 degrees, turn right 45 degrees, shoot and do nothing. The enemies have the same actions
 (except do nothing). In level 0, the agent and 2-4 enemies spawn in random locations
 in the map. Enemies move randomly, but can shoot at the agent if facing them. The
 agent and enemies all use the pistol for a weapon and bullets for ammo. The agent
@@ -213,7 +213,7 @@ be the same for every turn during an episode.
 ## Novelty characterization
 
 At the end of each episode, the agent provides a novelty characterization
-for the episode, which includes a probablity of novelty, probability threshold,
+for the episode, which includes a probability of novelty, probability threshold,
 novelty level, and a characterization string.
 
 ## Sample (Mock) Novelty

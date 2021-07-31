@@ -5,10 +5,13 @@ current activity of the inhabitant in the environment. The agent receives
 timestamped sensor data and responds with one of 11 possible activities: wash
 dishes, relax, personal hygiene, bed toilet transition, cook, sleep, take
 medicine, leave home, work, enter home, eat. The agent also receives feedback
-about their current performance, which is the number of correct classifications
+about their current performance, which is the percentage of correct classifications
 since the beginning of the episode. The inhabitant's behavior varies from day
 to day. An episode is one day's worth of data. Sensor vectors are generated
-when at least one sensor changes value, not at a fixed frequency.
+when at least one sensor changes value, not at a fixed frequency. Below is a
+sample floorplan of one of the smart environments.
+
+![Sample Floorplan](floorplan.png)
 
 See the [smartenv.json](smartenv.json) file for a precise specification of the
 domain, including ranges on sensor values.
@@ -45,62 +48,46 @@ For example,
 }
 ```
 
-## Feature label format
+## Activity label response and feedback
 
-The feature label provides the correct activity according to ground truth and
-is sent in JSON format. This is only provided for novelty level-0 training
-instances. For SmartEnv, the possible activities are: wash\_dishes, relax,
-personal\_hygiene, bed\_toilet\_transition, cook, sleep, take\_medicine,
-leave\_home, work, enter\_home, eat. Note that we use "action" as the key name
-to be consistent with the other domains. For example,
+After each sensor vector, the agent responds with one of 11 possible activity
+classifications: wash\_dishes, relax, personal\_hygiene, bed\_toilet\_transition,
+cook, sleep, take\_medicine, leave\_home, work, enter\_home, eat.
 
-```
-{ "action": "take_medicine" }
-```
+The agent is then provided with the correct activiy classification according to
+a budget. E.g., if the budget is 50%, then the correct classificaton is provided
+half the time. The budget is set within the novelty generator and made known
+to the TA2 team.
 
-## Response format
-
-The agent's response format is the same as the feature label format above.
-
-## Performance format
+## Performance
 
 The current performance of the agent on the current episode is provided as
 feedback after each agent response and is sent in JSON format. For SmartEnv,
 performance is defined as classification accuracy so far, i.e. the number of
-correct predictions divided by the total number of predictions. For example,
-
-```
-{ "performance": 0.9 }
-```
-
-The performance at the end of the episode is recorded as the performance for
+correct predictions divided by the total number of predictions. The performance
+at the end of the episode is recorded as the performance for
 that entire episode.
 
-## Novelty indicator format
+## Novelty indicator
 
-After each sensor fecture vector, the novelty generate sends the novelty
-indicator, which indicates if the current episode is novel "true", not novel 
-"false" (i.e., novelty level 0), or unknown "null". The novelty indicator will 
-be the same for every interaction during an episode. For example,
+After each sensor fecture vector, the novelty generator sends a novelty
+indicator, which indicates if the current episode is novel "true", not novel
+"false" (i.e., novelty level 0), or unknown "null". The novelty indicator will
+be the same for every turn during an episode.
 
-```
-{ "novelty_indicator": "true" }
-```
+## Novelty characterization
 
-## Novelty prediction format
+At the end of each episode, the agent provides a novelty characterization
+for the episode, which includes a probability of novelty, probability threshold,
+novelty level, and a characterization string.
 
-After the agent returns the action response, it then returns the novelty
-prediction. The novelty prediction is an integer (0-10) representing the
-novelty level that the agent assigns to the current episode. For example,
+## Sample (Mock) Novelty
 
-```
-{ "novelty_prediction": 1 }
-```
+The SmartEnv novelty generator includes sample Phase 2 novelties for levels 1-5,
+also called Mock novelties. These are described below.
 
-The agent's novelty prediction can vary during an episode, but the final
-novelty prediction for the last interaction of the episode is recorded as
-the agent's novelty prediction for the whole episode.
-
-Novelty detection is considered to have occurred at the first episode whose
-final novelty\_prediction > 0.
-
+* Level 1: Some sensors turned off.
+* Level 2: Inhabitant performs exact same behavior each day.
+* Level 3: Activity not seen in pre-novelty, but seen in post-novelty.
+* Level 4: Two sensor values always give same reading.
+* Level 5: Second inhabitant simulated by overlaying copy of existing inhabitant.
