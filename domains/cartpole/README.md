@@ -124,4 +124,4 @@ also called Mock novelties. These are described below.
 * Level 5: The objects are attracted to each other.
 
 The implementations of these mock novelties can be found in the folder
-[WSU-Portable-Generator/source/partial_env_generator/envs/cartpolepp](WSU-Portable-Generator/source/partial_env_generator/envs/cartpolepp).
+[WSU-Portable-Generator/source/partial_env_generator/envs/cartpolepp](https://github.com/holderlb/tree/master/WSU-Portable-Generator/source/partial_env_generator/envs/cartpolepp).
