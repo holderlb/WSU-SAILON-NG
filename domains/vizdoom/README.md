@@ -228,4 +228,4 @@ also called Mock novelties. These are described below.
 * Level 5: Enemies spread out.
 
 The implementations of these mock novelties can be found in the folder
-[WSU-Portable-Generator/source/partial_env_generator/envs/vizdoom](https://github.com/holderlb/tree/master/WSU-Portable-Generator/source/partial_env_generator/envs/vizdoom).
+[WSU-Portable-Generator/source/partial_env_generator/envs/vizdoom](https://github.com/holderlb/WSU-SAILON-NG/tree/master/WSU-Portable-Generator/source/partial_env_generator/envs/vizdoom).
