@@ -9,7 +9,8 @@ class TestHandler:
 
     # Init function, accepts connection and address info
     def __init__(self, domain: str = 'cartpole', novelty: int = 0, difficulty: str = 'easy',
-                 seed: int = 123, trial_novelty: int = 0, day_offset: int = 0):
+                 seed: int = 123, trial_novelty: int = 0, day_offset: int = 0, use_img: bool = False,
+                 path: str='env_generator/envs/'):
         # Set parameters
         self.seed = seed
         self.domain = domain
@@ -18,22 +19,23 @@ class TestHandler:
         self.trial_novelty = trial_novelty
         self.difficulty = difficulty
         self.day_offset = day_offset
-
-        # Check for using is_novel or not
-        self.is_novel = bool(self.novelty)
+        self.use_img = use_img
+        self.path = path
 
         # Load test based on params
         self.test = TestLoader(domain=self.domain,
-                               novelty_level=self.trial_novelty,
-                               is_novel=self.is_novel,
+                               novelty_level=self.novelty,
+                               trial_novelty=self.trial_novelty,
                                seed=self.seed,
                                difficulty=self.difficulty,
-                               day_offset=self.day_offset)
+                               day_offset=self.day_offset,
+                               use_img=self.use_img,
+                               path=self.path)
 
         # Get first information
         self.information = self.test.get_state()
 
-        return
+        return None
 
     def apply_action(self, action):
         action = action['action']
@@ -46,9 +48,6 @@ class TestHandler:
 
     def get_feature_label(self):
         return {'action': self.information['action']}
-
-    def get_action_list(self):
-        return self.information['action_list']
 
     def is_episode_done(self):
         return self.test.is_done

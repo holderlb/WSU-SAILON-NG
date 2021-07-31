@@ -41,7 +41,7 @@ from env_generator.test_handler import TestHandler
 
 class ThreadedTestHandler(threading.Thread):
     def __init__(self, domain: str, novelty: int, difficulty: str, seed: int, trial_novelty: int,
-                 day_offset: int, response_queue: queue.Queue):
+                 day_offset: int, response_queue: queue.Queue, use_image: bool):
         threading.Thread.__init__(self)
         self.domain = domain
         self.novelty = novelty
@@ -50,6 +50,7 @@ class ThreadedTestHandler(threading.Thread):
         self.trial_novelty = trial_novelty
         self.day_offset = day_offset
         self.response_queue = response_queue
+        self.use_image = use_image
 
         self.is_done = False
         return
@@ -61,7 +62,8 @@ class ThreadedTestHandler(threading.Thread):
                                             difficulty=self.difficulty,
                                             seed=self.seed,
                                             trial_novelty=self.trial_novelty,
-                                            day_offset=self.day_offset))
+                                            day_offset=self.day_offset,
+                                            use_img=self.use_image))
         while not self.is_done:
             time.sleep(0.1)
         return
@@ -93,8 +95,7 @@ class GeneratorAgent(GeneratorLogic):
         return novelty_description
 
     def initilize_generator(self, domain: str, novelty: int, difficulty: str, seed: int,
-                            trial_novelty: int, day_offset: int):
-
+                            trial_novelty: int, day_offset: int, use_image: bool):
         del self.GENERATOR
         # Set variable is_episode_done to False.
         self.is_episode_done = False
@@ -108,7 +109,8 @@ class GeneratorAgent(GeneratorLogic):
                                            seed=seed,
                                            trial_novelty=trial_novelty,
                                            day_offset=day_offset,
-                                           response_queue=response_queue)
+                                           response_queue=response_queue,
+                                           use_image=use_image)
         threaded_gen.start()
         while self.GENERATOR is None:
             try:

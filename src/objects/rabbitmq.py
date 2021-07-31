@@ -533,7 +533,7 @@ class Connection:
         return response
 
     def start_generator(self, domain: str, novelty: int, difficulty: str, seed: int,
-                        trial_novelty: int, day_offset: int):
+                        trial_novelty: int, day_offset: int, request_timeout: int, use_image: bool):
         self.log.debug('start_generator()')
 
         if self._client_rpc_queue is None:
@@ -554,7 +554,9 @@ class Connection:
             seed=seed,
             server_rpc_queue=self._client_rpc_queue,
             trial_novelty=trial_novelty,
-            day_offset=day_offset)
+            day_offset=day_offset,
+            request_timeout=request_timeout,
+            use_image=use_image)
 
         response = self._set_system_request(casas_object=start_gen,
                                             queue_name=objects.LIVE_GENERATOR_QUEUES[domain],

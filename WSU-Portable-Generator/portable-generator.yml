@@ -3,7 +3,7 @@ version: '2'
 services:
   rabbit:
     hostname: rabbit
-    image: rabbitmq:latest
+    image: rabbitmq:3.8
     restart: always
     environment:
       - RABBITMQ_DEFAULT_USER=bunny
@@ -75,11 +75,10 @@ services:
     # The volume we mount determines which config files will be available to the services.
     volumes:
       - ./configs/partial:/aiq-sail-on/config:rw
-      - ./logs:/aiq-sail-on/logs:rw
     build:
       context: ./
       dockerfile: Dockerfile-PARTIAL-TA2
-    command: python -u TA2.py --config=config/demo-client.config --printout --logfile=logs/log.TA2.txt
+    command: python -u TA2.py --config=config/demo-client.config --printout
     links:
       - rabbit
     depends_on:

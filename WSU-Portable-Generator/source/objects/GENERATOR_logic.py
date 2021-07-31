@@ -101,6 +101,8 @@ class GeneratorLogic(object):
         self.trial_novelty = None
         self.day_offset = None
         self.is_episode_done = False
+        self.use_image = False
+        self.request_timeout = 30
 
         self.GENERATOR = None
 
@@ -197,7 +199,7 @@ class GeneratorLogic(object):
         if self._timeout_callback_id is not None:
             self.amqp.cancel_call_later(timeout_id=self._timeout_callback_id)
         self._timeout_callback_id = self.amqp.call_later(
-            seconds=30,
+            seconds=self.request_timeout,
             function=self._reset_system)
         return
 
@@ -243,13 +245,16 @@ class GeneratorLogic(object):
             self.seed = request.seed
             self.trial_novelty = request.trial_novelty
             self.day_offset = request.day_offset
+            self.use_image = request.use_image
+            self.request_timeout = request.request_timeout
 
             self.initilize_generator(domain=self.domain,
                                      novelty=self.novelty,
                                      difficulty=self.difficulty,
                                      seed=self.seed,
                                      trial_novelty=self.trial_novelty,
-                                     day_offset=self.day_offset)
+                                     day_offset=self.day_offset,
+                                     use_image=self.use_image)
             self._unsubscribe_generator_queue()
             self._subscribe_private_queue()
 
@@ -328,7 +333,7 @@ class GeneratorLogic(object):
         raise ValueError('get_novelty_description() not defined in client.')
 
     def initilize_generator(self, domain: str, novelty: int, difficulty: str, seed: int,
-                            trial_novelty: int, day_offset: int):
+                            trial_novelty: int, day_offset: int, use_image: bool):
         raise ValueError('initilize_generator() not defined in client.')
 
     def get_feature_vector(self) -> (dict, dict):

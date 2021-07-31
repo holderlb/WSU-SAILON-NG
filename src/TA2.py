@@ -60,15 +60,8 @@ class ThreadedProcessingExample(threading.Thread):
 
 
 class TA2Agent(TA2Logic):
-    def __init__(self, options):
-        super().__init__(config_file=options.config,
-                         printout=options.printout,
-                         debug=options.debug,
-                         fulldebug=options.fulldebug,
-                         logfile=options.logfile,
-                         no_testing=options.no_testing,
-                         just_one_trial=options.just_one_trial,
-                         ignore_secret=options.ignore_secret)
+    def __init__(self):
+        super().__init__()
 
         self.possible_answers = list()
         # This variable can be set to true and the system will attempt to end training at the
@@ -255,36 +248,37 @@ class TA2Agent(TA2Logic):
         self.log.info('Testing Episode Start: #{}'.format(episode_number))
 
         # Throw something together to create work.
-        work_list = list([500000])
-        for i in range(3 + episode_number):
-            work_list.append(5000000)
-        response_queue = queue.Queue()
-        response = None
-        # Initialize the example of doing work safely outside the main thread.
-        # Remember, in Python all objects beyond int, float, bool, and str are passed by reference.
-        threaded_work = ThreadedProcessingExample(processing_object=work_list,
-                                                  response_queue=response_queue)
-        # Start the work in a separate thread.
-        threaded_work.start()
-
-        while response is None:
-            try:
-                # Try to get the response from the queue for 5 seconds before we let the AMQP
-                # network event loop do any required work (such as sending heartbeats) for
-                # 0.5 seconds.  By having the get(block=True) we ensure that there is basically
-                # no wait for the result once it is put in the queue.
-                response = response_queue.get(block=True, timeout=5)
-            except queue.Empty:
-                # Process any amqp events for 0.5 seconds before we try to get the results again.
-                self.process_amqp_events()
-
-        # Safely end and clean up the threaded work object.
-        threaded_work.stop()
-        threaded_work.join()
-
-        self.log.info('message from threaded work: {}'.format(response[1]))
-        self.log.warning('Please remove this sample threaded work object from '
-                         'testing_episode_start() before running actual experiments.')
+        # work_list = list([5000])
+        # for i in range(3 + episode_number):
+        #     work_list.append(50000)
+        # response_queue = queue.Queue()
+        # response = None
+        # # Initialize the example of doing work safely outside the main thread.
+        # # Remember, in Python all objects beyond int, float, bool, and str are passed
+        # # by reference.
+        # threaded_work = ThreadedProcessingExample(processing_object=work_list,
+        #                                           response_queue=response_queue)
+        # # Start the work in a separate thread.
+        # threaded_work.start()
+        #
+        # while response is None:
+        #     try:
+        #         # Try to get the response from the queue for 5 seconds before we let the AMQP
+        #         # network event loop do any required work (such as sending heartbeats) for
+        #         # 0.5 seconds.  By having the get(block=True) we ensure that there is basically
+        #         # no wait for the result once it is put in the queue.
+        #         response = response_queue.get(block=True, timeout=5)
+        #     except queue.Empty:
+        #         # Process any amqp events for 0.5 seconds before we try to get the results again.
+        #         self.process_amqp_events()
+        #
+        # # Safely end and clean up the threaded work object.
+        # threaded_work.stop()
+        # threaded_work.join()
+        #
+        # self.log.info('message from threaded work: {}'.format(response[1]))
+        # self.log.warning('Please remove this sample threaded work object from '
+        #                  'testing_episode_start() before running actual experiments.')
         return
 
     def testing_instance(self, feature_vector: dict, novelty_indicator: bool = None) -> dict:
@@ -327,6 +321,7 @@ class TA2Agent(TA2Logic):
             A dictionary that may provide additional feedback on your prediction based on the
             budget set in the TA1. If there is no feedback, the object will be None.
         """
+        # self.log.debug('Testing Performance: {}'.format(performance))
         return
 
     def testing_episode_end(self, performance: float, feedback: dict = None) -> \
@@ -378,50 +373,5 @@ class TA2Agent(TA2Logic):
 
 
 if __name__ == "__main__":
-    parser = optparse.OptionParser(usage="usage: %prog [options]")
-    parser.add_option("--config",
-                      dest="config",
-                      help="Custom ClientAgent config file.",
-                      default="TA2.config")
-    parser.add_option("--debug",
-                      dest="debug",
-                      action="store_true",
-                      help="Set logging level to DEBUG from INFO.",
-                      default=False)
-    parser.add_option("--fulldebug",
-                      dest="fulldebug",
-                      action="store_true",
-                      help="Set logging level to DEBUG from INFO for all imported libraries.",
-                      default=False)
-    parser.add_option("--logfile",
-                      dest="logfile",
-                      help="Filename if you want to write the log to disk.")
-    parser.add_option("--printout",
-                      dest="printout",
-                      action="store_true",
-                      help="Print output to the screen at given logging level.",
-                      default=False)
-    parser.add_option("--no-testing",
-                      dest="no_testing",
-                      action="store_true",
-                      help=('Instruct the TA2 to just create the experiment, update the config, '
-                            'consume training data (if any), train the model (if needed), saves '
-                            'the model to disk, and then exits. This disables the use of '
-                            '--just-one-trial when set.'),
-                      default=False)
-    parser.add_option("--just-one-trial",
-                      dest="just_one_trial",
-                      action="store_true",
-                      help="Process just one trial and then exit.",
-                      default=False)
-    parser.add_option("--ignore-secret",
-                      dest="ignore_secret",
-                      action="store_true",
-                      help='Causes the program to ignore any secret stored in experiment_secret.',
-                      default=False)
-    (options, args) = parser.parse_args()
-    if options.fulldebug:
-        options.debug = True
-
-    agent = TA2Agent(options)
+    agent = TA2Agent()
     agent.run()

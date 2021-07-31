@@ -48,7 +48,8 @@ class LiveGeneratorThread(threading.Thread):
     def __init__(self, log: logging.Logger, amqp_user: str, amqp_pass: str, amqp_host: str,
                  amqp_port: str, amqp_vhost: str, amqp_ssl: bool, ta2_response_queue: queue.Queue,
                  live_output_queue: queue.Queue, domain: str, novelty: int, difficulty: str,
-                 seed: int, trial_novelty: int, day_offset: int, request_timeout: int):
+                 seed: int, trial_novelty: int, day_offset: int, request_timeout: int,
+                 use_image: bool):
         threading.Thread.__init__(self)
         self.name = 'LiveGeneratorThread'
         self.log = log.getChild(self.name)
@@ -67,6 +68,7 @@ class LiveGeneratorThread(threading.Thread):
         self.seed = seed
         self.trial_novelty = trial_novelty
         self.day_offset = day_offset
+        self.use_image = use_image
         self.done = False
 
         if self.domain not in objects.VALID_DOMAINS:
@@ -94,7 +96,9 @@ class LiveGeneratorThread(threading.Thread):
                                   difficulty=self.difficulty,
                                   seed=self.seed,
                                   trial_novelty=self.trial_novelty,
-                                  day_offset=self.day_offset)
+                                  day_offset=self.day_offset,
+                                  request_timeout=self.request_timeout,
+                                  use_image=self.use_image)
 
         # Begin our loop.
         while not self.done:
@@ -316,32 +320,40 @@ class TA1:
         self._AMQP_SOTA_CALLBACK_ID = None
         self._sota_username = config.get('sota', 'username')
         self._sota_secret = config.get('sota', 'secret')
-        self._training_novelty_p1 = 0.0
-        self._testing_novelty_p2 = 1.0
+        self._training_novelty_p1 = config.getfloat('sail-on', 'training_novelty_p1')
+        self._testing_novelty_p2 = config.getfloat('sail-on', 'testing_novelty_p2')
         self._training_episodes = 0
         self._testing_episodes = 0
         self._server_novelty = list()
-        server_novelty = '10'
+        server_novelty = config.get('sail-on', 'novelty')
         split_novelty = str(server_novelty).split(',')
         for novelty in split_novelty:
             if int(novelty) in objects.VALID_NOVELTY:
                 self._server_novelty.append(int(novelty))
         self._server_trials = config.getint('sail-on', 'trials')
         if self.is_demo:
-            self._server_novelty = list([0])
+            self._server_novelty = list([objects.NOVELTY_200])
         self._server_novelty_index = 0
         self._sota_server_novelty_index = 0
+        self._server_difficulty = list()
+        server_difficulty = config.get('sail-on', 'difficulty')
+        split_difficulty = str(server_difficulty).split(',')
+        for difficulty in split_difficulty:
+            if difficulty in objects.VALID_DIFFICULTY:
+                self._server_difficulty.append(difficulty)
         self._random_sleep_seconds = 0
         if config.has_option(section='sail-on', option='random_sleep_seconds'):
             random_sleep = config.getint('sail-on', 'random_sleep_seconds')
             self._random_sleep_seconds = random.randint(0, random_sleep)
         self._ep_by_domain = dict()
         self._budget_by_domain = dict()
+        self._image_by_domain = dict()
         self._is_domain_live = dict()
         self._domain_data_source = dict()
         for domain in objects.VALID_DOMAINS:
-            self._ep_by_domain[domain] = dict({'train': 10, 'test': 31})
+            self._ep_by_domain[domain] = dict({'train': 10, 'test': 10, 'pre-novel': None})
             self._budget_by_domain[domain] = -0.1
+            self._image_by_domain[domain] = False
             self._is_domain_live[domain] = False
             self._domain_data_source[domain] = objects.SOURCE_RECORDED
             if config.has_section(section=domain):
@@ -351,13 +363,25 @@ class TA1:
                 if config.has_option(section=domain, option='testing_episodes'):
                     self._ep_by_domain[domain]['test'] = config.getint(section=domain,
                                                                        option='testing_episodes')
+                if config.has_option(section=domain, option='pre_novel_episodes'):
+                    self._ep_by_domain[domain]['pre-novel'] = config.getint(
+                        section=domain,
+                        option='pre_novel_episodes')
+                    # The pre-novel count must be lower than the number of test episodes.
+                    if self._ep_by_domain[domain]['pre-novel'] \
+                            >= self._ep_by_domain[domain]['test']:
+                        self._ep_by_domain[domain]['pre-novel'] \
+                            = int(self._ep_by_domain[domain]['test'] / 2)
                 # Hard coded for release
                 self._is_domain_live[domain] = True
                 if self._is_domain_live[domain]:
                     self._domain_data_source[domain] = objects.SOURCE_LIVE
-            # Hard coded for release
-            if self._ep_by_domain[domain]['test'] < 31:
-                self._ep_by_domain[domain]['test'] = 31
+                if config.has_option(section=domain, option='budget'):
+                    self._budget_by_domain[domain] = config.getfloat(section=domain,
+                                                                     option='budget')
+                if config.has_option(section=domain, option='use_image'):
+                    self._image_by_domain[domain] = config.getboolean(section=domain,
+                                                                      option='use_image')
             if self.is_testing:
                 self._ep_by_domain[domain] = dict({'train': 3, 'test': 3})
 
@@ -420,7 +444,6 @@ class TA1:
         self._DATA_CACHE_SIZE = 100
         self._DATA_CACHE_RELOAD = 2
         self._VALID_DATA_TYPES = list(['train', 'test'])
-        self._VALID_NOVELTY_LEVELS = list([0, 1, 2, 3])
         self._TorN = 0
         self._TorN_OPTIONS = list([0, 0])
         self._SAIL_ON_VISIBILITY = list([0, 1])
@@ -479,6 +502,10 @@ class TA1:
         config.set('sota', 'username', 'username')
         config.set('sota', 'secret', 'secret')
         config.add_section('sail-on')
+        config.set('sail-on', 'training_novelty_p1', '0.0')
+        config.set('sail-on', 'testing_novelty_p2', '0.8')
+        config.set('sail-on', 'novelty', '200')
+        config.set('sail-on', 'difficulty', 'easy,medium,hard')
         config.set('sail-on', 'trials', '30')
         config.set('sail-on', 'normal_timeout_seconds', str(objects.GLOBAL_TIMEOUT_SECONDS))
         config.set('sail-on', 'training_timeout_multiplier', '100')
@@ -1135,7 +1162,7 @@ class TA1:
         for i in range(num_episodes):
             self.handle_trial_episode(experiment_trial_id=experiment_trial_id,
                                       episode_index=i,
-                                      novelty=objects.NOVELTY_0,
+                                      novelty=objects.NOVELTY_200,
                                       novelty_initiated=False,
                                       errormsgs=errormsgs)
         return
@@ -1706,38 +1733,54 @@ class TA1:
 
         cache_valid_domains = list(request.domain_dict.keys())
         cache_valid_data_types = None
-        cache_novelty_types = list([0] + self._server_novelty)
+        cache_novelty_types = list([objects.NOVELTY_200] + self._server_novelty)
         cache_trial_novelty = dict({
-            train_type: dict({objects.NOVELTY_0: list([objects.NOVELTY_0])}),
-            test_type: dict({objects.NOVELTY_0: list([objects.NOVELTY_0]),
-                             objects.NOVELTY_1: list([objects.NOVELTY_0]),
-                             objects.NOVELTY_2: list([objects.NOVELTY_0]),
-                             objects.NOVELTY_3: list([objects.NOVELTY_0]),
-                             objects.NOVELTY_5: list([objects.NOVELTY_0]),
-                             objects.NOVELTY_10: list([objects.NOVELTY_0]),
-                             objects.NOVELTY_11: list([objects.NOVELTY_0])})})
+            train_type: dict({objects.NOVELTY_200: list([objects.NOVELTY_200])}),
+            test_type: dict({objects.NOVELTY_200: list([objects.NOVELTY_200]),
+                             objects.NOVELTY_101: list([objects.NOVELTY_200]),
+                             objects.NOVELTY_102: list([objects.NOVELTY_200]),
+                             objects.NOVELTY_103: list([objects.NOVELTY_200]),
+                             objects.NOVELTY_104: list([objects.NOVELTY_200]),
+                             objects.NOVELTY_105: list([objects.NOVELTY_200]),
+                             objects.NOVELTY_201: list([objects.NOVELTY_200]),
+                             objects.NOVELTY_202: list([objects.NOVELTY_200]),
+                             objects.NOVELTY_203: list([objects.NOVELTY_200]),
+                             objects.NOVELTY_204: list([objects.NOVELTY_200]),
+                             objects.NOVELTY_205: list([objects.NOVELTY_200])})})
         if objects.DOMAIN_SMARTENV in cache_valid_domains and experiment is None:
             cache_trial_novelty = dict({
-                train_type: dict({objects.NOVELTY_0: list([objects.NOVELTY_0,
-                                                           objects.NOVELTY_1,
-                                                           objects.NOVELTY_2,
-                                                           objects.NOVELTY_3,
-                                                           objects.NOVELTY_5,
-                                                           objects.NOVELTY_10,
-                                                           objects.NOVELTY_11])}),
-                test_type: dict({objects.NOVELTY_0: list([objects.NOVELTY_0,
-                                                          objects.NOVELTY_1,
-                                                          objects.NOVELTY_2,
-                                                          objects.NOVELTY_3,
-                                                          objects.NOVELTY_5,
-                                                          objects.NOVELTY_10,
-                                                          objects.NOVELTY_11]),
-                                 objects.NOVELTY_1: list([objects.NOVELTY_1]),
-                                 objects.NOVELTY_2: list([objects.NOVELTY_2]),
-                                 objects.NOVELTY_3: list([objects.NOVELTY_3]),
-                                 objects.NOVELTY_5: list([objects.NOVELTY_5]),
-                                 objects.NOVELTY_10: list([objects.NOVELTY_10]),
-                                 objects.NOVELTY_11: list([objects.NOVELTY_11])})})
+                train_type: dict({objects.NOVELTY_200: list([objects.NOVELTY_200,
+                                                             objects.NOVELTY_101,
+                                                             objects.NOVELTY_102,
+                                                             objects.NOVELTY_103,
+                                                             objects.NOVELTY_104,
+                                                             objects.NOVELTY_105,
+                                                             objects.NOVELTY_201,
+                                                             objects.NOVELTY_202,
+                                                             objects.NOVELTY_203,
+                                                             objects.NOVELTY_204,
+                                                             objects.NOVELTY_205])}),
+                test_type: dict({objects.NOVELTY_200: list([objects.NOVELTY_200,
+                                                            objects.NOVELTY_101,
+                                                            objects.NOVELTY_102,
+                                                            objects.NOVELTY_103,
+                                                            objects.NOVELTY_104,
+                                                            objects.NOVELTY_105,
+                                                            objects.NOVELTY_201,
+                                                            objects.NOVELTY_202,
+                                                            objects.NOVELTY_203,
+                                                            objects.NOVELTY_204,
+                                                            objects.NOVELTY_205]),
+                                 objects.NOVELTY_101: list([objects.NOVELTY_101]),
+                                 objects.NOVELTY_102: list([objects.NOVELTY_102]),
+                                 objects.NOVELTY_103: list([objects.NOVELTY_103]),
+                                 objects.NOVELTY_104: list([objects.NOVELTY_104]),
+                                 objects.NOVELTY_105: list([objects.NOVELTY_105]),
+                                 objects.NOVELTY_201: list([objects.NOVELTY_201]),
+                                 objects.NOVELTY_202: list([objects.NOVELTY_202]),
+                                 objects.NOVELTY_203: list([objects.NOVELTY_203]),
+                                 objects.NOVELTY_204: list([objects.NOVELTY_204]),
+                                 objects.NOVELTY_205: list([objects.NOVELTY_205])})})
         if experiment is not None:
             cache_valid_data_types = list()
             cache_trial_novelty = dict()
@@ -1795,7 +1838,7 @@ class TA1:
                 for novelty in cache_novelty_types:
                     self.log.debug('novelty = {}'.format(novelty))
                     self.dataset_cache[domain_id][data_type][novelty] = dict()
-                    for difficulty in objects.VALID_DIFFICULTY:
+                    for difficulty in self._server_difficulty:
                         self.log.debug('difficulty = {}'.format(difficulty))
                         self.dataset_cache[domain_id][data_type][novelty][difficulty] = dict()
                         self.log.debug('cache_trial_novelty = {}'.format(str(cache_trial_novelty)))
@@ -1935,28 +1978,30 @@ class TA1:
                                                                                  seed))
         episode_index = -1
         try:
+            # with self.db_conn:
+            #     with self.db_conn.cursor() as cr:
+            # First we need to lock the dataset to add a new episode and update the count.
+            my_uuid = str(uuid.uuid4())
+            self.lock_dataset(dataset_id=dataset_id,
+                              my_uuid=my_uuid,
+                              errormsgs=errormsgs)
+
+            # Refresh the dataset cache while locked.
+            self.refresh_dataset_in_cache(dataset_id=dataset_id,
+                                          errormsgs=errormsgs)
+
+            # Now get the episode count.
+            episodes = self.get_dataset_episodes(dataset_id=dataset_id,
+                                                 errormsgs=errormsgs)
+            episode_index = episodes
+
+            # Add the new episode to the episode_cache so we can then add episode_id.
+            self.add_episode_to_cache(dataset_id=dataset_id,
+                                      episode_index=episode_index)
+            episodes += 1
+
             with self.db_conn:
                 with self.db_conn.cursor() as cr:
-                    # First we need to lock the dataset to add a new episode and update the count.
-                    my_uuid = str(uuid.uuid4())
-                    self.lock_dataset(dataset_id=dataset_id,
-                                      my_uuid=my_uuid,
-                                      errormsgs=errormsgs)
-
-                    # Refresh the dataset cache while locked.
-                    self.refresh_dataset_in_cache(dataset_id=dataset_id,
-                                                  errormsgs=errormsgs)
-
-                    # Now get the episode count.
-                    episodes = self.get_dataset_episodes(dataset_id=dataset_id,
-                                                         errormsgs=errormsgs)
-                    episode_index = episodes
-
-                    # Add the new episode to the episode_cache so we can then add episode_id.
-                    self.add_episode_to_cache(dataset_id=dataset_id,
-                                              episode_index=episode_index)
-                    episodes += 1
-
                     # Insert the new episode.
                     sql = ('INSERT INTO episode (dataset_id, episode_index, size, seed) '
                            'VALUES (%s, %s, %s, %s) RETURNING episode_id;')
@@ -1971,15 +2016,15 @@ class TA1:
                         self.episode_cache[dataset_id][episode_index]['episode_id'] = episode_id
                         self.episode_cache[dataset_id][episode_index]['size'] = 0
 
-                    # Update the dataset with new episodes value.
-                    self.update_dataset_episodes(dataset_id=dataset_id,
-                                                 episodes=episodes,
-                                                 errormsgs=errormsgs)
+            # Update the dataset with new episodes value.
+            self.update_dataset_episodes(dataset_id=dataset_id,
+                                         episodes=episodes,
+                                         errormsgs=errormsgs)
 
-                    # Finally, unlock the dataset row.
-                    self.unlock_dataset(dataset_id=dataset_id,
-                                        my_uuid=my_uuid,
-                                        errormsgs=errormsgs)
+            # Finally, unlock the dataset row.
+            self.unlock_dataset(dataset_id=dataset_id,
+                                my_uuid=my_uuid,
+                                errormsgs=errormsgs)
         except psycopg2.InterfaceError as e:
             self.log.error("psycopg2.InterfaceError: " + str(e.pgerror))
             errormsgs.append("Database connection unavailable, please try again in a few minutes")
@@ -2077,10 +2122,13 @@ class TA1:
         try:
             with self.db_conn:
                 with self.db_conn.cursor() as cr:
+                    tmp_fv = copy.deepcopy(feature_vector)
+                    if 'image' in tmp_fv:
+                        del tmp_fv['image']
                     sql = ('INSERT INTO data (episode_id, feature_vector, label, data_index) '
                            'VALUES (%s, %s, %s, %s) RETURNING data_id;')
                     data = (episode_id,
-                            Json(feature_vector),
+                            Json(tmp_fv),
                             Json(label),
                             data_index,)
                     # self.log.debug(cr.mogrify(sql, data))
@@ -2317,7 +2365,8 @@ class TA1:
     def calculate_episode_numbers_for_domain(self, domain_id: int, data_type: str, novelty: int,
                                              difficulty: str, trial_novelty: int, novelty_p: float,
                                              initial_episodes: int, n_zero: int = None,
-                                             n_level: int = None) -> (int, int, int):
+                                             n_level: int = None, pre_novel_eps: int = None) \
+            -> (int, int, int):
         self.log.debug('calculate_episode_numbers_for_domain(domain_id={}, data_type={}, '
                        'novelty={}, difficulty={}, trial_novelty={}, novelty_p={}, '
                        'initial_episodes={}, n_zero={}, n_level={})'.format(
@@ -2336,7 +2385,7 @@ class TA1:
         num_eps = initial_episodes
         num_n_zero = n_zero
         if num_n_zero is None:
-            num_n_zero = self.dataset_cache[domain_id][data_type][objects.NOVELTY_0][
+            num_n_zero = self.dataset_cache[domain_id][data_type][objects.NOVELTY_200][
                 difficulty][trial_novelty]['episodes']
         num_n_level = n_level
         if num_n_level is None:
@@ -2347,8 +2396,11 @@ class TA1:
             num_eps = num_episodes
         valid_size = False
         while not valid_size and num_eps >= 3:
-            # Hard coded for release
-            test_before_novel = 30
+            if pre_novel_eps is not None:
+                test_before_novel = pre_novel_eps
+            else:
+                # Hard coded for release
+                test_before_novel = int(num_eps * 0.3)
             test_num_n_l = int((num_eps - test_before_novel) * novelty_p)
             test_num_n_zero = num_eps - test_before_novel - test_num_n_l
             self.log.debug('valid_size={}, num_eps={}, test_before_novel={}, test_num_n_l={}, '
@@ -2397,14 +2449,13 @@ class TA1:
         domain = self.domain_names[domain_id]
         num_episodes = self._ep_by_domain[domain][objects.DTYPE_TRAIN]
         # Build an even split between the different difficulties.
-        type_episodes = dict({objects.DIFFICULTY_EASY: 0,
-                              objects.DIFFICULTY_MEDIUM: 0,
-                              objects.DIFFICULTY_HARD: 0})
-        type_episodes[objects.DIFFICULTY_EASY] = int(num_episodes / 3)
-        type_episodes[objects.DIFFICULTY_MEDIUM] = int(num_episodes / 3)
-        type_episodes[objects.DIFFICULTY_HARD] = \
-            num_episodes - type_episodes[objects.DIFFICULTY_EASY] - \
-            type_episodes[objects.DIFFICULTY_MEDIUM]
+        type_episodes = dict()
+        for difficulty in self._server_difficulty:
+            type_episodes[difficulty] = int(num_episodes / len(self._server_difficulty))
+        remaining_size = int(len(self._server_difficulty))
+        for difficulty in self._server_difficulty[:-1]:
+            remaining_size -= type_episodes[difficulty]
+        type_episodes[self._server_difficulty[-1]] = remaining_size
         data_type = objects.DTYPE_TRAIN
         if data_source == objects.SOURCE_LIVE:
             data_type = objects.DTYPE_LIVE_TRAIN
@@ -2416,11 +2467,11 @@ class TA1:
 
         # If the domain is not smartenv proceed as normal.
         if domain != objects.DOMAIN_SMARTENV:
-            for difficulty in objects.VALID_DIFFICULTY:
+            for difficulty in self._server_difficulty:
                 if data_source == objects.SOURCE_RECORDED:
                     available_episodes = \
-                        self.dataset_cache[domain_id][objects.DTYPE_TRAIN][0][difficulty][
-                            objects.NOVELTY_0]['episodes']
+                        self.dataset_cache[domain_id][objects.DTYPE_TRAIN][objects.NOVELTY_200][
+                            difficulty][objects.NOVELTY_200]['episodes']
                     episode_indexes = list(range(available_episodes))
                 for i in list(range(type_episodes[difficulty])):
                     episode_index = None
@@ -2434,13 +2485,14 @@ class TA1:
                     else:
                         episode_index = random.choice(episode_indexes)
                         episode_indexes.remove(episode_index)
-                    ep = objects.Episode(novelty=objects.NOVELTY_0,
+                    ep = objects.Episode(novelty=objects.NOVELTY_200,
                                          difficulty=difficulty,
                                          seed=seed,
                                          domain=domain,
                                          data_type=data_type,
                                          episode_index=episode_index,
-                                         trial_novelty=objects.NOVELTY_0)
+                                         trial_novelty=objects.NOVELTY_200,
+                                         use_image=self._image_by_domain[domain])
                     training_episodes.append(copy.deepcopy(ep))
             # Give training_episodes a good shuffle before putting it in the Training object.
             random.shuffle(training_episodes)
@@ -2464,7 +2516,7 @@ class TA1:
                 # Get the first episode index for this novelty.
                 episode_index = self.select_first_episode_index(domain_id=domain_id,
                                                                 data_type=data_type,
-                                                                novelty=objects.NOVELTY_0,
+                                                                novelty=objects.NOVELTY_200,
                                                                 difficulty=difficulty,
                                                                 trial_novelty=train_novelty,
                                                                 size=novelty_eps_count)
@@ -2477,14 +2529,15 @@ class TA1:
                             seed = random.randint(0, objects.SEED_NUM_TRAINING)
                         training_seeds.append(seed)
                         episode_index = None
-                    ep = objects.Episode(novelty=objects.NOVELTY_0,
+                    ep = objects.Episode(novelty=objects.NOVELTY_200,
                                          difficulty=difficulty,
                                          seed=seed,
                                          domain=domain,
                                          data_type=data_type,
                                          episode_index=episode_index,
                                          trial_novelty=train_novelty,
-                                         day_offset=i)
+                                         day_offset=i,
+                                         use_image=self._image_by_domain[domain])
                     training_episodes.append(copy.deepcopy(ep))
                     if data_source == objects.SOURCE_RECORDED:
                         episode_index += 1
@@ -2503,35 +2556,36 @@ class TA1:
         testing_seeds = list()
         episode_indexes = dict()
         num_episodes = self._ep_by_domain[domain][objects.DTYPE_TEST]
+        pre_novel_episodes = self._ep_by_domain[domain]['pre-novel']
         data_type = objects.DTYPE_TEST
         if data_source == objects.SOURCE_LIVE:
             data_type = objects.DTYPE_LIVE_TEST
         else:
-            episode_indexes[0] = dict()
-            for d in objects.VALID_DIFFICULTY:
-                episode_indexes[0][d] = dict()
+            episode_indexes[objects.NOVELTY_200] = dict()
+            for d in self._server_difficulty:
+                episode_indexes[objects.NOVELTY_200][d] = dict()
                 for n in testing_novelty:
-                    available_episodes = self.dataset_cache[domain_id][objects.DTYPE_TEST][0][d][n][
-                        'episodes']
-                    episode_indexes[0][d][n] = list(range(available_episodes))
+                    available_episodes = self.dataset_cache[domain_id][objects.DTYPE_TEST][
+                        objects.NOVELTY_200][d][n]['episodes']
+                    episode_indexes[objects.NOVELTY_200][d][n] = list(range(available_episodes))
         novelty_diff = list()
 
         for n in testing_novelty:
-            for d in objects.VALID_DIFFICULTY:
+            for d in self._server_difficulty:
                 novelty_diff.append((n, d))
                 if data_source == objects.SOURCE_RECORDED and domain != objects.DOMAIN_SMARTENV:
-                    if objects.NOVELTY_0 not in episode_indexes:
-                        episode_indexes[objects.NOVELTY_0] = dict()
-                    if d not in episode_indexes[objects.NOVELTY_0]:
-                        episode_indexes[objects.NOVELTY_0][d] = dict()
+                    if objects.NOVELTY_200 not in episode_indexes:
+                        episode_indexes[objects.NOVELTY_200] = dict()
+                    if d not in episode_indexes[objects.NOVELTY_200]:
+                        episode_indexes[objects.NOVELTY_200][d] = dict()
                     if n not in episode_indexes:
                         episode_indexes[n] = dict()
                     if d not in episode_indexes[n]:
                         episode_indexes[n][d] = dict()
-                    if n not in episode_indexes[objects.NOVELTY_0][d]:
+                    if n not in episode_indexes[objects.NOVELTY_200][d]:
                         size = self.dataset_cache[domain_id][objects.DTYPE_TEST][
-                            objects.NOVELTY_0][d][n]['episodes']
-                        episode_indexes[objects.NOVELTY_0][d][n] = list(range(size))
+                            objects.NOVELTY_200][d][n]['episodes']
+                        episode_indexes[objects.NOVELTY_200][d][n] = list(range(size))
                     if n not in episode_indexes[n][d]:
                         size = self.dataset_cache[domain_id][objects.DTYPE_TEST][
                             n][d][n]['episodes']
@@ -2559,7 +2613,8 @@ class TA1:
                             novelty_p=self._testing_novelty_p2,
                             initial_episodes=num_episodes,
                             n_zero=n_zero,
-                            n_level=n_level)
+                            n_level=n_level,
+                            pre_novel_eps=pre_novel_episodes)
                     episode_index_z = None
                     episode_index_l = None
                     episode_index = None
@@ -2568,7 +2623,7 @@ class TA1:
                             episode_index_z = self.select_first_episode_index(
                                 domain_id=domain_id,
                                 data_type=data_type,
-                                novelty=objects.NOVELTY_0,
+                                novelty=objects.NOVELTY_200,
                                 difficulty=difficulty,
                                 trial_novelty=novelty,
                                 size=ep_before_nov + ep_n_zero)
@@ -2580,9 +2635,10 @@ class TA1:
                                 trial_novelty=novelty,
                                 size=ep_n_level)
                         else:
-                            size = self.dataset_cache[domain_id][objects.DTYPE_TEST][0][
-                                difficulty][novelty]['episodes']
-                            episode_indexes[0][difficulty][novelty] = list(range(size))
+                            size = self.dataset_cache[domain_id][objects.DTYPE_TEST][
+                                objects.NOVELTY_200][difficulty][novelty]['episodes']
+                            episode_indexes[objects.NOVELTY_200][difficulty][novelty] = \
+                                list(range(size))
                             size = self.dataset_cache[domain_id][objects.DTYPE_TEST][novelty][
                                 difficulty][novelty]['episodes']
                             episode_indexes[novelty][difficulty][novelty] = list(range(size))
@@ -2602,16 +2658,18 @@ class TA1:
                                 episode_index = episode_index_z
                                 episode_index_z += 1
                             else:
-                                episode_index = random.choice(episode_indexes[0][difficulty][
-                                                                  novelty])
-                                episode_indexes[0][difficulty][novelty].remove(episode_index)
-                        ep = objects.Episode(novelty=objects.NOVELTY_0,
+                                episode_index = random.choice(episode_indexes[objects.NOVELTY_200][
+                                                                  difficulty][novelty])
+                                episode_indexes[objects.NOVELTY_200][difficulty][
+                                    novelty].remove(episode_index)
+                        ep = objects.Episode(novelty=objects.NOVELTY_200,
                                              difficulty=difficulty,
                                              seed=seed,
                                              domain=domain,
                                              data_type=data_type,
                                              episode_index=episode_index,
-                                             trial_novelty=novelty)
+                                             trial_novelty=novelty,
+                                             use_image=self._image_by_domain[domain])
                         trial_episodes.append(copy.deepcopy(ep))
                     # Only shuffle the episodes if not smartenv.
                     if domain != objects.DOMAIN_SMARTENV:
@@ -2647,7 +2705,8 @@ class TA1:
                                              domain=domain,
                                              data_type=data_type,
                                              episode_index=episode_index,
-                                             trial_novelty=novelty)
+                                             trial_novelty=novelty,
+                                             use_image=self._image_by_domain[domain])
                         trial_episodes.append(copy.deepcopy(ep))
 
                     temp_episodes = list()
@@ -2667,16 +2726,18 @@ class TA1:
                                 episode_index = episode_index_z
                                 episode_index_z += 1
                             else:
-                                episode_index = random.choice(episode_indexes[0][difficulty][
-                                                                  novelty])
-                                episode_indexes[0][difficulty][novelty].remove(episode_index)
-                        ep = objects.Episode(novelty=objects.NOVELTY_0,
+                                episode_index = random.choice(episode_indexes[objects.NOVELTY_200][
+                                                                  difficulty][novelty])
+                                episode_indexes[objects.NOVELTY_200][difficulty][
+                                    novelty].remove(episode_index)
+                        ep = objects.Episode(novelty=objects.NOVELTY_200,
                                              difficulty=difficulty,
                                              seed=seed,
                                              domain=domain,
                                              data_type=data_type,
                                              episode_index=episode_index,
-                                             trial_novelty=novelty)
+                                             trial_novelty=novelty,
+                                             use_image=self._image_by_domain[domain])
                         temp_episodes.append(copy.deepcopy(ep))
                     # We remove 1 from ep_n_level for the episode immediately after the big red
                     # button is pressed.  Only do this if ep_n_level is greater than 0 and
@@ -2708,7 +2769,8 @@ class TA1:
                                              domain=domain,
                                              data_type=data_type,
                                              episode_index=episode_index,
-                                             trial_novelty=novelty)
+                                             trial_novelty=novelty,
+                                             use_image=self._image_by_domain[domain])
                         temp_episodes.append(copy.deepcopy(ep))
                     # Only shuffle the episodes if not smartenv.
                     if domain != objects.DOMAIN_SMARTENV:
@@ -2739,7 +2801,7 @@ class TA1:
 
     def build_demo_sail_on_experiment(self, domain_id: int, data_source: str) -> objects.Experiment:
         difficulty = objects.DIFFICULTY_EASY
-        novelty = objects.NOVELTY_0
+        novelty = objects.NOVELTY_200
         num_eps = 3
         vis_list = list([0, 1])
         domain = self.domain_names[domain_id]
@@ -2761,7 +2823,8 @@ class TA1:
                                      domain=self.domain_names[domain_id],
                                      data_type=data_type,
                                      episode_index=ep_index,
-                                     trial_novelty=i+1)
+                                     trial_novelty=i+1,
+                                     use_image=self._image_by_domain[domain])
                 training_episodes.append(copy.deepcopy(ep))
 
             for i in range(len(training_episodes)):
@@ -2786,7 +2849,8 @@ class TA1:
                                              domain=self.domain_names[domain_id],
                                              data_type=data_type,
                                              episode_index=ep_index,
-                                             trial_novelty=j+1)
+                                             trial_novelty=j+1,
+                                             use_image=self._image_by_domain[domain])
                         trial_episodes.append(copy.deepcopy(ep))
                     for i in range(len(trial_episodes)):
                         trial_episodes[i].trial_episode_index = i
@@ -2813,7 +2877,8 @@ class TA1:
                                      seed=i,
                                      domain=self.domain_names[domain_id],
                                      data_type=data_type,
-                                     episode_index=ep_index)
+                                     episode_index=ep_index,
+                                     use_image=self._image_by_domain[domain])
                 training_episodes.append(copy.deepcopy(ep))
             for i in range(len(training_episodes)):
                 training_episodes[i].trial_episode_index = i
@@ -2835,7 +2900,8 @@ class TA1:
                                          seed=i + 3,
                                          domain=self.domain_names[domain_id],
                                          data_type=data_type,
-                                         episode_index=ep_index)
+                                         episode_index=ep_index,
+                                         use_image=self._image_by_domain[domain])
                     trial_episodes.append(copy.deepcopy(ep))
                 for i in range(len(trial_episodes)):
                     trial_episodes[i].trial_episode_index = i
@@ -2865,6 +2931,7 @@ class TA1:
                              'testing_novelty_p2': self._testing_novelty_p2,
                              'episodes_by_domain': self._ep_by_domain,
                              'budget_by_domain': self._budget_by_domain,
+                             'image_by_domain': self._image_by_domain,
                              'is_domain_live': self._is_domain_live,
                              'server_novelty': self._server_novelty,
                              'version': objects.__version__,
@@ -2954,7 +3021,7 @@ class TA1:
             self.experiment_trial_id = self.handle_experiment_trial(
                 model_experiment_id=int(self.model_experiment_id),
                 trial=-1,
-                novelty=objects.NOVELTY_0,
+                novelty=objects.NOVELTY_200,
                 novelty_visibility=self.novelty_visibility,
                 difficulty=objects.DIFFICULTY_MEDIUM,
                 novelty_description=dict(),
@@ -3333,7 +3400,7 @@ class TA1:
                         self.novelty_visibility = 0
                         ex_request = objects.RequestExperiment(
                             model=model,
-                            novelty=0,
+                            novelty=objects.NOVELTY_200,
                             novelty_visibility=0,
                             client_rpc_queue='',
                             git_version=objects.__version__,
@@ -3384,7 +3451,7 @@ class TA1:
                         self.experiment_trial_id = self.handle_experiment_trial(
                             model_experiment_id=self.model_experiment_id,
                             trial=-1,
-                            novelty=objects.NOVELTY_0,
+                            novelty=objects.NOVELTY_200,
                             novelty_visibility=self.novelty_visibility,
                             difficulty=objects.DIFFICULTY_MEDIUM,
                             novelty_description=dict(),
@@ -4222,7 +4289,8 @@ class TA1:
                                                     seed=episode.seed,
                                                     trial_novelty=episode.trial_novelty,
                                                     day_offset=episode.day_offset,
-                                                    request_timeout=self._AMQP_EXPERIMENT_TIMEOUT)
+                                                    request_timeout=self._AMQP_EXPERIMENT_TIMEOUT,
+                                                    use_image=episode.use_image)
             self._live_thread.start()
             # Get the dataset_id so we can add a new episode.
             domain_id = self.domain_ids[episode.domain]
@@ -4754,7 +4822,7 @@ class TA1:
                     errormsgs=errormsgs)
 
                 # Check to see if we reached novelty.
-                if episode.novelty != objects.NOVELTY_0 and not self.novelty_initiated:
+                if episode.novelty != objects.NOVELTY_200 and not self.novelty_initiated:
                     self.novelty_initiated = True
                     self.log_message(
                         msg=LogMessage(model_experiment_id=self.model_experiment_id,

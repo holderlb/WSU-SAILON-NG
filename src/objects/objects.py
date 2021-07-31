@@ -34,8 +34,8 @@ import time
 import types
 import uuid
 
-__major_version__ = '0.6'
-__minor_version__ = '1'
+__major_version__ = '0.7'
+__minor_version__ = '0'
 __db_version__ = '0.5'
 __version__ = '{}.{}'.format(__major_version__, __minor_version__)
 __database_version__ = re.sub('[.]', '_', __db_version__)
@@ -127,29 +127,48 @@ DOMAIN_SMARTENV = 'smartenv'
 VALID_DOMAINS = list([DOMAIN_CARTPOLE,
                       DOMAIN_VIZDOOM,
                       DOMAIN_SMARTENV])
-NOVELTY_0 = 0
 NOVELTY_1 = 1
 NOVELTY_2 = 2
 NOVELTY_3 = 3
-NOVELTY_10 = 10
-NOVELTY_11 = 11
-NOVELTY_12 = 12
-NOVELTY_13 = 13
-VALID_NOVELTY = list([NOVELTY_0,
+NOVELTY_101 = 101
+NOVELTY_102 = 102
+NOVELTY_103 = 103
+NOVELTY_104 = 104
+NOVELTY_105 = 105
+NOVELTY_200 = 200
+NOVELTY_201 = 201
+NOVELTY_202 = 202
+NOVELTY_203 = 203
+NOVELTY_204 = 204
+NOVELTY_205 = 205
+VALID_NOVELTY = list([NOVELTY_200,
                       NOVELTY_1,
                       NOVELTY_2,
                       NOVELTY_3,
-                      NOVELTY_10,
-                      NOVELTY_11,
-                      NOVELTY_12,
-                      NOVELTY_13])
-TESTING_NOVELTY = list([NOVELTY_1,
+                      NOVELTY_101,
+                      NOVELTY_102,
+                      NOVELTY_103,
+                      NOVELTY_104,
+                      NOVELTY_105,
+                      NOVELTY_201,
+                      NOVELTY_202,
+                      NOVELTY_203,
+                      NOVELTY_204,
+                      NOVELTY_205])
+TESTING_NOVELTY = list([NOVELTY_200,
+                        NOVELTY_1,
                         NOVELTY_2,
                         NOVELTY_3,
-                        NOVELTY_10,
-                        NOVELTY_11,
-                        NOVELTY_12,
-                        NOVELTY_13])
+                        NOVELTY_101,
+                        NOVELTY_102,
+                        NOVELTY_103,
+                        NOVELTY_104,
+                        NOVELTY_105,
+                        NOVELTY_201,
+                        NOVELTY_202,
+                        NOVELTY_203,
+                        NOVELTY_204,
+                        NOVELTY_205])
 DIFFICULTY_EASY = 'easy'
 DIFFICULTY_MEDIUM = 'medium'
 DIFFICULTY_HARD = 'hard'
@@ -4635,8 +4654,8 @@ class SotaIdle(AiqObject):
 class Episode(AiqObject):
     def __init__(self, novelty: int, difficulty: str, seed: int, domain: str, data_type: str,
                  episode_index: int = None, episode_id: int = None,
-                 trial_novelty: int = NOVELTY_0, day_offset: int = 0,
-                 trial_episode_index: int = None):
+                 trial_novelty: int = NOVELTY_200, day_offset: int = 0,
+                 trial_episode_index: int = None, use_image: bool = False):
         super().__init__()
         self.obj_type = OBJ_EPISODE
         self.novelty = novelty
@@ -4659,6 +4678,7 @@ class Episode(AiqObject):
             raise AiqDataException('{} is not a valid trial_novelty.'.format(self.trial_novelty))
         self.day_offset = day_offset
         self.trial_episode_index = trial_episode_index
+        self.use_image = use_image
         return
 
     def get_json_obj(self):
@@ -4672,7 +4692,8 @@ class Episode(AiqObject):
                'episode_id': self.episode_id,
                'trial_novelty': self.trial_novelty,
                'day_offset': self.day_offset,
-               'trial_episode_index': self.trial_episode_index}
+               'trial_episode_index': self.trial_episode_index,
+               'use_image': self.use_image}
         return copy.deepcopy(obj)
 
 
@@ -4807,7 +4828,8 @@ class GeneratorReset(AiqObject):
 
 class StartGenerator(AiqObject):
     def __init__(self, domain: str, novelty: int, difficulty: str, seed: int, server_rpc_queue: str,
-                 trial_novelty: int, epoch: float = None, day_offset: int = 0):
+                 trial_novelty: int, epoch: float = None, day_offset: int = 0,
+                 request_timeout: int = 20, use_image: bool = False):
         super().__init__()
         self.obj_type = START_GENERATOR
         if domain not in VALID_DOMAINS:
@@ -4828,6 +4850,8 @@ class StartGenerator(AiqObject):
         if self.epoch is None:
             self.epoch = time.time()
         self.day_offset = day_offset
+        self.request_timeout = request_timeout
+        self.use_image = use_image
         return
 
     def get_json_obj(self):
@@ -4839,7 +4863,9 @@ class StartGenerator(AiqObject):
                'server_rpc_queue': self.server_rpc_queue,
                'trial_novelty': self.trial_novelty,
                'epoch': self.epoch,
-               'day_offset': self.day_offset}
+               'day_offset': self.day_offset,
+               'request_timeout': self.request_timeout,
+               'use_image': self.use_image}
         return copy.deepcopy(obj)
 
 
@@ -5675,6 +5701,9 @@ def build_objects_from_json(message):
                     if 'trial_episode_index' not in obj:
                         errormsgs.append('Could not obtain attribute trial_episode_index, '
                                          'please include json attribute trial_episode_index.')
+                    if 'use_image' not in obj:
+                        errormsgs.append('Could not obtain attribute use_image, '
+                                         'please include json attribute use_image.')
                     if len(errormsgs) == 0:
                         result = Episode(novelty=obj['novelty'],
                                          difficulty=obj['difficulty'],
@@ -5685,7 +5714,8 @@ def build_objects_from_json(message):
                                          episode_id=obj['episode_id'],
                                          trial_novelty=obj['trial_novelty'],
                                          day_offset=obj['day_offset'],
-                                         trial_episode_index=obj['trial_episode_index'])
+                                         trial_episode_index=obj['trial_episode_index'],
+                                         use_image=obj['use_image'])
                 elif obj['obj_type'] == OBJ_TRAINING:
                     if 'episodes' not in obj:
                         errormsgs.append('Could not obtain attribute episodes, '
@@ -5810,6 +5840,12 @@ def build_objects_from_json(message):
                     if 'day_offset' not in obj:
                         errormsgs.append('Could not obtain attribute day_offset, '
                                          'please include json attribute day_offset.')
+                    if 'request_timeout' not in obj:
+                        errormsgs.append('Could not obtain attribute request_timeout, '
+                                         'please include json attribute request_timeout.')
+                    if 'use_image' not in obj:
+                        errormsgs.append('Could not obtain attribute use_image, '
+                                         'please include json attribute use_image.')
                     if len(errormsgs) == 0:
                         result = StartGenerator(domain=obj['domain'],
                                                 novelty=obj['novelty'],
@@ -5818,7 +5854,9 @@ def build_objects_from_json(message):
                                                 server_rpc_queue=obj['server_rpc_queue'],
                                                 trial_novelty=obj['trial_novelty'],
                                                 epoch=obj['epoch'],
-                                                day_offset=obj['day_offset'])
+                                                day_offset=obj['day_offset'],
+                                                request_timeout=obj['request_timeout'],
+                                                use_image=obj['use_image'])
                 elif obj['obj_type'] == GENERATOR_RESPONSE:
                     if 'generator_rpc_queue' not in obj:
                         errormsgs.append('Could not obtain attribute generator_rpc_queue, '

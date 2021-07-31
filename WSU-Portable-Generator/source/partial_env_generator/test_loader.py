@@ -4,22 +4,49 @@
 from time import time
 import random
 import numpy as np
-
+import sys
+import json
+import zlib
+from base64 import b64encode
+import blosc
 
 class TestLoader:
 
-    def __init__(self, domain: str = 'cartpole', novelty_level: int = 0, is_novel: bool = True,
+    def __init__(self, domain: str = 'cartpole', novelty_level: int = 0, trial_novelty: bool = True,
                  seed: int = 0, difficulty: str = 'easy', day_offset: int = 0,
-                 week_shift: int = None, generate_days: int = None):
+                 week_shift: int = None, generate_days: int = None, use_img: bool = False,
+                 path: str = None):
         # Set internal params        
         self.domain = domain
         self.novelty_level = novelty_level
-        self.is_novel = is_novel
+        self.trial_novelty = trial_novelty
         self.seed = seed
         self.difficulty = difficulty
         self.day_offset = day_offset
         self.week_shift = week_shift
         self.generate_days = generate_days
+        self.use_img = use_img
+        self.path = path
+
+        # Determine level here
+        self.use_mock = False
+        self.use_novel = False
+        self.level = -1
+
+        if int(self.novelty_level/100) == 1:
+            self.use_mock = True
+        elif int(self.novelty_level/100) == 2:
+            self.use_novel = True
+        else:
+            raise Exception("Invalid novelty level sent to test_loader!")
+
+        self.level = int(str(self.novelty_level)[-1])
+        if self.level < 0 or self.level >= 6:
+            raise Exception("Invalid novelty level sent to test_loader!")
+
+        # Do a little catching here for difficulty
+        if self.difficulty not in ['easy', 'medium', 'hard']:
+            raise Exception("Invalid difficulty sent to test_loader!")
 
         # Set initial conditions
         self.is_done = False
@@ -50,32 +77,56 @@ class TestLoader:
         return
 
     def load_test(self):
+        # Partial only has mock novelties :P
+        if self.use_novel and self.level != 0:
+            print('Shame on you and your ancestors!')
+            print('No real novelties allowed!!')
+            sys.exit()
+
         # Filter by domain
         if self.domain == 'cartpole':
             # Filter by novelty level
-            if self.novelty_level == 0 or not self.is_novel:
-                from .envs.cartpole.cartpole_n0 import CartpoleN0
-                self.env = CartpoleN0()
-            # Obvious novelty
-            elif self.novelty_level == 10:
-                from .envs.cartpole.cartpole_n10 import CartpoleN10
-                self.env = CartpoleN10(self.difficulty)
+            if self.level == 0:
+                from .envs.cartpolepp.n_0 import CartPole
+                self.env = CartPole(self.difficulty)
+            # Mocks
+            elif self.use_mock:
+                if self.level == 1:
+                    from .envs.cartpolepp.m_1 import CartPolePPMock1 as CartPole
+                    self.env = CartPole(self.difficulty)
+                elif self.level == 2:
+                    from .envs.cartpolepp.m_2 import CartPolePPMock2 as CartPole
+                    self.env = CartPole(self.difficulty)
+                elif self.level == 3:
+                    from .envs.cartpolepp.m_3 import CartPolePPMock3 as CartPole
+                    self.env = CartPole(self.difficulty)
+                elif self.level == 4:
+                    from .envs.cartpolepp.m_4 import CartPolePPMock4 as CartPole
+                    self.env = CartPole(self.difficulty)
+                elif self.level == 5:
+                    from .envs.cartpolepp.m_5 import CartPolePPMock5 as CartPole
+                    self.env = CartPole(self.difficulty)
             else:
+                print(self.use_mock, self.use_novel, self.level)
                 raise ValueError('Domain: ' + self.domain + ', Novelty: ' +
                                  str(self.novelty_level) + ', is not recognized!')
+
+            # Set env camera here, fix later?
+            self.env.use_img = self.use_img
+
+            # Use seed here
+            self.env.seed(self.seed)
+
+            # Set internal path
+            self.env.path = self.path + "cartpolepp/"
 
             # Set internal reward here
             self.reward = 0
 
         elif self.domain == 'vizdoom':
-            from .envs.vizdoom.viz import viz
-            if self.novelty_level == 0 or not self.is_novel:
-                self.env = viz('n0', self.seed, self.difficulty)
-            elif self.novelty_level == 10:
-                self.env = viz('n_10', self.seed, self.difficulty)
-            else:
-                raise ValueError('Domain: ' + self.domain + ', Novelty: ' +
-                                 str(self.novelty_level) + ', is not recognized!')
+            from .envs.vizdoom.viz import SailonViz
+            self.env = SailonViz(self.use_mock, self.use_novel, self.level, self.use_img,
+                                 self.seed, self.difficulty, self.path)
 
             # Set internal reward here
             self.reward = 2000
@@ -121,10 +172,7 @@ class TestLoader:
 
         # Set local state
         self.obs = obs
-        if self.domain == 'smartenv' or self.domain == 'vizdoom':
-            self.reward = reward
-        else:
-            self.reward = self.reward + reward
+        self.reward = reward
         self.is_done = done
         self.info = info
 
@@ -133,10 +181,16 @@ class TestLoader:
     def format_action(self, action):
         # Check for domain type
         if self.domain == 'cartpole':
-            if action == 'right':
-                action = 1
-            elif action == 'left':
+            if action == 'nothing':
                 action = 0
+            elif action == 'left':
+                action = 1
+            elif action == 'right':
+                action = 2
+            elif action == 'forward':
+                action = 3
+            elif action == 'backward':
+                action = 4
 
         elif self.domain == 'smartenv':
             # Do nothing
@@ -149,16 +203,15 @@ class TestLoader:
 
             # Add time here
             self.time = self.time + 1.0 / 30.0
-            self.sensors = {'time_stamp': self.time,
-                            'cart_position': self.obs[0],
-                            'cart_veloctiy': self.obs[1],
-                            'pole_angle': self.obs[2],
-                            'pole_angular_velocity': self.obs[3]}
 
-            self.actions = ['left', 'right']
+            self.sensors = self.obs
+            self.sensors['time_stamp'] = self.time
+            self.sensors['image'] = self.env.get_image()
+
+            self.actions = ['left', 'right', 'forward', 'backward', 'nothing']
 
             self.response = {'sensors': self.sensors,
-                             'performance': self.reward / 200,
+                             'performance': self.reward,
                              'action_list': self.actions,
                              'action': 'left'}
 
@@ -168,12 +221,11 @@ class TestLoader:
 
             self.sensors = self.obs
             self.sensors['time_stamp'] = self.time
-
-            self.actions = ['left', 'right', 'forward', 'backward', 'shoot', 'nothing']
+            self.sensors['image'] = self.env.get_image()
 
             self.response = {'sensors': self.sensors,
                              'performance': self.reward,
-                             'action_list': self.actions,
+                             'action_list': self.info,
                              'action': 'left'}
 
         elif self.domain == 'smartenv':
@@ -226,11 +278,25 @@ class TestLoader:
                             'enter_home': 'enter_home',
                             'eat': 'eat'}
 
+            self.sensors['image'] = None
             self.response = {'sensors': self.sensors,
                              'performance': self.reward,
                              'action_list': self.actions,
                              'action': label}
 
+        # Compress image if not None
+        if self.response['sensors']['image'] is not None:
+            # print('raw image size = {}'.format(sys.getsizeof(
+            #     json.dumps(self.response['sensors']['image']))))
+            #comp_img = zlib.compress(json.dumps(self.response['sensors']['image']).encode('utf-8'))
+            comp_img = blosc.pack_array(self.response['sensors']['image'])
+            #print("before")
+            #print(hash(comp_img))
+            # del self.response['sensors']['image']
+            self.response['sensors']['image'] =  b64encode(comp_img).decode('ascii')
+            # self.response['sensors']['image'] = comp_img
+
+            # print('compressed image size = {}'.format(sys.getsizeof(self.response['sensors']['image'])))
         # Send response
         return self.response
 

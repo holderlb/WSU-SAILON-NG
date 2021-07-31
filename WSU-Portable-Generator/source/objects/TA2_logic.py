@@ -36,14 +36,26 @@ import sys
 import threading
 import time
 import uuid
+import zlib
+import blosc
+import numpy
 
+from base64 import b64decode
 from . import rabbitmq
 from . import objects
 
 
 class TA2Logic(object):
-    def __init__(self, config_file: str, printout: bool, debug: bool, fulldebug: bool,
-                 logfile: str, no_testing: bool, just_one_trial: bool, ignore_secret: bool):
+    def __init__(self):
+        options = self._get_command_line_options()
+        config_file = options.config
+        printout = options.printout
+        debug = options.debug
+        fulldebug = options.fulldebug
+        logfile = options.logfile
+        no_testing = options.no_testing
+        just_one_trial = options.just_one_trial
+        ignore_secret = options.ignore_secret
         self._agent_name = "TA2"
 
         # First check that the config file exists.
@@ -187,6 +199,61 @@ class TA2Logic(object):
         self.end_experiment_early = False
         return
 
+    def _get_command_line_options(self):
+        parser = optparse.OptionParser(usage="usage: %prog [options]")
+        parser = self._add_command_line_options(parser)
+
+        (options, args) = parser.parse_args()
+        if options.fulldebug:
+            options.debug = True
+        return options
+
+    @staticmethod
+    def _add_command_line_options(parser):
+        parser.add_option("--config",
+                          dest="config",
+                          help="Custom ClientAgent config file.",
+                          default="TA2.config")
+        parser.add_option("--debug",
+                          dest="debug",
+                          action="store_true",
+                          help="Set logging level to DEBUG from INFO.",
+                          default=False)
+        parser.add_option("--fulldebug",
+                          dest="fulldebug",
+                          action="store_true",
+                          help="Set logging level to DEBUG from INFO for all imported libraries.",
+                          default=False)
+        parser.add_option("--logfile",
+                          dest="logfile",
+                          help="Filename if you want to write the log to disk.")
+        parser.add_option("--printout",
+                          dest="printout",
+                          action="store_true",
+                          help="Print output to the screen at given logging level.",
+                          default=False)
+        parser.add_option("--no-testing",
+                          dest="no_testing",
+                          action="store_true",
+                          help=(
+                              'Instruct the TA2 to just create the experiment, update the config, '
+                              'consume training data (if any), train the model (if needed), saves '
+                              'the model to disk, and then exits. This disables the use of '
+                              '--just-one-trial when set.'),
+                          default=False)
+        parser.add_option("--just-one-trial",
+                          dest="just_one_trial",
+                          action="store_true",
+                          help="Process just one trial and then exit.",
+                          default=False)
+        parser.add_option("--ignore-secret",
+                          dest="ignore_secret",
+                          action="store_true",
+                          help=('Causes the program to ignore any secret stored in experiment_'
+                                'secret.'),
+                          default=False)
+        return parser
+
     def _set_model_filename(self):
         self._model_filename = self._model_filename_pat.format(self._experiment_secret)
         return
@@ -264,6 +331,13 @@ class TA2Logic(object):
                 while not isinstance(my_state, objects.TestingEpisodeEnd):
                     # Get testing data.
                     test_data = self._amqp.get_testing_data()
+
+                    # Decompress the image if there is one.
+                    if 'image' in test_data.feature_vector:
+                        if test_data.feature_vector['image'] is not None:
+                            comp_image = b64decode(test_data.feature_vector['image'])
+                            test_data.feature_vector['image'] \
+                                = blosc.unpack_array(comp_image)
 
                     # Evaluate the testing data.
                     label_prediction = \
@@ -346,6 +420,12 @@ class TA2Logic(object):
                 # Get training data.
                 training_data = self._amqp.get_training_data()
 
+                # Decompress the image if there is one.
+                if 'image' in training_data.feature_vector:
+                    if training_data.feature_vector['image'] is not None:
+                        comp_image = b64decode(training_data.feature_vector['image'])
+                        training_data.feature_vector['image'] \
+                            = blosc.unpack_array(comp_image)
                 # Handle the training data.
                 label_prediction = \
                     self.training_instance(feature_vector=training_data.feature_vector,
