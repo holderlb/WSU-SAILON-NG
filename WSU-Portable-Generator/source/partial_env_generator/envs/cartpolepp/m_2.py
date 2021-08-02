@@ -70,16 +70,7 @@ class CartPolePPMock2(CartPoleBulletEnv):
                 # Z is not centered at 0.0
                 pos[2] = pos[2] + 5.0
             p.resetBasePositionAndOrientation(i, pos, [0, 0, 0, 1])
-
-        # Set block velocities
-        for i in self.blocks:
-            vel = self.np_random.uniform(low=6.0, high=10.0, size=(3,))
-            for ind, val in enumerate(vel):
-                if np.random.rand() < 0.5:
-                    vel[ind] = val * -1
-
-            p.resetBaseVelocity(i, vel, [0, 0, 0])
-
+            #p.resetBaseVelocity(i, vel, [0, 0, 0])
 
         return None
 

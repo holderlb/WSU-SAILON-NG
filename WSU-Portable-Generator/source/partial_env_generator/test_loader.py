@@ -15,7 +15,7 @@ class TestLoader:
     def __init__(self, domain: str = 'cartpole', novelty_level: int = 0, trial_novelty: bool = True,
                  seed: int = 0, difficulty: str = 'easy', day_offset: int = 0,
                  week_shift: int = None, generate_days: int = None, use_img: bool = False,
-                 path: str = None):
+                 path: str = "partial_env_generator/envs/", use_gui: bool = False):
         # Set internal params        
         self.domain = domain
         self.novelty_level = novelty_level
@@ -27,6 +27,7 @@ class TestLoader:
         self.generate_days = generate_days
         self.use_img = use_img
         self.path = path
+        self.use_gui = use_gui
 
         # Determine level here
         self.use_mock = False
@@ -117,16 +118,13 @@ class TestLoader:
             # Use seed here
             self.env.seed(self.seed)
 
-            # Set internal path
-            self.env.path = self.path + "cartpolepp/"
-
             # Set internal reward here
             self.reward = 0
 
         elif self.domain == 'vizdoom':
             from .envs.vizdoom.viz import SailonViz
             self.env = SailonViz(self.use_mock, self.use_novel, self.level, self.use_img,
-                                 self.seed, self.difficulty, self.path)
+                                 self.seed, self.difficulty, path=self.path, use_gui=self.use_gui)
 
             # Set internal reward here
             self.reward = 2000
@@ -301,3 +299,4 @@ class TestLoader:
         return self.response
 
 # EoF
+

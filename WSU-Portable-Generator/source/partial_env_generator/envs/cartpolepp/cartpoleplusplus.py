@@ -36,7 +36,7 @@ class CartPoleBulletEnv(gym.Env):
         # Internal params
         self.path = "partial_env_generator/envs/cartpolepp/"
         self.tick_limit = 200
-        self.tick = -1
+        self.tick = 0
 
         # Object definitions
         self.nb_blocks = None
@@ -130,7 +130,7 @@ class CartPoleBulletEnv(gym.Env):
         if self._physics_client_id < 0:
             self.generate_world()
 
-        self.tick = -1
+        self.tick = 0
         self.reset_world()
 
         # Run for one step to get everything going
@@ -199,7 +199,7 @@ class CartPoleBulletEnv(gym.Env):
             p.removeBody(i)
 
         # Load blocks in
-        self.nb_blocks = np.random.randint(4) + 1
+        self.nb_blocks = np.random.randint(4) + 2
         self.blocks = [None] * self.nb_blocks
         for i in range(self.nb_blocks):
             self.blocks[i] = p.loadURDF(self.path + "models/block.urdf")
@@ -303,6 +303,7 @@ class CartPoleBulletEnv(gym.Env):
             block_state.append(state)
 
         world_state['blocks'] = block_state
+
         # Get wall info ======================================
         # Hardcoded cause I don't know how to get the info :(
         if initial:

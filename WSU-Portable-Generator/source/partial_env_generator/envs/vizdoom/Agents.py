@@ -9,6 +9,10 @@ class Agents:
         self.difficulty = difficulty
         self.mock = mock
 
+        # Set looking bounds (vision cone)
+        self.left_side = np.pi * 3 / 16
+        self.right_side = np.pi * 13 / 16
+
         return None
 
     # Run agent behavoir here
@@ -21,6 +25,7 @@ class Agents:
         elif self.novelty == 5:
             commands = self.spread_out(state)
 
+        # Any other is pure random
         else:
             commands = []
             # Random behavoiur:
@@ -42,7 +47,7 @@ class Agents:
             angle = self.get_angle(state['player'], val)
 
             # If enemy is face towards player turn away
-            if np.pi * 3 / 16 < angle and np.pi * 13 / 16 > angle:
+            if self.left_side < angle < self.right_side:
                 if angle > np.pi / 2:
                     # Turn left
                     action = 6
@@ -79,7 +84,7 @@ class Agents:
             angle = self.get_angle(pl, val)
 
             # If enemy is face towards player turn away
-            if np.pi * 3 / 16 < angle and np.pi * 13 / 16 > angle:
+            if self.left_side < angle < self.right_side:
                 if angle > np.pi / 2:
                     # Turn right
                     action = 5
@@ -100,7 +105,7 @@ class Agents:
         for ind, val in enumerate(state['enemies']):
             angle = self.get_angle(state['player'], val)
 
-            if np.pi * 3 / 16 < angle and np.pi * 13 / 16 > angle:
+            if self.left_side < angle < self.right_side:
                 if np.random.rand() > 0.5:
                     # Shoot is action = 7
                     commands[ind] = "set ai_" + str(ind) + " " + str(7)

@@ -6,69 +6,28 @@ import vizdoom as vzd
 
 from .Agents import Agents
 
+
 class SailonViz:
 
-    def __init__(self, use_mock, use_novel, level, use_img, seed, difficulty, path):
-        # Set internal params
+    def __init__(self, use_mock, use_novel, level, use_img, seed, difficulty,
+                 path="partial_env_generator/envs/", use_gui=False):
+        # Set external to internal parameters
         self.use_mock = use_mock
         self.use_novel = use_novel
         self.level = level
         self.use_img = use_img
         self.seed = seed
         self.difficulty = difficulty
+        self.path = path
 
-        # Decide on agent behvoiur here
-        self.Agents = Agents(self.level, self.difficulty, self.use_mock)
-
-        # Make and load game parameters here
-        game = vzd.DoomGame()
-        package_path = path + "vizdoom/"
-        game.load_config(package_path + 'basic.cfg')
-        game.set_doom_scenario_path(package_path + "phase_2_reduced.wad")
-
-        # Set game tie ins
-        game.add_available_game_variable(vzd.vizdoom.HEALTH)
-        game.add_available_game_variable(vzd.vizdoom.AMMO2)
-        game.add_available_game_variable(vzd.vizdoom.USER20)
-        game.add_available_game_variable(vzd.vizdoom.USER21)
-        game.add_available_game_variable(vzd.vizdoom.USER22)
-        game.add_available_game_variable(vzd.vizdoom.USER23)
-
-        game.add_available_game_variable(vzd.vizdoom.USER30)
-        game.add_available_game_variable(vzd.vizdoom.USER31)
-        game.add_available_game_variable(vzd.vizdoom.USER32)
-        game.add_available_game_variable(vzd.vizdoom.USER33)
-
-        game.add_available_game_variable(vzd.vizdoom.USER40)
-        game.add_available_game_variable(vzd.vizdoom.USER41)
-        game.add_available_game_variable(vzd.vizdoom.USER42)
-        game.add_available_game_variable(vzd.vizdoom.USER43)
-
-        # Send level speicfic info here
-        game.add_game_args("+set novelty " + str(self.level*10+int(self.use_mock)))
-        conv = {'easy': 1, 'medium': 2, 'hard': 3}
-        game.add_game_args("+set difficulty_n " + str(conv[self.difficulty]))
-
-        # Enables information about all objects present in the current episode/level.
-        game.set_objects_info_enabled(True)
-
-        # Enables information about all sectors (map layout).
-        game.set_sectors_info_enabled(True)
-
-        # Set seed here
-        random.seed(seed)
-        np.random.seed(seed)
-        game.set_seed(seed)
-
-        game.init()
-
-        self.game = game
-        self.counter = 0
+        # Declare parameters
+        self.counter = None
         self.done = None
         self.performance = None
         self.last_obs = None
         self.enemies_health = None
 
+        # Set internal params
         self.step_limit = 2000
         self.actions = {'nothing': [False, False, False, False, False, 0],
                         'left': [True, False, False, False, False, 0],
@@ -78,6 +37,67 @@ class SailonViz:
                         'shoot': [False, False, False, False, True, 0],
                         'turn_left': [False, False, False, False, False, -45],
                         'turn_right': [False, False, False, False, False, 45]}
+
+        # Decide on agent behvoiur here
+        self.Agents = Agents(self.level, self.difficulty, self.use_mock)
+
+        # Make and load game parameters here
+        game = vzd.DoomGame()
+        package_path = self.path + "vizdoom/"
+        game.load_config(package_path + 'basic.cfg')
+        game.set_doom_scenario_path(package_path + "phase_2_reduced.wad")
+
+        # Set in game limit
+        game.set_episode_timeout(self.step_limit)
+
+        # Set use gui
+        if use_gui:
+            game.set_screen_resolution(vzd.vizdoom.RES_640X400)
+            game.set_window_visible(use_gui)
+
+        # Set game tie ins
+        game.add_available_game_variable(vzd.vizdoom.HEALTH)
+        game.add_available_game_variable(vzd.vizdoom.AMMO2)
+
+        # These are enemies health
+        game.add_available_game_variable(vzd.vizdoom.USER20)
+        game.add_available_game_variable(vzd.vizdoom.USER21)
+        game.add_available_game_variable(vzd.vizdoom.USER22)
+        game.add_available_game_variable(vzd.vizdoom.USER23)
+
+        # Enemies x
+        game.add_available_game_variable(vzd.vizdoom.USER30)
+        game.add_available_game_variable(vzd.vizdoom.USER31)
+        game.add_available_game_variable(vzd.vizdoom.USER32)
+        game.add_available_game_variable(vzd.vizdoom.USER33)
+
+        # Enemies y
+        game.add_available_game_variable(vzd.vizdoom.USER40)
+        game.add_available_game_variable(vzd.vizdoom.USER41)
+        game.add_available_game_variable(vzd.vizdoom.USER42)
+        game.add_available_game_variable(vzd.vizdoom.USER43)
+
+        # Send level speicfic info here (filtered in wad to select right novelty)
+        level_string = str((self.level * 10) + int(self.use_novel))
+        game.add_game_args("+set novelty " + level_string)
+        conv = {'easy': 1, 'medium': 2, 'hard': 3}
+        difficulty_str = str(conv[self.difficulty])
+        game.add_game_args("+set difficulty_n " + difficulty_str)
+
+        # Enables information about all objects present in the current episode/level.
+        game.set_objects_info_enabled(True)
+
+        # Enables information about all sectors (map layout).
+        game.set_sectors_info_enabled(True)
+
+        # Set seed here
+        random.seed(self.seed)
+        np.random.seed(self.seed)
+        game.set_seed(self.seed)
+
+        # Call this at the end since no more changes can be made after
+        game.init()
+        self.game = game
 
         return None
 
@@ -94,21 +114,19 @@ class SailonViz:
         # Make action
         self.game.make_action(action)
 
+        # Update counter
+        self.counter = self.counter + 1
+
         # Calculate performance
         self.performance = (self.step_limit - self.counter) / self.step_limit
 
         # Get game state information
         observation = self.get_state()
 
-        # Update counter
-        self.counter = self.counter + 1
-
-        # Check if game is done naturally, then check step limit
+        # Check if game is done naturally (includes tick limit nativelly)
         self.done = self.game.is_episode_finished()
-        if self.counter > (self.step_limit + 1):
-            self.done = True
 
-        if observation['player']['health'] <= 0:
+        if self.game.is_player_dead():
             self.done = True
             self.performance = 0.0
 
@@ -129,16 +147,7 @@ class SailonViz:
             return None
 
         # Get current game information
-        state = self.game.get_state()
-        #print('before')
-        #print(state.screen_buffer.dtype)
-        #print(state.screen_buffer.shape)
-        #print(state.screen_buffer)
-        return state.screen_buffer
-
-        screen_buf = state.screen_buffer.tolist()
-
-        return screen_buf
+        return self.game.get_state().screen_buffer
 
     def get_state(self, initial=False):
         # Check for game end, if so just send last value
@@ -153,7 +162,8 @@ class SailonViz:
         health = self.game.get_game_variable(vzd.vizdoom.HEALTH)
         ammo = self.game.get_game_variable(vzd.vizdoom.AMMO2)
 
-        # Get enemy ids
+        # This big block links the x,y of the enemies to id for health getting
+        # Its convoluted but there were no other tie-ins :(
         if initial:
             self.enemies_health = dict()
             game_vars = [vzd.vizdoom.USER20, vzd.vizdoom.USER21,
@@ -173,6 +183,7 @@ class SailonViz:
                         dif = abs(x_pos - object.position_x) + abs(y_pos - object.position_y)
                         if dif < 5:
                             self.enemies_health[object.id] = game_vars[i]
+
         # Start formatting the data
         data = {'enemies': [], 'items': {'health': [], 'ammo': [], 'trap': [], 'obstacle': []}}
 
@@ -197,6 +208,7 @@ class SailonViz:
                 entity['health'] = self.game.get_game_variable(self.enemies_health[int(object.id)])
                 data['enemies'].append(entity)
 
+            # Whiskey is the ultimate trap!
             elif "Whiskeyy" in object.name:
                 data['items']['trap'].append(entity)
 
@@ -230,6 +242,9 @@ class SailonViz:
 
         # Start a new episode
         self.game.new_episode()
+
+        # Docs suggest putting it here too
+        self.game.set_seed(self.seed)
 
         # Get state
         observation = self.get_state(initial=True)

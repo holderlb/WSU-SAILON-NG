@@ -80,5 +80,4 @@ class CartPolePPMock4(CartPoleBulletEnv):
 
             p.resetBaseVelocity(i, vel, [0, 0, 0])
 
-
         return None
