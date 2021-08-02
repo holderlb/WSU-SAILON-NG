@@ -10,7 +10,7 @@ from .Agents import Agents
 class SailonViz:
 
     def __init__(self, use_mock, use_novel, level, use_img, seed, difficulty,
-                 path="partial_env_generator/envs/", use_gui=False):
+                 path="", use_gui=False):
         # Set external to internal parameters
         self.use_mock = use_mock
         self.use_novel = use_novel
