@@ -229,3 +229,48 @@ also called Mock novelties. These are described below.
 
 The implementations of these mock novelties can be found in the folder
 [WSU-Portable-Generator/source/partial_env_generator/envs/vizdoom/wad_reduced/SCRIPTS.txt](https://github.com/holderlb/WSU-SAILON-NG/tree/master/WSU-Portable-Generator/source/partial_env_generator/envs/vizdoom/wad_reduced/SCRIPTS.txt).
+
+## Frequently Asked Questions
+
+The below FAQ refers to Phase 2. Answers may change for Phase 3.
+
+**Why doesn't the sensor data include information on projectiles?**
+
+Projectiles have been removed from the game. There is only one weapon (pistol) and one ammo type (bullets).
+
+**How will novel objects and attributes appear in the JSON sensor information?**
+
+The object types and their attributes, as shown in the sample JSON above, are fixed. No new object types or attributes will appear in the JSON.
+
+**Can the player shoot over ammo/health packs and traps? Is this the same for enemies?**
+
+Yes, the player and enemies can shoot over health/ammo/traps but not through obstacles or walls.
+
+**Do bullets penetrate enemies? Can enemies damage each other?**
+
+Bullets do not pass through enemies. Enemies can damage each other.
+
+**Can enemies hit traps?**
+
+No. Enemies do not pick up health packs, ammo packs, or traps. This may change post-novelty.
+
+**How much damage does each bullet do?**
+
+Each bullet (player and enemy) does 5 damage. Enemies start with 10hp and 5points of armor, which results in 3 shots to kill. These values may change post-novelty.
+
+**Does a player have a maximum ammo cap?**
+
+The player has no upper-limit for either health or ammo. The enemy has infinite ammo.
+
+**How large (x,y) are each of the items and agents?**
+
+Objects in the game are defined by a radius R and height H. The (x,y) size of an object is (2R x 2R). The H and R for VizDoom objects are defined in ``ViZDoom/src/vizdoom/wadsrc/static/actors/``. For the player, R = 16 and H = 56. For the enemies (ZombieMan), R = 20 and H = 56. For packs, traps and obstacles, R = 16 and H = 52.
+
+**Is the ID counter global (i.e., playerID and enemyID cannot be the same value)?**
+
+ID's are unique per object. So, no two object have the same ID. However, objects may not have the same ID from game to game.
+
+**Can we setup levels in a specific configuration (objects, agents in specific locations)?**
+
+You can do this by modifying or replacing the novelty level WAD file (
+``WSU-SAILON-NG/WSU-Portable-Generator/source/partial_env_generator/envs/vizdoom/phase_2_reduced.wad``). A more readable version of the WAD file is in the directory ``WSU-SAILON-NG/WSU-Portable-Generator/source/partial_env_generator/envs/vizdoom/wad_reduced``. To get started with editing Doom scenarios, see [Custom Scenarios](http://vizdoom.cs.put.edu.pl/tutorial#scenarios).
