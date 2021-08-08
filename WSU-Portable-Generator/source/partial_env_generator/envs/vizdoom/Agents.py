@@ -36,6 +36,9 @@ class Agents:
         # Enemies always check for facing to see if shoot
         commands = self.check_shoot(state, commands)
 
+        # Enemies never shoot towards other enemies
+        commands = self.check_enemies(state, commands)
+
         return commands
 
     # Move agent towards player
@@ -109,6 +112,24 @@ class Agents:
                 if np.random.rand() > 0.5:
                     # Shoot is action = 7
                     commands[ind] = "set ai_" + str(ind) + " " + str(7)
+
+        return commands
+
+    def check_enemies(self, state, commands):
+        # From enemy
+        for ind, val in enumerate(state['enemies']):
+            # To enemy
+            for ind2, val2 in enumerate(state['enemies']):
+                # Check for self
+                if ind == ind2:
+                    continue
+
+                angle = self.get_angle(val2, val)
+
+                # Smaller cone
+                if np.pi * 7.5 / 16 < angle < np.pi * 8.5 / 16:
+                    action = random.choice(list(range(6))) + 1
+                    commands[ind] = "set ai_" + str(ind) + " " + str(action)
 
         return commands
 

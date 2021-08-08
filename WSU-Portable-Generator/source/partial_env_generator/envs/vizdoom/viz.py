@@ -1,3 +1,4 @@
+import os
 import copy
 import random
 
@@ -10,7 +11,14 @@ from .Agents import Agents
 class SailonViz:
 
     def __init__(self, use_mock, use_novel, level, use_img, seed, difficulty,
-                 path="", use_gui=False):
+                 path="", use_gui=False, auto_map=False):
+
+        # Attempt to clear out previous ini file
+        try:
+            os.remove("_vizdoom.ini")
+        except FileNotFoundError as e:
+            None
+
         # Set external to internal parameters
         self.use_mock = use_mock
         self.use_novel = use_novel
@@ -19,6 +27,7 @@ class SailonViz:
         self.seed = seed
         self.difficulty = difficulty
         self.path = path
+        self.auto_map = auto_map
 
         # Declare parameters
         self.counter = None
@@ -90,6 +99,9 @@ class SailonViz:
         # Enables information about all sectors (map layout).
         game.set_sectors_info_enabled(True)
 
+        # Enables rendering of automap.
+        game.set_automap_buffer_enabled(self.auto_map)
+
         # Set seed here
         random.seed(self.seed)
         np.random.seed(self.seed)
@@ -126,9 +138,14 @@ class SailonViz:
         # Check if game is done naturally (includes tick limit nativelly)
         self.done = self.game.is_episode_finished()
 
+        # Check if player dead
         if self.game.is_player_dead():
             self.done = True
             self.performance = 0.0
+
+        # Special check to see if all monsters died (needed to prevent aditional tick)
+        if len(observation['enemies']) == 0:
+            self.done = True
 
         # Update last obs
         self.last_obs = observation
@@ -146,8 +163,12 @@ class SailonViz:
         if self.game is None:
             return None
 
-        # Get current game information
-        return self.game.get_state().screen_buffer
+        if self.auto_map:
+            # Get map buffer
+            return self.game.get_state().automap_buffer
+        else:
+            # Get current game information
+            return self.game.get_state().screen_buffer
 
     def get_state(self, initial=False):
         # Check for game end, if so just send last value

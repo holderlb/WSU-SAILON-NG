@@ -4,6 +4,7 @@
 from time import time
 import random
 import numpy as np
+import os.path
 import sys
 import json
 import zlib
@@ -15,7 +16,7 @@ class TestLoader:
     def __init__(self, domain: str = 'cartpole', novelty_level: int = 0, trial_novelty: bool = True,
                  seed: int = 0, difficulty: str = 'easy', day_offset: int = 0,
                  week_shift: int = None, generate_days: int = None, use_img: bool = False,
-                 path: str = "", use_gui: bool = False):
+                 path: str = "env_generator/envs/", use_gui: bool = False):
         # Set internal params        
         self.domain = domain
         self.novelty_level = novelty_level
@@ -114,6 +115,9 @@ class TestLoader:
 
             # Set env camera here, fix later?
             self.env.use_img = self.use_img
+
+            # Set env path here.
+            self.env.path = os.path.join(self.path, 'cartpolepp')
 
             # Use seed here
             self.env.seed(self.seed)

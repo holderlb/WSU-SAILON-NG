@@ -142,6 +142,7 @@ class GeneratorAgent(GeneratorLogic):
         return feature_vector, feature_label
 
     def apply_action(self, label_prediction: dict) -> float:
+        self.log.debug('action: {}'.format(label_prediction))
         # Apply the given action and return the new performance value.
         # performance = self.GENERATOR.apply_action(label_prediction)
         performance = self.GENERATOR.apply_action(label_prediction)

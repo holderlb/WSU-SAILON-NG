@@ -8,6 +8,8 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=bunny
       - RABBITMQ_DEFAULT_PASS=gvC1Ik5i3w
+    ports:
+      - "5672:5672"
 
   pgdb:
     hostname: pgdb
@@ -68,21 +70,3 @@ services:
       - pgdb
       - mockn-ta1
 
-  # The TA2 demo agent.
-  # We use a custom service name for each service variant so we can have multiple versions
-  # running at the same time, just with slightly modified docker-compose files.
-  mockn-demo-ta2:
-    # The volume we mount determines which config files will be available to the services.
-    volumes:
-      - ./configs/partial:/aiq-sail-on/config:rw
-      - ./logs:/aiq-sail-on/logs:rw
-    build:
-      context: ./
-      dockerfile: Dockerfile-PARTIAL-TA2
-    command: python -u TA2.py --config=config/demo-client.config --printout
-    links:
-      - rabbit
-    depends_on:
-      - rabbit
-      - pgdb
-      - mockn-ta1

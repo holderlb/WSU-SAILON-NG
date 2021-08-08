@@ -6,6 +6,9 @@
 * [TA2 Running Modes](#runningmodes)
 * [Program Flow](#programflow)
 * [TA2 Agent](#ta2agent)
+    * [TA2 in Docker](#ta2docker)
+    * [External TA2 Agent](#ta2external)
+    * [TA2 GUI Agents](#ta2gui)
 
 <a name="quickstart">
 
@@ -63,24 +66,37 @@ configuration files to introduce your own novelties.
 
 <a name="ta1configurationfile">
 
-# Experiment Configuration
+# TA1 Configuration File
 
 You can change some of the experiment parameters using the `configs/partial/TA1.config` config file.
-Change `[sail-on].trials` to change the number of trials per novelty/difficulty/visibility
-configuration.  For our internal system `200` represents level-0 novelty and `101`-`105` represents
-the mock novelties.  Change the comma separated list on `[sail-on].novelty` to only generate an experiment
-with those given novelties.  Change the comma separated list on `[sail-on].difficulty` to limit
-the experiment to only generate trials at the given difficulties.
+
+* `[sail-on].trials` (int) changes the number of trials per novelty/difficulty/visibility
+  combination. The *total* number of trials in an experiment is
+  ```
+  total_trials = trials * len(novelty) * len(difficulty) * 2
+  ```
+  The last `2` represents the visibility of the novelty (if the TA2 is informed of the novelty
+  having been initiated or not) and is currently not configurable.
+* `[sail-on].novelty` (comma separated list) are the novelties the TA1 will use in building a new
+  experiment. For our internal system `200` represents level-0 novelty and `101`-`105` represents
+  the mock novelties.
+* `[sail-on].difficulty` (comma separated list) are the difficulties the TA1 will use in building
+  a new experiment. Valid options are `easy`, `medium`, and `hard`.
 
 ### Per-Domain Options
 
-Change `[cartpole].testing_episodes` to change the number of cartpole episodes in
-a trial.  Change `[vizdoom].testing_episodes` to change the number of vizdoom episodes in a trial.
+Replace `DOMAIN` with `cartpole` or `vizdoom` depending on which domain you are targeting.
 The smartenv domain is currently not provided in this release.
 
-`pre-novel_episodes` defines how many episodes of level-0 novelty in the trial before episodes are
-at the given novelty. `use_image` will enable sending of an image representation in the json
-feature_vector sent to the TA2 agent.
+* `[DOMAIN].training_episodes` (int) represents the number of training episodes the experiment
+  provides before calling the training function, and then proceeding to trials.
+* `[DOMAIN].testing_episodes` (int) represents the total number of episodes in a trial.
+* `[DOMAIN].pre_novel_episodes` (int, optional) represents the number of episodes in a trial before
+  switching to novelty. If this is not provided the default value of 30% of `testing_episodes`
+  will be used.
+* `[DOMAIN].live` (bool) *REQUIRED VALUE OF True FOR THE PORTABLE GENERATOR*.
+* `[DOMAIN].use_image` (bool) will instruct the generator to build and include images for the
+  domain feature_vectors. Use of this feature will increase CPU usage.
 
 
 <a name="ta2configurationfile">
@@ -320,10 +336,140 @@ called for each of the different phases of the program flow above. This is
 where you implement your TA2/AI agent. See the documentation comments on these
 methods in the `TA2.py` file.
 
+<a name="ta2docker">
+
 ## Adding Your TA2 Agent to Docker 
 You can add in your code to the TA2.py (and other code files).  Please update the
 Dockerfile-PARTIAL-TA2 to bring in additional files and requirements-TA2.txt with any python 
-requirements your TA2 agent may need.  Logfiles written to the logs directory will be accessable 
-outside the docker environment and can be saved.  Your TA2 agent is responsible for retaining 
-its own results when using the portable generator.
+requirements your TA2 agent may need.  Logfiles written to the `/aiq-sail-on/logs` directory will
+be accessable outside the docker environment and can be saved.  Your TA2 agent is responsible for
+retaining its own results when using the portable generator.
+
+<a name="ta2external">
+
+## Using an External TA2 Agent
+
+You can run a TA2 agent on the portable generator outside the docker environment.  The code
+requires some Python setup, which we describe below based on an Anaconda environment.
+
+1. Install Anaconda.
+
+2.  Activate the base Anaconda environment.
+```
+[user@host ~]$ source ~/anaconda3/bin/activate
+```
+3.  Ensure your base environment is up to date:
+```
+(base) [user@host ~]$ conda update -n base -c defaults conda
+```
+4.  Create a new environment with the basic versions.
+```
+(base) [user@host ~]$ conda create --name aiq-env python=3.7 python-dateutil==2.8.1 psutil pytz
+```
+5.  Activate the new environment so we can finish installing the remaining packages.
+```
+(base) [user@host ~]$ conda activate aiq-env
+```
+6.  Install the remaining packages with pip.
+```
+(aiq-env) [user@host ~]$ pip install pika==1.1.0
+```
+
+### Running the External TA2 Agent
+
+To run the TA2 externally you will need to use the config file `configs/partial/gui-client.config`
+to communicate with the portable generator, and you will need to use the `portable-gui.yml`
+docker-compose file that opens a local port 5432 for the RabbitMQ communication connection.  In a
+terminal window, build and start up the portable generator system
+```
+docker-compose -f portable-gui.yml build
+docker-compose -f portable-gui.yml up
+```
+Then in a second terminal, using the `aiq-env` Anaconda environment we set up, change to the
+source directory
+```
+(aiq-env) [user@host WSU-Portable-Generator]$ cd source
+```
+Then start up the TA2 agent.
+```
+(aiq-env) [user@host source]$ python TA2.py --config=../configs/partial/gui-client.config --printout --debug --logfile=logs/log.txt
+```
+
+When you are done make sure to bring down the portable generator system in the docker-compose
+terminal window
+```
+docker-compose -f portable-gui.yml down
+```
+
+<a name="ta2gui">
+
+## TA2 GUI Agents
+
+The `GUI-Cartpole.py` and `GUI-Vizdoom.py` agents allow humans to test out the mock novelties in
+their respective domains.  To set up the Python environment for these agents, follow the
+instructions in [Using an External TA2 Agent](#ta2external) to set up an Anaconda environment.
+Once you have followed those instructions there is 1 more package required for the GUI agents
+```
+(aiq-env) [user@host ~]$ pip install opencv-python
+```
+
+### Running the TA2 GUI Agents
+
+First you need to make sure the TA1.config has been updated to tell the system to generate images
+(see `use_image` in [TA1 Configuration](#ta1configurationfile)). Then you need to start up the
+portable generation system in docker-compose that opens a local port (5672) for the GUI agent to
+connect to the RabbitMQ communication system
+```
+docker-compose -f portable-gui.yml build
+docker-compose -f portable-gui.yml up
+```
+
+Now in a separate window, using the `aiq-env` Anaconda environment we built, change to the source
+directory
+```
+(aiq-env) [user@host WSU-Portable-Generator]$ cd source
+```
+Then start up the GUI agent, we will use GUI-Vizdoom.py in this example
+```
+(aiq-env) [user@host source]$ python GUI-Vizdoom.py --config=../configs/partial/gui-client.config --printout --ignore-secret
+```
+Please note that we included `--ignore-secret` in the command line args, this ensures you are
+requesting a new experiment each time you run the GUI agent as the previously stored experiment
+secret may have been wiped from the database the last time you brought the docker-compose system
+down.
+
+When you are done please don't forget to bring the docker-compose system down, or you may spend
+more time debugging some errors than you would like the next time to try to start the system.
+```
+docker-compose -f portable-gui.yml down
+```
+
+### GUI Agents Gameplay Controls
+
+Once an experiment has been created and the GUI agent has received the first feature vector an
+image of the game will pop up.  Click on the image, then the following keys are used to control
+the game actions.
+
+#### Cartpole
+
+key | action
+--- | ---
+w | forward
+s | backward
+a | left
+d | right
+q | quit
+
+#### Vizdoom
+
+key | action
+--- | ---
+w | forward
+s | backward
+a | left
+d | right
+q | quit
+j | shoot
+k | turn left 45 degrees
+l | turn right 45 degrees
 

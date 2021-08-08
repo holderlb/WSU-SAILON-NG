@@ -7,6 +7,7 @@ import math
 import gym
 from gym import spaces
 from gym.utils import seeding
+import os.path
 import numpy as np
 import pybullet as p2
 from pybullet_utils import bullet_client as bc
@@ -19,8 +20,8 @@ class CartPoleBulletEnv(gym.Env):
         # start the bullet physics server
         self._renders = renders
         self._discrete_actions = discrete_actions
-        self._render_height = 200
-        self._render_width = 320
+        self._render_height = 480
+        self._render_width = 640
         self._physics_client_id = -1
         self.theta_threshold_radians = 12 * 2 * math.pi / 360
         self.x_threshold = 0.4  # 2.4
@@ -34,7 +35,7 @@ class CartPoleBulletEnv(gym.Env):
         self.yaw_limit = 170
 
         # Internal params
-        self.path = "partial_env_generator/envs/cartpolepp/"
+        self.path = "env_generator/envs/cartpolepp/"
         self.tick_limit = 200
         self.tick = 0
 
@@ -155,8 +156,8 @@ class CartPoleBulletEnv(gym.Env):
         p.setRealTimeSimulation(0)
 
         # Load world objects
-        self.cartpole = p.loadURDF(self.path + "models/ground_cart.urdf")
-        self.walls = p.loadURDF(self.path + "models/walls.urdf")
+        self.cartpole = p.loadURDF(os.path.join(self.path, 'models', 'ground_cart.urdf'))
+        self.walls = p.loadURDF(os.path.join(self.path, 'models', 'walls.urdf'))
 
         # Set walls to be bouncy
         for joint_nb in range(-1, 6):
@@ -171,10 +172,10 @@ class CartPoleBulletEnv(gym.Env):
 
         # Delete cartpole
         if self.cartpole == -10:
-            self.cartpole = p.loadURDF(self.path + "models/ground_cart.urdf")
+            self.cartpole = p.loadURDF(os.path.join(self.path, 'models', 'ground_cart.urdf'))
         else:
             p.removeBody(self.cartpole)
-            self.cartpole = p.loadURDF(self.path + "models/ground_cart.urdf")
+            self.cartpole = p.loadURDF(os.path.join(self.path, 'models', 'ground_cart.urdf'))
 
         # This big line sets the spehrical joint on the pole to loose
         p.setJointMotorControlMultiDof(self.cartpole, 1, p.POSITION_CONTROL, targetPosition=[0, 0, 0, 1],
@@ -202,7 +203,7 @@ class CartPoleBulletEnv(gym.Env):
         self.nb_blocks = np.random.randint(4) + 2
         self.blocks = [None] * self.nb_blocks
         for i in range(self.nb_blocks):
-            self.blocks[i] = p.loadURDF(self.path + "models/block.urdf")
+            self.blocks[i] = p.loadURDF(os.path.join(self.path, 'models', 'block.urdf'))
 
         # Set blocks to be bouncy
         for i in self.blocks:
@@ -328,24 +329,50 @@ class CartPoleBulletEnv(gym.Env):
         else:
             return None
 
-    def render(self, mode='human', close=False):
+
+    def render(self, mode='human', close=False, dist='close'):
         if mode == "human":
             self._renders = True
-        if mode != "rgb_array":
-            return np.array([])
-        base_pos = [0, 0, 0]
-        self._cam_dist = 2
-        self._cam_pitch = 0.3
-        self._cam_yaw = 0
-        if (self._physics_client_id >= 0):
+
+        if dist == 'far':
+            base_pos = [4.45, 4.45, 9.8]
+            cam_dist = 0.1
+            cam_pitch = -45.0
+            cam_yaw = 45.0 + 90
+            cam_roll = 0.0
+            fov = 100
+
+        elif dist == 'close':
+            base_pos = [4.45, 4.45, 2.0]
+            cam_dist = 0.1
+            cam_pitch = -15.0
+            cam_yaw = 45.0 + 90
+            cam_roll = 0.0
+            fov = 60
+
+        elif dist == 'follow':
+            base_pose, _ = self._p.getBasePositionAndOrientation(self.cartpole)
+            pos, vel, jRF, aJMT = self._p.getJointStateMultiDof(self.cartpole, 0)
+
+            x = pos[0] + base_pose[0]
+            y = pos[1] + base_pose[1]
+
+            base_pos = [x, y, 2.0]
+            cam_dist = 0.1
+            cam_pitch = -15.0
+            cam_yaw = 45.0 + 90
+            cam_roll = 0.0
+            fov = 60
+
+        if self._physics_client_id >= 0:
             view_matrix = self._p.computeViewMatrixFromYawPitchRoll(
                 cameraTargetPosition=base_pos,
-                distance=self._cam_dist,
-                yaw=self._cam_yaw,
-                pitch=self._cam_pitch,
-                roll=0,
+                distance=cam_dist,
+                yaw=cam_yaw,
+                pitch=cam_pitch,
+                roll=cam_roll,
                 upAxisIndex=2)
-            proj_matrix = self._p.computeProjectionMatrixFOV(fov=60,
+            proj_matrix = self._p.computeProjectionMatrixFOV(fov=fov,
                                                              aspect=float(self._render_width) /
                                                                     self._render_height,
                                                              nearVal=0.1,

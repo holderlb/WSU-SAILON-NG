@@ -1,5 +1,6 @@
 import math
 import numpy as np
+import os.path
 
 from .cartpoleplusplus import CartPoleBulletEnv
 
@@ -20,10 +21,10 @@ class CartPolePPMock3(CartPoleBulletEnv):
 
         # Delete cartpole
         if self.cartpole == -10:
-            self.cartpole = p.loadURDF(self.path + "models/ground_cart.urdf")
+            self.cartpole = p.loadURDF(os.path.join(self.path, 'models', 'ground_cart.urdf'))
         else:
             p.removeBody(self.cartpole)
-            self.cartpole = p.loadURDF(self.path + "models/ground_cart.urdf")
+            self.cartpole = p.loadURDF(os.path.join(self.path, 'models', 'ground_cart.urdf'))
 
         # This big line sets the spehrical joint on the pole to loose
         p.setJointMotorControlMultiDof(self.cartpole, 1, p.POSITION_CONTROL, targetPosition=[0, 0, 0, 1],
@@ -51,7 +52,7 @@ class CartPolePPMock3(CartPoleBulletEnv):
         self.nb_blocks = np.random.randint(4) + 1
         self.blocks = [None] * self.nb_blocks
         for i in range(self.nb_blocks):
-            self.blocks[i] = p.loadURDF(self.path + "models/block.urdf")
+            self.blocks[i] = p.loadURDF(os.path.join(self.path, 'models', 'block.urdf'))
 
         # Set blocks to be bouncy
         for i in self.blocks:
