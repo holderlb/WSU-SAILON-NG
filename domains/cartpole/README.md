@@ -1,5 +1,20 @@
 # CartPole Domain
 
+## Table of Contents
+
+* [Task Description](#taskdescription)
+* [Feature Vector Format](#featurevectorformat)
+* [Action Label](#actionlabel)
+* [Performance](#performance)
+* [Novelty Indicator](#noveltyindicator)
+* [Novelty Characterization](#noveltycharacterization)
+* [Sample (Mock) Nocelty](#samplemocknovelty)
+* [Frequently Asked Questions](#faq)
+
+<a name="taskdescription">
+
+## Task Description
+
 ![CartPole World](cartpole.png)
 
 For the Phase 2 novelty-level-0 CartPole task, the agent must keep the pole balanced
@@ -18,6 +33,8 @@ ticks they keep the pole balanced.
 
 See the [cartpole.json](cartpole.json) file for a precise specification of the
 domain, including ranges on sensor values.
+
+<a name="featurevectorformat">
 
 ## Feature vector format
 
@@ -84,12 +101,16 @@ The first call will have additional feature vector defining the corners of the c
     ]
 ```
 
+<a name="actionlabel">
+
 ## Action label
 
 Each turn, the agent provides an action to be performed, which is one of
 ['nothing', 'left', 'right', 'forward', 'backward']. The returned action is
 referred to as the "label", which is an artifact of other domains in which
 the task is classification.
+
+<a name="performance">
 
 ## Performance
 
@@ -99,6 +120,7 @@ performance is defined as the amount of time the pole is kept balanced
 divided by the maximum time for the episode. The performance at the end of
 the episode is recorded as the performance for that entire episode.
 
+<a name="noveltyindicator">
 ## Novelty indicator
 
 After each sensor fecture vector, the novelty generator sends a novelty
@@ -106,12 +128,14 @@ indicator, which indicates if the current episode is novel "true", not novel
 "false" (i.e., novelty level 0), or unknown "null". The novelty indicator will
 be the same for every turn during an episode.
 
+<a name="noveltycharacterization">
 ## Novelty characterization
 
 At the end of each episode, the agent provides a novelty characterization
 for the episode, which includes a probability of novelty, probability threshold,
 novelty level, and a characterization string.
 
+<a name="samplemocknovelty">
 ## Sample (Mock) Novelty
 
 The CartPole novelty generator includes sample Phase 2 novelties for levels 1-5,
@@ -125,3 +149,10 @@ also called Mock novelties. These are described below.
 
 The implementations of these mock novelties can be found in the folder
 [WSU-Portable-Generator/source/partial_env_generator/envs/cartpolepp](https://github.com/holderlb/WSU-SAILON-NG/tree/master/WSU-Portable-Generator/source/partial_env_generator/envs/cartpolepp).
+
+<a name="faq">
+
+## Frequently Asked Questions
+
+Coming soon...
+
