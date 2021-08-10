@@ -36,7 +36,7 @@ domain, including ranges on sensor values.
 
 <a name="featurevectorformat">
 
-## Feature vector format
+## Feature Vector Format
 
 The feature vector provides a value for each sensor and is sent in JSON format.
 For example,
@@ -103,7 +103,7 @@ The first call will have additional feature vector defining the corners of the c
 
 <a name="actionlabel">
 
-## Action label
+## Action Label
 
 Each turn, the agent provides an action to be performed, which is one of
 ['nothing', 'left', 'right', 'forward', 'backward']. The returned action is
@@ -121,7 +121,8 @@ divided by the maximum time for the episode. The performance at the end of
 the episode is recorded as the performance for that entire episode.
 
 <a name="noveltyindicator">
-## Novelty indicator
+
+## Novelty Indicator
 
 After each sensor fecture vector, the novelty generator sends a novelty
 indicator, which indicates if the current episode is novel "true", not novel
@@ -129,13 +130,15 @@ indicator, which indicates if the current episode is novel "true", not novel
 be the same for every turn during an episode.
 
 <a name="noveltycharacterization">
-## Novelty characterization
+
+## Novelty Characterization
 
 At the end of each episode, the agent provides a novelty characterization
 for the episode, which includes a probability of novelty, probability threshold,
 novelty level, and a characterization string.
 
 <a name="samplemocknovelty">
+
 ## Sample (Mock) Novelty
 
 The CartPole novelty generator includes sample Phase 2 novelties for levels 1-5,
