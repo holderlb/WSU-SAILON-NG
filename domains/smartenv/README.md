@@ -1,5 +1,20 @@
 # Smart Environment Domain
 
+## Table of Contents
+
+* [Task Description](#taskdescription)
+* [Feature Vector Format](#featurevectorformat)
+* [Action Label Response and Feedback](#actionlabel)
+* [Performance](#performance)
+* [Novelty Indicator](#noveltyindicator)
+* [Novelty Characterization](#noveltycharacterization)
+* [Sample (Mock) Nocelty](#samplemocknovelty)
+* [Frequently Asked Questions](#faq)
+
+<a name="taskdescription">
+
+## Task Description
+
 The novelty level-0 Smart Environment task is for the agent to recognize the
 current activity of the inhabitant in the environment. The agent receives
 timestamped sensor data and responds with one of 11 possible activities: wash
@@ -16,7 +31,9 @@ sample floorplan of one of the smart environments.
 See the [smartenv.json](smartenv.json) file for a precise specification of the
 domain, including ranges on sensor values.
 
-## Feature vector format
+<a name="featurevectorformat">
+
+## Feature Vector Format
 
 The feature vector provides a value for each sensor and is sent in JSON format.
 There are five types of sensors: motion, motion area, light switch, light
@@ -48,7 +65,9 @@ For example,
 }
 ```
 
-## Activity label response and feedback
+<a name="actionlabel">
+
+## Activity Label Response and Feedback
 
 After each sensor vector, the agent responds with one of 11 possible activity
 classifications: wash\_dishes, relax, personal\_hygiene, bed\_toilet\_transition,
@@ -59,6 +78,8 @@ a budget. E.g., if the budget is 50%, then the correct classificaton is provided
 half the time. The budget is set within the novelty generator and made known
 to the TA2 team.
 
+<a name="performance">
+
 ## Performance
 
 The current performance of the agent on the current episode is provided as
@@ -68,18 +89,24 @@ correct predictions divided by the total number of predictions. The performance
 at the end of the episode is recorded as the performance for
 that entire episode.
 
-## Novelty indicator
+<a name="noveltyindicator">
+
+## Novelty Indicator
 
 After each sensor fecture vector, the novelty generator sends a novelty
 indicator, which indicates if the current episode is novel "true", not novel
 "false" (i.e., novelty level 0), or unknown "null". The novelty indicator will
 be the same for every turn during an episode.
 
-## Novelty characterization
+<a name="noveltycharacterization">
+
+## Novelty Characterization
 
 At the end of each episode, the agent provides a novelty characterization
 for the episode, which includes a probability of novelty, probability threshold,
 novelty level, and a characterization string.
+
+<a name="samplemocknovelty">
 
 ## Sample (Mock) Novelty
 
@@ -91,3 +118,10 @@ also called Mock novelties. These are described below.
 * Level 3: Activity not seen in pre-novelty, but seen in post-novelty.
 * Level 4: Two sensor values always give same reading.
 * Level 5: Second inhabitant simulated by overlaying copy of existing inhabitant.
+
+<a name="faq">
+
+## Frequently Asked Questions
+
+Coming soon...
+
