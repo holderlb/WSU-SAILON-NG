@@ -15,6 +15,7 @@ class CartPolePPMock2(CartPoleBulletEnv):
         return None
 
     # Mock is unmovable blocks
+    # Blocks lie in plane of
     def reset_world(self):
         # Reset world (assume is created)
         p = self._p
@@ -65,11 +66,11 @@ class CartPolePPMock2(CartPoleBulletEnv):
         cart_pos = np.asarray(cart_pos)
         for i in self.blocks:
             pos = self.np_random.uniform(low=-4.0, high=4.0, size=(3,))
-            pos[2] = pos[2] + 5.0
+            pos[2] = 0.5
             while np.linalg.norm(cart_pos[0:2] - pos[0:2]) < min_dist:
                 pos = self.np_random.uniform(low=-4.0, high=4.0, size=(3,))
                 # Z is not centered at 0.0
-                pos[2] = pos[2] + 5.0
+                pos[2] = 0.5
             p.resetBasePositionAndOrientation(i, pos, [0, 0, 0, 1])
             #p.resetBaseVelocity(i, vel, [0, 0, 0])
 

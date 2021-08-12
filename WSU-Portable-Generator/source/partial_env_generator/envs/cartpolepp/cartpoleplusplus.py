@@ -32,7 +32,7 @@ class CartPoleBulletEnv(gym.Env):
         # Environmental params
         self.force_mag = 15
         self.timeStep = 1.0/50.0
-        self.yaw_limit = 170
+        self.angle_limit = 10
 
         # Internal params
         self.path = "env_generator/envs/cartpolepp/"
@@ -114,12 +114,14 @@ class CartPoleBulletEnv(gym.Env):
         # Check pole angle condition
         p = self._p
         pos, vel, jRF, aJMT = p.getJointStateMultiDof(self.cartpole, 1)
-
         pos = self.quaternion_to_euler(*pos)
-        if abs(pos[2]) < self.yaw_limit or abs(abs(pos[1]) - 180) < self.yaw_limit:
-            return True
-        else:
+        x_angle = abs(pos[0])
+        y_angle = abs(pos[1])
+
+        if x_angle < self.angle_limit and y_angle < self.angle_limit:
             return False
+        else:
+            return True
 
         return None
 
@@ -143,6 +145,7 @@ class CartPoleBulletEnv(gym.Env):
     def generate_world(self):
         # Create bullet physics client
         if self._renders:
+        #if True:
             self._p = bc.BulletClient(connection_mode=p2.GUI)
         else:
             self._p = bc.BulletClient()
@@ -200,7 +203,7 @@ class CartPoleBulletEnv(gym.Env):
             p.removeBody(i)
 
         # Load blocks in
-        self.nb_blocks = np.random.randint(4) + 2
+        self.nb_blocks = np.random.randint(4) + 1
         self.blocks = [None] * self.nb_blocks
         for i in range(self.nb_blocks):
             self.blocks[i] = p.loadURDF(os.path.join(self.path, 'models', 'block.urdf'))
@@ -329,7 +332,6 @@ class CartPoleBulletEnv(gym.Env):
         else:
             return None
 
-
     def render(self, mode='human', close=False, dist='close'):
         if mode == "human":
             self._renders = True
@@ -405,7 +407,7 @@ class CartPoleBulletEnv(gym.Env):
 
         return (qx, qy, qz, qw)
 
-    def quaternion_to_euler(self, w, x, y, z):
+    def quaternion_to_euler(self, x, y, z, w):
         ysqr = y * y
 
         t0 = +2.0 * (w * x + y * z)

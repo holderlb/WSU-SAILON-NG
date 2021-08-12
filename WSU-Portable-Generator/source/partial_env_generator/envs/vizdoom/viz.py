@@ -11,7 +11,7 @@ from .Agents import Agents
 class SailonViz:
 
     def __init__(self, use_mock, use_novel, level, use_img, seed, difficulty,
-                 path="", use_gui=False, auto_map=False):
+                 path="partial_env_generator/envs/", use_gui=False):
 
         # Attempt to clear out previous ini file
         try:
@@ -27,7 +27,6 @@ class SailonViz:
         self.seed = seed
         self.difficulty = difficulty
         self.path = path
-        self.auto_map = auto_map
 
         # Declare parameters
         self.counter = None
@@ -35,6 +34,9 @@ class SailonViz:
         self.performance = None
         self.last_obs = None
         self.enemies_health = None
+        self.id_to_cvar = dict()
+        self.use_top_down = False
+        self.walls = None
 
         # Set internal params
         self.step_limit = 2000
@@ -99,9 +101,6 @@ class SailonViz:
         # Enables information about all sectors (map layout).
         game.set_sectors_info_enabled(True)
 
-        # Enables rendering of automap.
-        game.set_automap_buffer_enabled(self.auto_map)
-
         # Set seed here
         random.seed(self.seed)
         np.random.seed(self.seed)
@@ -119,7 +118,7 @@ class SailonViz:
 
         # Set agent behavoiur before making the action (which calls an ingame update)
         # Returns a string array, use as commands in vizdoom
-        comands = self.Agents.act(self.get_state())
+        comands = self.Agents.act(self.get_state(), self.id_to_cvar)
         for command in comands:
             self.game.send_game_command(command)
 
@@ -138,7 +137,6 @@ class SailonViz:
         # Check if game is done naturally (includes tick limit nativelly)
         self.done = self.game.is_episode_finished()
 
-        # Check if player dead
         if self.game.is_player_dead():
             self.done = True
             self.performance = 0.0
@@ -163,12 +161,68 @@ class SailonViz:
         if self.game is None:
             return None
 
-        if self.auto_map:
-            # Get map buffer
-            return self.game.get_state().automap_buffer
+        # Top down
+        if self.use_top_down:
+            return self.get_top_down()
         else:
             # Get current game information
             return self.game.get_state().screen_buffer
+
+    def get_top_down(self):
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        # Make a random plot...
+        fig = plt.figure()
+        fig.add_subplot(111)
+
+        plt.xlim(-522, 522 + 300)
+        plt.ylim(-522, 522)
+        plt.gca().set_aspect('equal', adjustable='box')
+
+        # Draw stuff
+        state = self.get_state()
+        for wall in self.walls:
+            plt.plot([wall['x1'], wall['x2']], [wall['y1'], wall['y2']], color='black', linewidth=2)
+
+        # Draw player
+        x, y = state['player']['x_position'], state['player']['y_position']
+        a = state['player']['angle'] / 180 * np.pi
+        plt.plot(x, y, marker="$P$", label='player')
+        plt.arrow(x, y, 75 * np.cos(a), 75 * np.sin(a), head_width=10)
+
+        # Draw enemy
+        for ind, enemy in enumerate(state['enemies']):
+            x, y = enemy['x_position'], enemy['y_position']
+            a = enemy['angle'] / 180 * np.pi
+            if ind == 0:
+                plt.plot(x, y, marker="$" + str(enemy['id']) + "$", color='red', label='enemy')
+            else:
+                plt.plot(x, y, marker="$" + str(enemy['id']) + "$", color='red')
+            plt.arrow(x, y, 75 * np.cos(a), 75 * np.sin(a), head_width=10)
+
+        # Draw stuff
+        mark = {'health': "$H$", 'trap': "x", 'obstacle': 's', 'ammo': "$A$"}
+        col = {'health': 'green', 'ammo': 'green', 'obstacle': 'black', 'trap': 'red'}
+        for type in state['items']:
+            for ind, item in enumerate(state['items'][type]):
+                x, y = item['x_position'], item['y_position']
+                if ind == 0:
+                    plt.plot(x, y, marker=mark[type], color=col[type], label=type)
+                else:
+                    plt.plot(x, y, marker=mark[type], color=col[type])
+
+        # If we haven't already shown or saved the plot, then we need to
+        # draw the figure first...
+        plt.legend(loc='center right', handlelength=0)
+        fig.canvas.draw()
+
+        # Now we can save it to a numpy array.
+        data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+        data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+
+        plt.close()
+        return data
 
     def get_state(self, initial=False):
         # Check for game end, if so just send last value
@@ -204,10 +258,11 @@ class SailonViz:
                         dif = abs(x_pos - object.position_x) + abs(y_pos - object.position_y)
                         if dif < 5:
                             self.enemies_health[object.id] = game_vars[i]
+                            self.id_to_cvar[object.id] = i + 1
+
 
         # Start formatting the data
         data = {'enemies': [], 'items': {'health': [], 'ammo': [], 'trap': [], 'obstacle': []}}
-
         for object in state.objects:
             # print(object.name)
             # Base entity information
@@ -251,6 +306,7 @@ class SailonViz:
                 for line in sector.lines:
                     data['walls'].append({'x1': round(line.x1, 2), 'x2': round(line.x2, 2),
                                           'y1': round(line.y1, 2), 'y2': round(line.y2, 2)})
+            self.walls = data['walls']
 
         return data
 
