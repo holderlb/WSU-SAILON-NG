@@ -8,7 +8,7 @@
 * [Performance](#performance)
 * [Novelty Indicator](#noveltyindicator)
 * [Novelty Characterization](#noveltycharacterization)
-* [Sample (Mock) Nocelty](#samplemocknovelty)
+* [Sample (Mock) Novelty](#samplemocknovelty)
 * [Frequently Asked Questions](#faq)
 
 <a name="taskdescription">
