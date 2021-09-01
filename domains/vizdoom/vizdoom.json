@@ -198,7 +198,7 @@
             ],
             "obstacle": [
                 {
-                    "description": "immovable (mostly) pillar that stops shots.",
+                    "description": "immovable pillar that stops shots.",
                     "id": {
                         "type": "int",
                         "range_min": 0,
