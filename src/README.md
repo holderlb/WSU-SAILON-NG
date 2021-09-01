@@ -76,6 +76,8 @@ experiment with all novelty levels, contact us for different credentials.
 
 *  `description` is an optional field that will be recorded and associated
     with the experiment instance that is run.
+    
+*  `seed` is an optional field that will seed the environment for consistency.
 
 ### [sail-on]
 
