@@ -127,7 +127,9 @@ but only provides a small set of mock novelties.
 
 *  `description` is an optional field that will be recorded and associated
     with the experiment instance that is run.
-
+    
+*  `seed` is an optional field that will seed the environment for consistency.
+   
 ### [sail-on]
 
 *  `domain` selects which domain you would like to test on.  The current
