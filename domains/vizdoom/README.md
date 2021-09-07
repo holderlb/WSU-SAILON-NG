@@ -285,7 +285,7 @@ No. Enemies do not pick up health packs, ammo packs, or traps. This may change p
 
 **6. How much damage does each bullet do?**
 
-Each bullet (player and enemy) does 5 damage. Enemies start with 10hp and 5points of armor, which results in 3 shots to kill. These values may change post-novelty.
+Each bullet (player and enemy) does approximately 5 damage, depending on the armor level. Enemies start with 10hp and 5points of armor, which results in 3-4 shots to kill. These values may change post-novelty.
 
 **7. Does a player have a maximum ammo cap?**
 
