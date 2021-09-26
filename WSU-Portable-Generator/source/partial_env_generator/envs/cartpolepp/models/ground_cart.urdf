@@ -10,7 +10,7 @@
         <visual>
             <origin rpy="0 0 0" xyz="0 0 0.0"/>
             <geometry>
-                <box size="0.01 0.01 0.01"/>
+                <box size="0.1 0.1 0.3"/>
             </geometry>
             <material name="ground_mat">
                 <color rgba="1 0 0 1"/>
@@ -41,13 +41,13 @@
             <origin xyz="0 0 0.2"/>
         </collision>
         <inertial>
-            <mass value="1"/>
+            <mass value="1.0"/>
             <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
         </inertial>
     </link>
 
     <joint name="ground_to_cart" type="planar">
-        <origin xyz="0.0 0.0 0.0"/>
+        <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
         <axis xyz="0.0 0.0 1.0"/>
         <parent link="ground"/>
         <child link="cart"/>
@@ -65,7 +65,7 @@
         </visual>
         <inertial>
             <origin xyz="0 0 1.0"/>
-            <mass value="1"/>
+            <mass value="0.1"/>
             <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
         </inertial>
         <collision>
@@ -79,7 +79,6 @@
     <joint name="pole_to_cart" type="spherical">
         <origin xyz="0.0 0.0 0.2"/>
         <axis xyz="0 0 0"/>
-        <dynamics damping="0.0" friction="10.0"/>
         <parent link="cart"/>
         <child link="pole"/>
     </joint>

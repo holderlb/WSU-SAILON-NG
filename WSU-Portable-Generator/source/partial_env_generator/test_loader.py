@@ -1,22 +1,22 @@
-# Loads tests and acts as go between
-
 # Used for time since epoch sensor
-from time import time
-import random
-import numpy as np
-import os.path
 import sys
 import json
+import random
 import zlib
+import os.path
+
+import numpy as np
 from base64 import b64encode
 import blosc
 
+
 class TestLoader:
 
-    def __init__(self, domain: str = 'cartpole', novelty_level: int = 0, trial_novelty: bool = True,
+    def __init__(self, domain: str = 'cartpole', novelty_level: int = 0, trial_novelty: int = 0,
                  seed: int = 0, difficulty: str = 'easy', day_offset: int = 0,
                  week_shift: int = None, generate_days: int = None, use_img: bool = False,
                  path: str = "env_generator/envs/", use_gui: bool = False):
+
         # Set internal params        
         self.domain = domain
         self.novelty_level = novelty_level
@@ -35,6 +35,7 @@ class TestLoader:
         self.use_novel = False
         self.level = -1
 
+        # Convert novelty level to nums
         if int(self.novelty_level/100) == 1:
             self.use_mock = True
         elif int(self.novelty_level/100) == 2:
@@ -46,13 +47,17 @@ class TestLoader:
         if self.level < 0 or self.level >= 6:
             raise Exception("Invalid novelty level sent to test_loader!")
 
+        # Convert trial level to nums
+        self.trial = int(str(self.trial_novelty)[-1])
+        if self.trial < 0 or self.trial >= 6:
+            raise Exception("Invalid trial level sent to test_loader!")
+
         # Do a little catching here for difficulty
         if self.difficulty not in ['easy', 'medium', 'hard']:
             raise Exception("Invalid difficulty sent to test_loader!")
 
         # Set initial conditions
         self.is_done = False
-        self.time = time()
 
         # Initialize empty variables for assignment in the next few function calls.
         self.env = None
@@ -166,9 +171,6 @@ class TestLoader:
 
     # Action input to env
     def act(self, action):
-        # Format action into correct space
-        action = self.format_action(action)
-
         # Perform single step update
         obs, reward, done, info = self.env.step(action)
 
@@ -180,37 +182,12 @@ class TestLoader:
 
         return None
 
-    def format_action(self, action):
-        # Check for domain type
-        if self.domain == 'cartpole':
-            if action == 'nothing':
-                action = 0
-            elif action == 'left':
-                action = 1
-            elif action == 'right':
-                action = 2
-            elif action == 'forward':
-                action = 3
-            elif action == 'backward':
-                action = 4
-
-        elif self.domain == 'smartenv':
-            # Do nothing
-            a = 2
-
-        return action
-
     def format_sensor(self):
         if self.domain == 'cartpole':
-
-            # Add time here
-            self.time = self.time + 1.0 / 30.0
-
             self.sensors = self.obs
-            self.sensors['time_stamp'] = self.time
+            self.sensors['time_stamp'] = self.env.get_time()
             self.sensors['image'] = self.env.get_image()
-
-            self.actions = ['left', 'right', 'forward', 'backward', 'nothing']
+            self.actions = self.env.get_actions()
 
             self.response = {'sensors': self.sensors,
                              'performance': self.reward,
@@ -218,87 +195,30 @@ class TestLoader:
                              'action': 'left'}
 
         elif self.domain == 'vizdoom':
-            # Add time here
-            self.time = self.time + 1.0 / 30.0
-
             self.sensors = self.obs
-            self.sensors['time_stamp'] = self.time
+            self.sensors['time_stamp'] = self.env.get_time()
             self.sensors['image'] = self.env.get_image()
+            self.actions = self.env.get_actions()
 
             self.response = {'sensors': self.sensors,
                              'performance': self.reward,
-                             'action_list': self.info,
+                             'action_list': self.actions,
                              'action': 'left'}
 
         elif self.domain == 'smartenv':
-            # Set local vars
-            timestamp = self.obs[0]
-            sensors = self.obs[1]
-            label = self.obs[2]
-            testbed_id = self.obs[3]
-
-            # Filter out sensor types
-            motion_sensors = list()
-            motion_area_sensors = list()
-            door_sensors = list()
-            light_switch_sensors = list()
-            light_level_sensors = list()
-            for name in sensors:
-                if "MA" in name:
-                    motion_area_sensors.append(dict({'id': name,
-                                                     'value': sensors[name]}))
-                elif "M" in name:
-                    motion_sensors.append(dict({'id': name,
-                                                'value': sensors[name]}))
-                elif "D" in name:
-                    door_sensors.append(dict({'id': name,
-                                              'value': sensors[name]}))
-                elif "LL" in name:
-                    light_level_sensors.append(dict({'id': name,
-                                                     'value': sensors[name]}))
-                elif "L" in name:
-                    light_switch_sensors.append(dict({'id': name,
-                                                      'value': sensors[name]}))
-
-            self.sensors = {'time_stamp': timestamp,
-                            'testbed_id': testbed_id,
-                            'motion_sensors': motion_sensors,
-                            'motion_area_sensors': motion_area_sensors,
-                            'door_sensors': door_sensors,
-                            'light_switch_sensors': light_switch_sensors,
-                            'light_level_sensors': light_level_sensors}
-
-            self.actions = {'wash_dishes': 'wash_dishes',
-                            'relax': 'relax',
-                            'personal_hygiene': 'personal_hygiene',
-                            'bed_toilet_transition': 'bed_toilet_transition',
-                            'cook': 'cook',
-                            'sleep': 'sleep',
-                            'take_medicine': 'take_medicine',
-                            'leave_home': 'leave_home',
-                            'work': 'work',
-                            'enter_home': 'enter_home',
-                            'eat': 'eat'}
-
+            self.actions = self.env.get_actions()
+            self.sensors = self.obs
             self.sensors['image'] = None
             self.response = {'sensors': self.sensors,
                              'performance': self.reward,
                              'action_list': self.actions,
-                             'action': label}
+                             'action': self.env.last_label}
 
         # Compress image if not None
         if self.response['sensors']['image'] is not None:
-            # print('raw image size = {}'.format(sys.getsizeof(
-            #     json.dumps(self.response['sensors']['image']))))
-            #comp_img = zlib.compress(json.dumps(self.response['sensors']['image']).encode('utf-8'))
             comp_img = blosc.pack_array(self.response['sensors']['image'])
-            #print("before")
-            #print(hash(comp_img))
-            # del self.response['sensors']['image']
-            self.response['sensors']['image'] =  b64encode(comp_img).decode('ascii')
-            # self.response['sensors']['image'] = comp_img
+            self.response['sensors']['image'] = b64encode(comp_img).decode('ascii')
 
-            # print('compressed image size = {}'.format(sys.getsizeof(self.response['sensors']['image'])))
         # Send response
         return self.response
 

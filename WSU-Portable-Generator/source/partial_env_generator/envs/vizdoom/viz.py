@@ -1,5 +1,6 @@
 import os
 import copy
+import time
 import random
 
 import numpy as np
@@ -11,7 +12,7 @@ from .Agents import Agents
 class SailonViz:
 
     def __init__(self, use_mock, use_novel, level, use_img, seed, difficulty,
-                 path="partial_env_generator/envs/", use_gui=False):
+                 path="env_generator/envs/", use_gui=False):
 
         # Attempt to clear out previous ini file
         try:
@@ -29,7 +30,7 @@ class SailonViz:
         self.path = path
 
         # Declare parameters
-        self.counter = None
+        self.tick = None
         self.done = None
         self.performance = None
         self.last_obs = None
@@ -37,6 +38,8 @@ class SailonViz:
         self.id_to_cvar = dict()
         self.use_top_down = False
         self.walls = None
+        self.time = None
+        self.time_delta = 1.0 / 35.0
 
         # Set internal params
         self.step_limit = 2000
@@ -126,10 +129,10 @@ class SailonViz:
         self.game.make_action(action)
 
         # Update counter
-        self.counter = self.counter + 1
+        self.tick = self.tick + 1
 
         # Calculate performance
-        self.performance = (self.step_limit - self.counter) / self.step_limit
+        self.performance = (self.step_limit - self.tick) / self.step_limit
 
         # Get game state information
         observation = self.get_state()
@@ -148,7 +151,13 @@ class SailonViz:
         # Update last obs
         self.last_obs = observation
 
-        return observation, self.performance, self.done, {'action_list': self.actions.keys()}
+        return observation, self.performance, self.done, {}
+
+    def get_time(self):
+        return self.time + self.tick * self.time_delta
+
+    def get_actions(self):
+        return ['nothing', 'left', 'right', 'backward', 'forward', 'shoot', 'turn_left', 'turn_right']
 
     def get_image(self):
         # Check to generate image or not
@@ -312,10 +321,11 @@ class SailonViz:
 
     def reset(self):
         # Reset params
-        self.counter = 0
+        self.tick = 0
         self.done = False
         self.performance = None
         self.last_obs = None
+        self.time = time.time()
 
         # Start a new episode
         self.game.new_episode()

@@ -109,27 +109,27 @@ but only provides a small set of mock novelties.
 
 ### [aiq-sail-on]
 
-*  `experiment_type` selects the type of experiment to run, `SAIL-ON` is the
+* `experiment_type` selects the type of experiment to run, `SAIL-ON` is the
     only valid experiment type currently supported.
 
-*  `organization` is an identifier for your organization or university, this
+* `organization` is an identifier for your organization or university, this
     is associated with the experiments you run.
 
-*  `model_name` is the identifier for your model.  This allows you to keep
+* `model_name` is the identifier for your model.  This allows you to keep
     track of multiple models.
 
-*  `username` is the email address/login for the system website (under
+* `username` is the email address/login for the system website (under
     construction).
 
-*  `secret` is a secret separate from your website password that is provided
+* `secret` is a secret separate from your website password that is provided
     to allow for authentication.  Once the website is complete you will be able
     to request new values for this if you compromise the previous value.
 
-*  `description` is an optional field that will be recorded and associated
+* `description` is an optional field that will be recorded and associated
     with the experiment instance that is run.
-    
+
 *  `seed` is an optional field that will seed the environment for consistency.
-   
+
 ### [sail-on]
 
 *  `domain` selects which domain you would like to test on.  The current

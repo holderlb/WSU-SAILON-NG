@@ -15,30 +15,53 @@ class CartPolePPMock5(CartPoleBulletEnv):
 
     def step(self, action):
         p = self._p
-        if self._discrete_actions:
-            force = self.force_mag if action == 1 else -self.force_mag
-        else:
-            force = action[0]
+
+        # Convert from string to int
+        if action == 'nothing':
+            action = 0
+        elif action == 'left':
+            action = 1
+        elif action == 'right':
+            action = 2
+        elif action == 'forward':
+            action = 3
+        elif action == 'backward':
+            action = 4
+
+        # Handle math first then direction
+        cart_deg_angle = self.quaternion_to_euler(*p.getLinkState(self.cartpole, 0)[1])[2]
+        cart_angle = (cart_deg_angle) * np.pi / 180
+
+        # Adjust forces so it always apply in reference to world frame
+        fx = self.force_mag * np.cos(cart_angle)
+        fy = self.force_mag * np.sin(cart_angle) * -1
 
         # based on action decide the x and y forces
-        fx = fy = 0
         if action == 0:
             pass
         elif action == 1:
-            fx = self.force_mag
+            fx = fx
         elif action == 2:
-            fx = -self.force_mag
+            fx = -fx
+            fy = - fy
         elif action == 3:
-            fy = self.force_mag
+            tmp = fx
+            fx = -fy
+            fy = tmp
         elif action == 4:
-            fy = -self.force_mag
+            tmp = fx
+            fx = fy
+            fy = -tmp
         else:
             raise Exception("unknown discrete action [%s]" % action)
-        p.applyExternalForce(self.cartpole, 0, (fx, fy, 0.0), (0, 0, 0), p.WORLD_FRAME)
+
+        # Apply correccted forces
+        p.applyExternalForce(self.cartpole, 0, (fx, fy, 0.0), (0, 0, 0), p.LINK_FRAME)
 
         # Apply anti-gravity to blocks
         for i in self.blocks:
             p.applyExternalForce(i, -1, (0, 0, 9.8), (0, 0, 0), p.LINK_FRAME)
+
         if len(self.blocks) != 1:
             # Apply sticking force to blocks here
             # Get avg pos

@@ -35,7 +35,7 @@ import types
 import uuid
 
 __major_version__ = '0.7'
-__minor_version__ = '1'
+__minor_version__ = '3'
 __db_version__ = '0.5'
 __version__ = '{}.{}'.format(__major_version__, __minor_version__)
 __database_version__ = re.sub('[.]', '_', __db_version__)

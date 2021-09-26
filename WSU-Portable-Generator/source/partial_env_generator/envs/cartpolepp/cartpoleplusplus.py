@@ -12,6 +12,10 @@ import numpy as np
 import pybullet as p2
 from pybullet_utils import bullet_client as bc
 
+import sys
+import os
+import time
+
 
 class CartPoleBulletEnv(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array'], 'video.frames_per_second': 50}
@@ -30,14 +34,16 @@ class CartPoleBulletEnv(gym.Env):
                          self.theta_threshold_radians * 2, np.finfo(np.float32).max])
 
         # Environmental params
-        self.force_mag = 15
-        self.timeStep = 1.0/50.0
+        self.force_mag = 10
+        self.timeStep = 1.0 / 50.0
         self.angle_limit = 10
+        self.actions = ['left', 'right', 'forward', 'backward', 'nothing']
 
         # Internal params
         self.path = "env_generator/envs/cartpolepp/"
         self.tick_limit = 200
         self.tick = 0
+        self.time = None
 
         # Object definitions
         self.nb_blocks = None
@@ -71,26 +77,48 @@ class CartPoleBulletEnv(gym.Env):
 
     def step(self, action):
         p = self._p
-        if self._discrete_actions:
-            force = self.force_mag if action == 1 else -self.force_mag
-        else:
-            force = action[0]
+
+        # Convert from string to int
+        if action == 'nothing':
+            action = 0
+        elif action == 'left':
+            action = 1
+        elif action == 'right':
+            action = 2
+        elif action == 'forward':
+            action = 3
+        elif action == 'backward':
+            action = 4
+
+        # Handle math first then direction
+        cart_deg_angle = self.quaternion_to_euler(*p.getLinkState(self.cartpole, 0)[1])[2]
+        cart_angle = (cart_deg_angle) * np.pi / 180
+
+        # Adjust forces so it always apply in reference to world frame
+        fx = self.force_mag * np.cos(cart_angle)
+        fy = self.force_mag * np.sin(cart_angle) * -1
 
         # based on action decide the x and y forces
-        fx = fy = 0
         if action == 0:
             pass
         elif action == 1:
-            fx = self.force_mag
+            fx = fx
         elif action == 2:
-            fx = -self.force_mag
+            fx = -fx
+            fy = - fy
         elif action == 3:
-            fy = self.force_mag
+            tmp = fx
+            fx = -fy
+            fy = tmp
         elif action == 4:
-            fy = -self.force_mag
+            tmp = fx
+            fx = fy
+            fy = -tmp
         else:
             raise Exception("unknown discrete action [%s]" % action)
-        p.applyExternalForce(self.cartpole, 0, (fx, fy, 0.0), (0, 0, 0), p.WORLD_FRAME)
+
+        # Apply correccted forces
+        p.applyExternalForce(self.cartpole, 0, (fx, fy, 0.0), (0, 0, 0), p.LINK_FRAME)
 
         # Apply anti-gravity to blocks
         for i in self.blocks:
@@ -128,7 +156,17 @@ class CartPoleBulletEnv(gym.Env):
     def get_reward(self):
         return self.tick / self.tick_limit
 
+    def get_time(self):
+        return self.time + self.tick * self.timeStep
+
+    def get_actions(self):
+        return self.actions
+
     def reset(self):
+        # self.close()
+        # Set time paremeter for sensor value
+        self.time = time.time()
+
         # Create client if it doesnt exist
         if self._physics_client_id < 0:
             self.generate_world()
@@ -145,10 +183,13 @@ class CartPoleBulletEnv(gym.Env):
     def generate_world(self):
         # Create bullet physics client
         if self._renders:
-        #if True:
             self._p = bc.BulletClient(connection_mode=p2.GUI)
         else:
-            self._p = bc.BulletClient()
+            self._p = bc.BulletClient(connection_mode=p2.DIRECT)
+            sys.stdout.write("\033[F")
+            sys.stdout.write("\033[K") # Clear to the end of line
+
+        # Client id link, for closing or checking if running
         self._physics_client_id = self._p._client
 
         # Load world simulation
@@ -181,18 +222,19 @@ class CartPoleBulletEnv(gym.Env):
             self.cartpole = p.loadURDF(os.path.join(self.path, 'models', 'ground_cart.urdf'))
 
         # This big line sets the spehrical joint on the pole to loose
+
         p.setJointMotorControlMultiDof(self.cartpole, 1, p.POSITION_CONTROL, targetPosition=[0, 0, 0, 1],
                                        targetVelocity=[0, 0, 0], positionGain=0, velocityGain=0.1,
                                        force=[0, 0, 0])
 
         # Reset cart (technicaly ground object)
         cart_pos = list(self.np_random.uniform(low=-3, high=3, size=(2,))) + [0]
-        cart_vel = list(self.np_random.uniform(low=-50, high=50, size=(2,))) + [0]
+        cart_vel = list(self.np_random.uniform(low=-1, high=1, size=(2,))) + [100]
         p.resetBasePositionAndOrientation(self.cartpole, cart_pos, [0, 0, 0, 1])
-        p.applyExternalForce(self.cartpole, 0, cart_vel, (0, 0, 0), p.LINK_FRAME)
+        p.applyExternalForce(self.cartpole, 0, cart_vel, (0, 0, 0), p.WORLD_FRAME)
 
         # Reset pole
-        randstate = list(self.np_random.uniform(low=-0.05, high=0.05, size=(6,)))
+        randstate = list(self.np_random.uniform(low=-0.01, high=0.01, size=(6,)))
         pole_pos = randstate[0:3] + [1]
         # zero so it doesnt spin like a top :)
         pole_ori = list(randstate[3:5]) + [0]
@@ -224,7 +266,7 @@ class CartPoleBulletEnv(gym.Env):
                 pos = self.np_random.uniform(low=-4.0, high=4.0, size=(3,))
                 # Z is not centered at 0.0
                 pos[2] = pos[2] + 5.0
-            p.resetBasePositionAndOrientation(i, pos, [0, 0, 0, 1])
+            p.resetBasePositionAndOrientation(i, pos, [0, 0, 1, 0])
 
         # Set block velocities
         for i in self.blocks:

@@ -4,8 +4,8 @@ import numpy as np
 
 class Agents:
 
-    def __init__(self, novelty, difficulty, mock):
-        self.novelty = novelty
+    def __init__(self, level, difficulty, mock):
+        self.level = level
         self.difficulty = difficulty
         self.mock = mock
 
@@ -14,7 +14,8 @@ class Agents:
         self.right_side = np.pi / 8
 
         self.id_to_cvar = None
-        self.team_pos = None
+
+        self.last_dist = np.zeros((4, 4))
 
         return None
 
@@ -24,17 +25,18 @@ class Agents:
             self.id_to_cvar = id_to_cvar
 
         commands = list()
+
         # Prime the spinny agents (used for detecting if something went wrong)
         for ind in range(4):
             # Always turn left
             commands.append("set ai_" + str(ind + 1) + " " + str(3))
 
         # Enemies move towards player
-        if self.novelty == 3:
+        if self.level == 3:
             commands = self.move_towards(state, commands)
 
         # Enemies move away from avg
-        elif self.novelty == 5:
+        elif self.level == 5:
             commands = self.spread_out(state, commands)
 
         # Any other is pure random
@@ -50,6 +52,45 @@ class Agents:
 
         # Enemies never shoot towards other enemies
         commands = self.check_enemies(state, commands)
+
+        return commands
+
+    # Move agent away from player
+    def move_away(self, state, commands):
+        for ind, val in enumerate(state['enemies']):
+            # Difficulty check here
+            r = np.random.rand()
+            k = False
+            if self.difficulty == 'easy':
+                if r < 0.75:
+                    k = True
+            elif self.difficulty == 'medium':
+                if r < 0.5:
+                    k = True
+            elif self.difficulty == 'hard':
+                if r < 0.25:
+                    k = True
+            if k:
+                action = random.choice(list(range(7))) + 1
+
+            else:
+                # Get info
+                angle, sign = self.get_angle(state['player'], val)
+
+                # If enemy is face towards player turn away
+                if angle > self.left_side:
+                    # Forward, left, right
+                    action = random.choice([1, 3, 4])
+                else:
+                    if sign == 1.0:
+                        # Turn right
+                        action = 6
+                    else:
+                        # Turn left
+                        action = 5
+
+            # Send ai action
+            commands[self.id_to_cvar[val['id']] - 1] = "set ai_" + str(self.id_to_cvar[val['id']]) + " " + str(action)
 
         return commands
 
@@ -71,7 +112,58 @@ class Agents:
                     action = 5
 
             # Send ai action
-            commands[ind] = "set ai_" + str(self.id_to_cvar[val['id']]) + " " + str(action)
+            commands[self.id_to_cvar[val['id']] - 1] = "set ai_" + str(self.id_to_cvar[val['id']]) + " " + str(action)
+
+        return commands
+
+    def teams(self, state, commands):
+        if self.team_pos is None:
+            self.team_pos = np.random.randint(0, 2, size=len(state['enemies']))
+
+        for ind, val in enumerate(state['enemies']):
+            # Difficulty check here
+            r = np.random.rand()
+            k = False
+            if self.difficulty == 'easy':
+                # 1 in 20
+                if r < 1.0 / 20.0:
+                    k = True
+            elif self.difficulty == 'medium':
+                # 1 in 10
+                if r < 1.0 / 10.0:
+                    k = True
+            elif self.difficulty == 'hard':
+                # 1 in 5
+                if r < 1.0 / 5.0:
+                    k = True
+            if k:
+                # If k, swap team
+                self.team_pos[ind] = int(not self.team_pos[ind])
+
+            # Team #0 is mover
+            if self.team_pos[ind] == 0:
+                # Move = 1-4, Rotate 5-6
+                action = random.choice([1, 2, 3, 4, 5, 6])
+
+            # Team #1 is shooter
+            # Now aims then always shoots :O
+            else:
+                # Get info
+                angle, sign = self.get_angle(state['player'], val)
+
+                if angle < self.right_side:
+
+                    action = random.choice([7])
+                else:
+                    if sign == -1.0:
+                        # Turn right
+                        action = 6
+                    else:
+                        # Turn left
+                        action = 5
+
+            # Send ai action
+            commands[self.id_to_cvar[val['id']] - 1] = "set ai_" + str(self.id_to_cvar[val['id']]) + " " + str(action)
 
         return commands
 
@@ -106,10 +198,11 @@ class Agents:
                     action = 5
 
             # Send ai action
-            commands[ind] = "set ai_" + str(self.id_to_cvar[val['id']]) + " " + str(action)
+            commands[self.id_to_cvar[val['id']] - 1] = "set ai_" + str(self.id_to_cvar[val['id']]) + " " + str(action)
 
         return commands
 
+    # Enemies shoot at player
     def check_shoot(self, state, commands):
         for ind, val in enumerate(state['enemies']):
             angle, sign = self.get_angle(state['player'], val)
@@ -117,7 +210,7 @@ class Agents:
             if angle < self.right_side:
                 if np.random.rand() > 0.5:
                     # Shoot is action = 7
-                    commands[ind] = "set ai_" + str(self.id_to_cvar[val['id']]) + " " + str(7)
+                    commands[self.id_to_cvar[val['id']] - 1] = "set ai_" + str(self.id_to_cvar[val['id']]) + " " + str(7)
 
         return commands
 
@@ -126,7 +219,11 @@ class Agents:
         # From enemy
         for ind, val in enumerate(state['enemies']):
             # If an enemy is not shooting, dont mess with anything
-            if '7' not in commands[ind]:
+            my_command = None
+            for command in commands:
+                if "ai_" + str(self.id_to_cvar[val['id']]) in command:
+                    my_command = command
+            if '7' not in my_command:
                 continue
 
             # To enemy
@@ -135,13 +232,30 @@ class Agents:
                 if ind == ind2:
                     continue
 
+                # Distance check sections
+                # Get self angle
+                angle = val['angle'] * 2 * np.pi / 360
+                x = np.cos(angle)
+                y = np.sin(angle)
+
+                # Line start
+                p1 = np.asarray([val['x_position'], val['y_position']])
+                # Line end
+                p2 = np.asarray([val['x_position'] + x, val['y_position'] + y])
+                # Enemy point
+                p3 = np.asarray([val2['x_position'], val2['y_position']])
+
+                dist = np.abs(np.linalg.norm(np.cross(p2 - p1, p1 - p3)) / np.linalg.norm(p2 - p1))
                 angle, sign = self.get_angle(val2, val)
 
-                # Smaller cone
-                if angle < self.right_side / 2:
-                    # random movement
+                enemy_dist = np.abs(np.linalg.norm(p1 - p3))
+
+                check_dist = min(self.last_dist[ind][ind2], dist)
+                if check_dist < (30 + dist/20) and angle < np.pi / 2:
                     action = random.choice([1, 2, 3, 4])
-                    commands[ind] = "set ai_" + str(self.id_to_cvar[val['id']]) + " " + str(action)
+                    commands[self.id_to_cvar[val['id']] - 1] = "set ai_" + str(self.id_to_cvar[val['id']]) + " " + str(action)
+
+                self.last_dist[ind][ind2] = dist
 
         return commands
 

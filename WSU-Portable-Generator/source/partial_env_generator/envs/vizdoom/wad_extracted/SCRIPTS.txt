@@ -1,0 +1,636 @@
+#include "zcommon.acs"
+
+// Game params
+int novelty;
+int difficulty_n;
+
+// AI vars
+int ai_moves[4];
+
+// Vars for enemy health
+global int 20:enemy_health_1;
+global int 21:enemy_health_2;
+global int 22:enemy_health_3;
+global int 23:enemy_health_4;
+
+global int 30:enemy_x_1;
+global int 31:enemy_x_2;
+global int 32:enemy_x_3;
+global int 33:enemy_x_4;
+
+global int 40:enemy_y_1;
+global int 41:enemy_y_2;
+global int 42:enemy_y_3;
+global int 43:enemy_y_4;
+
+// Vars to keep track of novelties
+bool mock_one = False;
+bool mock_four = False;
+
+// For mock two
+int speed_modifier = 1;
+
+// For monster spawning
+str enemy_name = "ZombieMan";
+
+// For items
+str health_name = "HealthBonus2";
+str ammo_name = "Clip2";
+str trap_name = "Whiskeyy";
+str obs_name = "TallRedColumn";
+
+int heal_amt = 0;
+int ammo_amt = 0;
+int trap_amt = 0;
+
+// Global variables
+int nb_enemies;
+int nb_obstacles;
+
+// Fixed ids to keep track of objects
+int player_id = 0;
+int target_id = 20;
+int obs_id = 30;
+
+// Before player is spawned
+script 1 OPEN
+{
+	// Setup world params here
+	nb_enemies = Random(2, 4);
+	
+	// Get vizdoom params here
+	novelty = GetCVar("novelty");
+	difficulty_n = GetCVar("difficulty_n");
+	
+	// Clear out random actions (I think its a server thing)
+	SetCVar("ai_1", 8);
+	SetCVar("ai_2", 8);
+	SetCVar("ai_3", 8);
+	SetCVar("ai_4", 8);
+	
+	// Check for mocks (maybe do enum?)
+	if (novelty == 10)
+	{
+		mock_one = True;
+	}
+	else if (novelty == 20)
+	{
+		speed_modifier = 4;
+	}
+	else if (novelty == 30)
+	{
+		// enemey behavior python side
+	}
+	else if (novelty == 40)
+	{
+		mock_four = True;
+	}
+	else if (novelty == 50)
+	{
+		// Enemy behaviour python side
+	}
+	else if (novelty == 60)
+	{
+		// This one has pickup enabled
+		enemy_name = "ZombieMan3";
+	}
+}
+
+// After player is spawned
+script 2 ENTER
+{
+	// Move player somewhere in main room
+	MovePlayer();
+	
+	// Spawn objects
+	SpawnObjects();
+	
+	// Set player parameters
+	SetActorProperty(player_id, APROP_Speed, 0.01);
+	
+	// Set exit condition for all enemies ded
+	for (int i = 0; i < nb_enemies; i++){
+		// Runs on enemy ded (or maybe shot?)
+		SetThingSpecial(target_id + i, ACS_ExecuteAlways, 3);
+	}
+	
+	// These call scripts (functions) which run kinda like multi-threads
+	// in a single thread.
+	
+	// Fix player velocity
+	ACS_Execute(4, 0, 0, 0, 0);
+	
+	// Enemy Behaviour
+	ACS_Execute(5, 0, 0, 0, 0);
+	
+	// Mock stuff
+	ACS_Execute(7, 0, 0, 0, 0);
+}
+
+// Exit conditions
+script 3 (void)
+{
+	int counter = 0;
+	for (int i = 0; i < nb_enemies; i++){
+		// Count enemies with ids
+		counter += ThingCount(T_NONE, target_id + i);
+	}
+	if (counter <= 0){
+		Exit_Normal(0);
+	}
+	if (GetActorProperty(player_id, APROP_HEALTH) <= 0){
+		//Exit_Normal(0);
+	}
+}
+
+// Exit on death
+script 10 DEATH 
+{
+	Exit_Normal(0);
+}
+
+// Custom script for fixing player velocity
+script 4 (void)
+{
+	while (True)
+	{
+		// Stop player movement
+		Thing_Stop(player_id);
+		int ck;
+		
+		int player_angle = GetActorAngle(player_id);
+		int x_amt = 0.00025 * cos(player_angle);
+		int y_amt = 0.00025 * sin(player_angle);
+		
+		int buttons = GetPlayerInput(-1, INPUT_BUTTONS);
+
+		if (buttons & BT_FORWARD) {
+			// Nothing :)
+		}
+		else if (buttons & BT_BACK){
+			x_amt = -x_amt;
+			y_amt = -y_amt;
+		}
+		else if (buttons & BT_MOVELEFT){
+			ck = x_amt;
+			x_amt = -y_amt;
+			y_amt = ck;
+		}
+		else if (buttons & BT_MOVERIGHT){
+			ck = x_amt;
+			x_amt = y_amt;
+			y_amt = -ck;
+		}
+		else {
+			x_amt = 0;
+			y_amt = 0;
+		}
+		
+		bool x_and_y_block = check_move(player_id, x_amt, y_amt);
+		bool x_block = check_move(player_id, x_amt, 0.0);
+		bool y_block = check_move(player_id, 0.0, y_amt);
+		bool res = False;
+
+		// Attempt diagonal
+		if (!res)
+		{
+			if (!x_and_y_block)
+			{
+				res = SetActorPosition(player_id, 
+				GetActorX(player_id) + x_amt,
+				GetActorY(player_id) + y_amt,
+				GetActorZ(player_id), False);
+			}
+		}
+		// Attempt y movement
+		if (!res)
+		{
+			if (!y_block)
+			{
+				res = SetActorPosition(player_id, 
+				GetActorX(player_id),
+				GetActorY(player_id) + y_amt,
+				GetActorZ(player_id), False);
+			}
+		}
+		// Attempt x movement
+		if(!res)
+		{
+			if (!x_block)
+			{
+				SetActorPosition(player_id, 
+				GetActorX(player_id) + x_amt,
+				GetActorY(player_id),
+				GetActorZ(player_id), False);
+			}
+		}
+
+		delay(1);
+	}
+}
+
+// Enemy behaviour here
+script 5 (void)
+{
+	while (TRUE)
+	{
+		// Read cvar from vizdoom
+		ai_moves[0] = GetCVar("ai_1");
+		ai_moves[1] = GetCVar("ai_2");
+		ai_moves[2] = GetCVar("ai_3");
+		ai_moves[3] = GetCVar("ai_4");
+		
+		// Call movement fuction
+		enemy_movement();
+		
+		// Get enemy health
+		if (ThingCount(T_NONE, target_id + 0) <= 0)
+		{
+			enemy_health_1 = 0;
+		}
+		else
+		{
+			enemy_health_1 = GetActorProperty(target_id + 0, APROP_HEALTH);
+			enemy_x_1 = GetActorX(target_id + 0) >> 16;
+			enemy_y_1 = GetActorY(target_id + 0) >> 16;
+		}
+		
+		if (ThingCount(T_NONE, target_id + 1) <= 0)
+		{
+			enemy_health_2 = 0;
+		}
+		else
+		{
+			enemy_health_2 = GetActorProperty(target_id + 1, APROP_HEALTH);
+			enemy_x_2 = GetActorX(target_id + 1) >> 16;
+			enemy_y_2 = GetActorY(target_id + 1) >> 16;
+		}
+		
+		if (ThingCount(T_NONE, target_id + 2) <= 0)
+		{
+			enemy_health_3 = 0;
+		}
+		else
+		{
+			enemy_health_3 = GetActorProperty(target_id + 2, APROP_HEALTH);
+			enemy_x_3 = GetActorX(target_id + 2) >> 16;
+			enemy_y_3 = GetActorY(target_id + 2) >> 16;
+		}
+
+		if (ThingCount(T_NONE, target_id + 3) <= 0)
+		{
+			enemy_health_4 = 0;
+		}
+		else
+		{
+			enemy_health_4 = GetActorProperty(target_id + 3, APROP_HEALTH);
+			enemy_x_4 = GetActorX(target_id + 3) >> 16;
+			enemy_y_4 = GetActorY(target_id + 3) >> 16;
+		}
+		
+		delay(1);
+	}
+}
+
+// Mock novelties here
+script 7 (void)
+{
+	while (TRUE)
+	{
+		// Set enemy damage based on distance from palyer
+		if (mock_four)
+		{
+			for (int i = 0; i < nb_enemies; i++)
+			{
+			// Damage based on distance
+			SetUserVariable(target_id + i, "user_damage", 
+				2500.0/Distance(player_id, target_id + i));
+			}
+		}
+		delay(1);
+	}
+}
+
+// Item class here
+script "CheckItem" (int item_num)
+{
+	// Health item
+	if (item_num == 1){
+		SetActorProperty(player_id, APROP_HEALTH, GetActorProperty(player_id, APROP_HEALTH) + heal_amt);
+	}
+	// Clip
+	else if (item_num == 2){
+		GiveInventory("Clip", ammo_amt);
+	}
+	// Trap
+	else if (item_num == 3)
+	{
+		SetActorProperty(player_id, APROP_HEALTH, GetActorProperty(player_id, APROP_HEALTH) - trap_amt);
+	}
+	
+	// This script is special and needs this here do not remove plz
+	SetResultValue(0);
+	terminate;
+}
+
+function bool check_move(int check_id, int x_amt, int y_amt)
+{
+	int i;
+	int dist;
+	
+	int tmp_id = 61;
+	int min_rad = 40.0;
+	
+	bool blocking = False;
+	
+	// Check if x and y blocking
+	Spawn("MapSpotRad16", 
+	GetActorX(check_id) + x_amt,
+	GetActorY(check_id) + y_amt,
+	GetActorZ(check_id), tmp_id);
+		
+	for (i = 0; i < nb_obstacles; i++)
+	{
+		dist = Distance(obs_id + i, tmp_id);
+		if (Distance(obs_id + i, tmp_id) <= min_rad)
+		{	
+			blocking = True;
+		}
+	}
+	
+	for (i = 0; i < nb_enemies; i++)
+	{
+		// Check for if my id is the same as the enemy id
+		if (check_id == target_id + i)
+		{
+			continue;
+		}
+		if (ThingCount(T_NONE, target_id + i) <= 0)
+		{
+			continue;
+		}
+		dist = Distance(target_id + i, tmp_id);
+		if (Distance(target_id + i, tmp_id) <= min_rad)
+		{	
+			blocking = True;
+		}
+	}
+	Thing_Remove(tmp_id);
+	
+	return blocking;
+}
+
+function void enemy_movement(void)
+{
+	// Enemy behaviour
+	for (int j = 0; j < nb_enemies; j++)
+	{
+		switch(ai_moves[j]) 
+		{
+			case 7:
+				SetActorState(target_id + j, "Missile");
+				break;
+		}
+	}
+	// Enemy behaviour
+	for (int i = 0; i < nb_enemies; i++)
+	{
+		// Get Enemy pos
+		int enemy_angle = GetActorAngle(target_id + i);
+		int x_amt = 0.00025 * speed_modifier * cos(enemy_angle);
+		int y_amt = 0.00025 * speed_modifier * sin(enemy_angle);
+		int ck = 0;
+		
+		// Stop movement
+		Thing_Stop(target_id + i);
+		
+		// Check if enemy dead
+		if (ThingCount(T_NONE, target_id + i) <= 0)
+		{
+			continue;
+		}
+		
+		//switch(Random(1, 7)){
+		switch(ai_moves[i]) {
+		//switch(7) {
+		// Forward
+		case 1:
+			x_amt = x_amt;
+			y_amt = y_amt;
+			break;
+		// Backward
+		case 2:
+			x_amt = -x_amt;
+			y_amt = -y_amt;
+			break;
+		// Left
+		case 3:
+			ck = x_amt;
+			x_amt = -y_amt;
+			y_amt = ck;	
+			break;
+		// Right
+		case 4:
+			ck = x_amt;
+			x_amt = y_amt;
+			y_amt = -ck;
+			break;
+		// Turn right 45*
+		case 5:
+			SetActorAngle(target_id + i, GetActorAngle(target_id + i) + 0.125);
+			x_amt = 0;
+			y_amt = 0;
+			break;
+		// Turn left 45*
+		case 6:
+			SetActorAngle(target_id + i, GetActorAngle(target_id + i) - 0.125);
+			x_amt = 0;
+			y_amt = 0;
+			break;
+		// Shoot 
+		case 7:
+			x_amt = 0;
+			y_amt = 0;
+			break;
+		// Nothing (Should only be called inside wad) 
+		case 8:
+			x_amt = 0;
+			y_amt = 0;
+			break;
+		default:
+			print(s:"Unkown action sent to ai_movement!\n", 
+				  s:"ai ", i:i, s:" action ", i:ai_moves[i]);
+			break;
+		}
+		
+		bool x_and_y_block = check_move(target_id + i, x_amt, y_amt);
+		bool x_block = check_move(target_id + i, x_amt, 0.0);
+		bool y_block = check_move(target_id + i, 0.0, y_amt);
+		bool res = False;
+
+		// Attempt diagonal
+		if (!res)
+		{
+			if (!x_and_y_block)
+			{
+				res = SetActorPosition(target_id + i, 
+				GetActorX(target_id + i) + x_amt,
+				GetActorY(target_id + i) + y_amt,
+				GetActorZ(target_id + i), False);
+			}
+		}
+		// Attempt y movement
+		if (!res)
+		{
+			if (!y_block)
+			{
+				res = SetActorPosition(target_id + i, 
+				GetActorX(target_id + i),
+				GetActorY(target_id + i) + y_amt,
+				GetActorZ(target_id + i), False);
+			}
+		}
+		// Attempt x movement
+		if(!res)
+		{
+			if (!x_block)
+			{
+				SetActorPosition(target_id + i, 
+				GetActorX(target_id + i) + x_amt,
+				GetActorY(target_id + i),
+				GetActorZ(target_id + i), False);
+			}
+		}
+	}
+}
+
+function void MovePlayer(void)
+{
+	// Main room is just under -300 to 300
+	while (GetActorX(0) == 0.0)
+	{
+		int x = Random(-512.0, 512.0);
+		int y = Random(-512.0, 512.0);
+		int z = 0.0;
+		SetActorPosition(0, x, y, z, False);
+	}
+}
+
+
+function void SpawnObjects(void)
+{
+	// Variable declartion
+	int i;
+	int min_item = 1;
+	int max_item = 4;
+
+	// Random number of objects
+	int nb_ammo = Random(min_item, max_item);
+	int nb_health = Random(min_item, max_item);
+	int nb_traps = Random(min_item, max_item);
+	nb_obstacles = Random(min_item, max_item);
+
+	// Novelty one
+	if (mock_one)
+	{
+		nb_health = Random(10, 20);
+	}
+
+	//Spawn ammo
+	for (i = 0; i < nb_ammo; i++) {
+		SafeSpawn(ammo_name, 14);
+	}
+	//Spawn health packs
+	for (i = 0; i < nb_health; i++) {
+		SafeSpawn(health_name, 10);
+	}
+	//Spawn traps
+	for (i = 0; i < nb_traps; i++) {
+		SafeSpawn(trap_name, 12);
+	}
+	//Spawn obstacles
+	for (i = 0; i < nb_obstacles; i++) {
+		SafeSpawn(obs_name, obs_id + i);
+	}
+	//Spawn Enemies
+	for (i = 0; i < nb_enemies; i++) {
+		SafeSpawn(enemy_name, target_id + i);
+		str name = StrParam(s:GetActorProperty(target_id, APROP_NameTag), 
+						    s:"Enemy",
+							i:target_id);
+		SetActorProperty(target_id + i, APROP_NameTag, name);
+		//print(s:GetActorProperty(target_id, APROP_NameTag));
+	}
+}
+
+// Spawn objects in a safe way
+function void SafeSpawn(str ObjName, int ObID)
+{
+	// Do until it spawned correctly
+	bool worked = False;
+	while (!worked)
+	{
+		worked = UtilSpawn(ObjName, obID);
+	}
+}
+
+// Utitilty spawn function
+function bool UtilSpawn(str ObjName, int ObID)
+{
+	// Map size is currently -512 to 512
+    int x = Random(-512.0, 512.0);
+    int y = Random(-512.0, 512.0);
+    int z = 0.0;
+	
+	//TMP id for spawning, replace with correct after
+	int tmpID = 60;
+	
+	// 4 hallways
+	int safepoints[5] = {0, 2, 3, 4, 5};
+	
+	// Check for fail spawn
+	if (!Spawn(ObjName, x, y, z, tmpID)){
+		return False;
+	}
+	
+	// Check if too close to hallway points
+	for (int i = 0; i < 5; i++)
+	{
+		if (Distance(tmpID, safepoints[i]) < 100.0)
+		{
+			// Delete if it is and try again later
+			Thing_Remove(tmpID);
+			return False;
+		}
+	}
+	
+	// Everything is good to here so replace ID
+	Thing_ChangeTID(tmpID, ObID);
+	
+	return True;
+}
+
+// Finds distance between two things
+function int Distance (int tid1, int tid2)
+{
+	int len;
+	int y = getactory(tid1) - getactory(tid2);
+	int x = getactorx(tid1) - getactorx(tid2);
+	int z = getactorz(tid1) - getactorz(tid2);
+
+	int ang = vectorangle(x,y);
+	if(((ang+0.125)%0.5) > 0.25) len = fixeddiv(y, sin(ang));
+	else len = fixeddiv(x, cos(ang));
+
+	ang = vectorangle(len, z);
+	if(((ang+0.125)%0.5) > 0.25) len = fixeddiv(z, sin(ang));
+	else len = fixeddiv(len, cos(ang));
+
+	return len;
+}
+
+
+
+
+
+
