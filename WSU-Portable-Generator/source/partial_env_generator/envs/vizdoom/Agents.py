@@ -55,45 +55,6 @@ class Agents:
 
         return commands
 
-    # Move agent away from player
-    def move_away(self, state, commands):
-        for ind, val in enumerate(state['enemies']):
-            # Difficulty check here
-            r = np.random.rand()
-            k = False
-            if self.difficulty == 'easy':
-                if r < 0.75:
-                    k = True
-            elif self.difficulty == 'medium':
-                if r < 0.5:
-                    k = True
-            elif self.difficulty == 'hard':
-                if r < 0.25:
-                    k = True
-            if k:
-                action = random.choice(list(range(7))) + 1
-
-            else:
-                # Get info
-                angle, sign = self.get_angle(state['player'], val)
-
-                # If enemy is face towards player turn away
-                if angle > self.left_side:
-                    # Forward, left, right
-                    action = random.choice([1, 3, 4])
-                else:
-                    if sign == 1.0:
-                        # Turn right
-                        action = 6
-                    else:
-                        # Turn left
-                        action = 5
-
-            # Send ai action
-            commands[self.id_to_cvar[val['id']] - 1] = "set ai_" + str(self.id_to_cvar[val['id']]) + " " + str(action)
-
-        return commands
-
     # Move agent towards player
     def move_towards(self, state, commands):
         for ind, val in enumerate(state['enemies']):
@@ -110,57 +71,6 @@ class Agents:
                 else:
                     # Turn left
                     action = 5
-
-            # Send ai action
-            commands[self.id_to_cvar[val['id']] - 1] = "set ai_" + str(self.id_to_cvar[val['id']]) + " " + str(action)
-
-        return commands
-
-    def teams(self, state, commands):
-        if self.team_pos is None:
-            self.team_pos = np.random.randint(0, 2, size=len(state['enemies']))
-
-        for ind, val in enumerate(state['enemies']):
-            # Difficulty check here
-            r = np.random.rand()
-            k = False
-            if self.difficulty == 'easy':
-                # 1 in 20
-                if r < 1.0 / 20.0:
-                    k = True
-            elif self.difficulty == 'medium':
-                # 1 in 10
-                if r < 1.0 / 10.0:
-                    k = True
-            elif self.difficulty == 'hard':
-                # 1 in 5
-                if r < 1.0 / 5.0:
-                    k = True
-            if k:
-                # If k, swap team
-                self.team_pos[ind] = int(not self.team_pos[ind])
-
-            # Team #0 is mover
-            if self.team_pos[ind] == 0:
-                # Move = 1-4, Rotate 5-6
-                action = random.choice([1, 2, 3, 4, 5, 6])
-
-            # Team #1 is shooter
-            # Now aims then always shoots :O
-            else:
-                # Get info
-                angle, sign = self.get_angle(state['player'], val)
-
-                if angle < self.right_side:
-
-                    action = random.choice([7])
-                else:
-                    if sign == -1.0:
-                        # Turn right
-                        action = 6
-                    else:
-                        # Turn left
-                        action = 5
 
             # Send ai action
             commands[self.id_to_cvar[val['id']] - 1] = "set ai_" + str(self.id_to_cvar[val['id']]) + " " + str(action)
