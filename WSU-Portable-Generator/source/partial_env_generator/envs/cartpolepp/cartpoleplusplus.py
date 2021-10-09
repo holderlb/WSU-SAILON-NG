@@ -118,7 +118,6 @@ class CartPoleBulletEnv(gym.Env):
             raise Exception("unknown discrete action [%s]" % action)
                
 
-#        pdb.set_trace()
         # Apply correccted forces
         p.applyExternalForce(self.cartpole, 0, (fx, fy, 0.0), (0, 0, 0), p.LINK_FRAME)
 
@@ -336,10 +335,8 @@ class CartPoleBulletEnv(gym.Env):
     def state_diff(self,astate):
         mystate = self.get_state();
         diff = dict()
-#        pdb.set_trace()
         diffc= { key : round(mystate['cart'][key] - astate['cart'][key],6) for key in astate['cart'] if key in mystate['cart'] }
         diffp = { key : round(mystate['pole'][key] - astate['pole'][key],6) for key in astate['pole'] if key in mystate['pole'] }
-#        return "Cart: ", diffc," Pole:",diffp
         carray = ([(val) for (key,val) in diffc.items()])
         parray = ([(val) for (key,val) in diffp.items()])
         return carray,parray
