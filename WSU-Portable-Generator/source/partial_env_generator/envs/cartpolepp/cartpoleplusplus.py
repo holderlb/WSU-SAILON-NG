@@ -2,7 +2,6 @@
 Classic cart-pole system implemented by Rich Sutton et al.
 Copied from http://incompleteideas.net/book/code/pole.c
 """
-import pdb
 import math
 import gym
 from gym import spaces
