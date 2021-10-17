@@ -38,9 +38,11 @@ class CartPolePPMock5(CartPoleBulletEnv):
 
         # based on action decide the x and y forces
         if action == 0:
-            pass
+            fx = 0.0
+            fy = 0.0
         elif action == 1:
             fx = fx
+            fy = fy
         elif action == 2:
             fx = -fx
             fy = - fy
