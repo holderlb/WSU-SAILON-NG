@@ -1,0 +1,15 @@
+version: '2'
+
+services:
+  # The TA2 evaluation agent.
+  # We use a custom service name for each service variant so we can have multiple versions
+  # running at the same time, just with slightly modified docker-compose files.
+  groupname-ta2:
+    # The volume we mount determines which config files will be available to the services.
+    volumes:
+      - ./configs/evaluation:/aiq-sail-on/config:rw
+      - ./logs:/aiq-sail-on/logs:rw
+    build:
+      context: ./
+      dockerfile: Dockerfile-PARTIAL-TA2
+    command: python -u TA2.py --config=config/evaluation.config --printout
