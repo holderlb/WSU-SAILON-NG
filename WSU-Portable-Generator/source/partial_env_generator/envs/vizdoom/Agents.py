@@ -186,8 +186,9 @@ class Agents:
         enemy_vector = np.asarray([v1_x, v1_y]) / np.linalg.norm(np.asarray([v1_x, v1_y]))
 
         # If its buggy throw random value out
+        #TODO: Figure out why an enemy is in the exact same pos as player
         if np.linalg.norm(np.asarray([pl_x - en_x, pl_y - en_y])) == 0:
-            return np.random.rand() * 3.14
+            return np.random.rand() * 3.14, 1
 
         enemy_face_vector = np.asarray([pl_x - en_x, pl_y - en_y]) / np.linalg.norm(
             np.asarray([pl_x - en_x, pl_y - en_y]))
