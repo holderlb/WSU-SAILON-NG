@@ -293,7 +293,7 @@ The player has no upper-limit for either health or ammo. The enemy has infinite 
 
 **8. How large (x,y) are each of the items and agents?**
 
-Objects in the game are defined by a radius R and height H. The (x,y) size of an object is (2R x 2R). The H and R for VizDoom objects are defined in ``ViZDoom/src/vizdoom/wadsrc/static/actors/`` on the [VizDoom GitHub](https://github.com/mwydmuch/ViZDoom). For the player, R = 16 and H = 56. For the enemies (ZombieMan), R = 20 and H = 56. For packs, traps and obstacles, R = 16 and H = 52.
+Objects in the game are defined by a radius R and height H. The (x,y) size of an object is (2R x 2R). The H and R for VizDoom objects are defined in ``ViZDoom/src/vizdoom/wadsrc/static/actors/`` on the [VizDoom GitHub](https://github.com/mwydmuch/ViZDoom). For the player, R = 16 and H = 56. For the enemies (ZombieMan), R = 20 and H = 56. Obstacles, R = 16 and H = 52. For health packs, ammo packs and traps, R = 20 and H = 52.
 
 **9. Is the ID counter global (i.e., playerID and enemyID cannot be the same value)?**
 
