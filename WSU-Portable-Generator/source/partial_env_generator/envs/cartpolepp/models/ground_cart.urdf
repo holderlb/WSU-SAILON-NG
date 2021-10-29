@@ -10,10 +10,10 @@
         <visual>
             <origin rpy="0 0 0" xyz="0 0 0.0"/>
             <geometry>
-                <box size="0.01 0.01 0.01"/>
+                <box size="0.1 0.1 0.3"/>
             </geometry>
             <material name="ground_mat">
-                <color rgba="1 0 0 0"/>
+                <color rgba="1 0 0 1"/>
             </material>
         </visual>
         <collision>

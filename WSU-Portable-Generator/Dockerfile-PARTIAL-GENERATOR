@@ -38,9 +38,6 @@ RUN echo 'loading.....'
 # Load generator environments.
 ADD source/partial_env_generator /aiq-sail-on/env_generator/
 
-# ADD valdidator
-# ADD source/VALIDATOR.py /aiq-sail-on/
-
 # Add test_random_action
 # ADD source/test_random_action.py /aiq-sail-on/
 

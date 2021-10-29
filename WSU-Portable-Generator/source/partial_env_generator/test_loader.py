@@ -36,7 +36,9 @@ class TestLoader:
         self.level = -1
 
         # Convert novelty level to nums
-        if int(self.novelty_level/100) == 1:
+        if self.novelty_level == 200:
+            self.use_novel = False
+        elif int(self.novelty_level/100) == 1:
             self.use_mock = True
         elif int(self.novelty_level/100) == 2:
             self.use_novel = True

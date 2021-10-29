@@ -35,7 +35,7 @@ import types
 import uuid
 
 __major_version__ = '0.7'
-__minor_version__ = '3'
+__minor_version__ = '5'
 __db_version__ = '0.5'
 __version__ = '{}.{}'.format(__major_version__, __minor_version__)
 __database_version__ = re.sub('[.]', '_', __db_version__)
@@ -207,6 +207,9 @@ DEFAULT_TA1_TESTING = False
 DEFAULT_TA1_DEMO = False
 DEFAULT_TA1_SHORTDEMO = False
 DEFAULT_TA1_LOGFILE = None
+DEFAULT_TA1_SAVE_EXPERIMENT_JSON = False
+DEFAULT_TA1_LOAD_EXPERIMENT_JSON = False
+DEFAULT_TA1_JSON_EXPERIMENT_FILE = 'config/experiment_file.json'
 
 # CASAS object strings
 CASAS_ERROR = 'casas_error'
