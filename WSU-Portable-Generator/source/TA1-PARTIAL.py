@@ -2450,24 +2450,20 @@ class TA1:
         num_episodes = self._ep_by_domain[domain][objects.DTYPE_TRAIN]
         # Build an even split between the different difficulties.
         type_episodes = dict()
-        for difficulty in self._server_difficulty:
-            type_episodes[difficulty] = int(num_episodes / len(self._server_difficulty))
-        remaining_size = int(len(self._server_difficulty))
-        for difficulty in self._server_difficulty[:-1]:
-            remaining_size -= type_episodes[difficulty]
-        type_episodes[self._server_difficulty[-1]] = remaining_size
+        for difficulty in [objects.DIFFICULTY_EASY]:
+            type_episodes[difficulty] = int(num_episodes)
         data_type = objects.DTYPE_TRAIN
         if data_source == objects.SOURCE_LIVE:
             data_type = objects.DTYPE_LIVE_TRAIN
 
         # Build a list of novelties for smartenv to train on.
-        training_novelty = list([objects.NOVELTY_1,
-                                 objects.NOVELTY_2,
-                                 objects.NOVELTY_3])
+        training_novelty = list([objects.NOVELTY_101,
+                                 objects.NOVELTY_102,
+                                 objects.NOVELTY_103])
 
         # If the domain is not smartenv proceed as normal.
         if domain != objects.DOMAIN_SMARTENV:
-            for difficulty in self._server_difficulty:
+            for difficulty in [objects.DIFFICULTY_EASY]:
                 if data_source == objects.SOURCE_RECORDED:
                     available_episodes = \
                         self.dataset_cache[domain_id][objects.DTYPE_TRAIN][objects.NOVELTY_200][
