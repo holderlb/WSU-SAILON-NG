@@ -303,3 +303,7 @@ ID's are unique per object. So, no two object have the same ID. However, objects
 
 You can do this by modifying or replacing the novelty level WAD file (
 ``WSU-SAILON-NG/WSU-Portable-Generator/source/partial_env_generator/envs/vizdoom/phase_2_reduced.wad``). A more readable version of the WAD file is in the directory ``WSU-SAILON-NG/WSU-Portable-Generator/source/partial_env_generator/envs/vizdoom/wad_reduced``. To get started with editing Doom scenarios, see [Custom Scenarios](http://vizdoom.cs.put.edu.pl/tutorial#scenarios).
+    
+**11. Are obstacles fixed?**
+    
+Obstacles have a large mass but can move a very small amount when moved into or when shot. 
