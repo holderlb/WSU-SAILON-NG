@@ -289,7 +289,7 @@ Each bullet (player and enemy) does approximately 5 damage, depending on the arm
 
 **7. Does a player have a maximum ammo cap?**
 
-The player has no upper-limit for either health or ammo. The enemy has infinite ammo.
+The player has a maximum cap of 200 for both health and ammo. The enemy has infinite ammo.
 
 **8. How large (x,y) are each of the items and agents?**
 
