@@ -1785,7 +1785,6 @@ class TA1:
                                  objects.NOVELTY_204: list([objects.NOVELTY_204]),
                                  objects.NOVELTY_205: list([objects.NOVELTY_205])})})
         if experiment is not None:
-            cache_valid_difficulty = list()
             cache_valid_data_types = list()
             cache_trial_novelty = dict()
             for episode in experiment.training.episodes:
@@ -4297,8 +4296,12 @@ class TA1:
             # Get the dataset_id so we can add a new episode.
             domain_id = self.domain_ids[episode.domain]
             """
-            self.log.debug('domain_id={} data_type={} novelty={} difficulty={}'.format(
-                domain_id, episode.data_type, episode.novelty, episode.difficulty))
+            self.log.debug('domain_id={} data_type={} novelty={} difficulty={} '
+                           'trial_novelty={}'.format(domain_id,
+                                                     episode.data_type,
+                                                     episode.novelty,
+                                                     episode.difficulty,
+                                                     episode.trial_novelty))
             self.log.debug('{}'.format(self.dataset_cache[domain_id]))
             self.log.debug('{}'.format(self.dataset_cache[domain_id][episode.data_type]))
             self.log.debug('{}'.format(self.dataset_cache[domain_id][episode.data_type]
@@ -4306,7 +4309,11 @@ class TA1:
             self.log.debug('{}'.format(self.dataset_cache[domain_id][episode.data_type]
                                        [episode.novelty][episode.difficulty]))
             self.log.debug('{}'.format(self.dataset_cache[domain_id][episode.data_type]
-                                       [episode.novelty][episode.difficulty]['dataset_id']))
+                                       [episode.novelty][episode.difficulty]
+                                       [episode.trial_novelty]))
+            self.log.debug('{}'.format(self.dataset_cache[domain_id][episode.data_type]
+                                       [episode.novelty][episode.difficulty]
+                                       [episode.trial_novelty]['dataset_id']))
             """
             dataset_id = self.dataset_cache[domain_id][episode.data_type][episode.novelty][
                 episode.difficulty][episode.trial_novelty]['dataset_id']
