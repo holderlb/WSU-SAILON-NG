@@ -52,6 +52,7 @@ class CartPoleBulletEnv(gym.Env):
         self.blocks = list()
         self.walls = None
         self.state = None
+        self.last_pos = [0, 0]
 
         if self._discrete_actions:
             self.action_space = spaces.Discrete(5)
@@ -174,6 +175,7 @@ class CartPoleBulletEnv(gym.Env):
             self.generate_world()
 
         self.tick = 0
+        self.last_pos = [0, 0]
         self.reset_world()
 
         # Run for one step to get everything going
@@ -234,6 +236,9 @@ class CartPoleBulletEnv(gym.Env):
         cart_vel = list(self.np_random.uniform(low=-1, high=1, size=(2,))) + [100]
         p.resetBasePositionAndOrientation(self.cartpole, cart_pos, [0, 0, 0, 1])
         p.applyExternalForce(self.cartpole, 0, cart_vel, (0, 0, 0), p.WORLD_FRAME)
+
+        # Update self pos here as well
+        self.last_pos = [cart_pos[0], cart_pos[1]]
 
         # Reset pole
         randstate = list(self.np_random.uniform(low=-0.01, high=0.01, size=(6,)))
@@ -298,8 +303,13 @@ class CartPoleBulletEnv(gym.Env):
         state['z_position'] = round(pos[2], round_amount)
 
         # Handle velocity
-        state['x_velocity'] = round(vel[0], round_amount)
-        state['y_velocity'] = round(vel[1], round_amount)
+        change_x = state['x_position'] - self.last_pos[0]
+        change_y = state['y_position'] - self.last_pos[1]
+        self.last_pos = [state['x_position'], state['y_position']]
+        #print(change_x * 50, change_y * 50, vel[0], vel[1])
+
+        state['x_velocity'] = round(change_x / self.timeStep, round_amount)
+        state['y_velocity'] = round(change_y / self.timeStep, round_amount)
         state['z_velocity'] = round(0.0, round_amount)
 
         world_state['cart'] = state
