@@ -247,7 +247,7 @@ class CartPoleBulletEnv(gym.Env):
             p.removeBody(i)
 
         # Load blocks in
-        self.nb_blocks = np.random.randint(4) + 1
+        self.nb_blocks = np.random.randint(3) + 2
         self.blocks = [None] * self.nb_blocks
         for i in range(self.nb_blocks):
             self.blocks[i] = p.loadURDF(os.path.join(self.path, 'models', 'block.urdf'))
@@ -291,11 +291,11 @@ class CartPoleBulletEnv(gym.Env):
         state = dict()
 
         # Handle pos, ori
-        base_pose, _ = p.getBasePositionAndOrientation(self.cartpole)
-        pos, vel, jRF, aJMT = p.getJointStateMultiDof(self.cartpole, 0)
-        state['x_position'] = round(pos[0] + base_pose[0], round_amount)
-        state['y_position'] = round(pos[1] + base_pose[1], round_amount)
-        state['z_position'] = round(0.1 + base_pose[2], round_amount)
+        _, vel, _, _ = p.getJointStateMultiDof(self.cartpole, 0)
+        pos, _, _, _, _, _ = p.getLinkState(self.cartpole, 0)
+        state['x_position'] = round(pos[0], round_amount)
+        state['y_position'] = round(pos[1], round_amount)
+        state['z_position'] = round(pos[2], round_amount)
 
         # Handle velocity
         state['x_velocity'] = round(vel[0], round_amount)
