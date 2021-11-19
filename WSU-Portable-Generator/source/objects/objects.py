@@ -35,7 +35,7 @@ import types
 import uuid
 
 __major_version__ = '0.7'
-__minor_version__ = '6'
+__minor_version__ = '7'
 __db_version__ = '0.5'
 __version__ = '{}.{}'.format(__major_version__, __minor_version__)
 __database_version__ = re.sub('[.]', '_', __db_version__)
@@ -210,6 +210,7 @@ DEFAULT_TA1_LOGFILE = None
 DEFAULT_TA1_SAVE_EXPERIMENT_JSON = False
 DEFAULT_TA1_LOAD_EXPERIMENT_JSON = False
 DEFAULT_TA1_JSON_EXPERIMENT_FILE = 'config/experiment_file.json'
+DEFAULT_TA1_SLEEP_WINDOW = 1.0
 
 # CASAS object strings
 CASAS_ERROR = 'casas_error'
@@ -5102,13 +5103,15 @@ def build_routing_key(action=EVENT, sensor_type='*', package_type='*', site='*',
     return routing_key
 
 
-def build_objects_from_json(message):
+def build_objects_from_json(message, amqp_obj=None):
     """This function converts a string message into a list of casas.objects.
 
     Parameters
     ----------
     message : str
         A string of a JSON list containing dictionaries.
+    amqp_obj : object (optional)
+        A rabbitmq.py Connection object to help keep things alive during large objects.
 
     Returns
     -------
@@ -5193,7 +5196,8 @@ def build_objects_from_json(message):
                     epoch = None
                     if 'model' in obj:
                         model = get_subobject(casas_object=obj['model'],
-                                              errormsgs=errormsgs)
+                                              errormsgs=errormsgs,
+                                              amqp_obj=amqp_obj)
                     else:
                         errormsgs.append('Could not obtain attribute model, '
                                          'please include json attribute model.')
@@ -5243,7 +5247,8 @@ def build_objects_from_json(message):
                     epoch = None
                     if 'model' in obj:
                         model = get_subobject(casas_object=obj['model'],
-                                              errormsgs=errormsgs)
+                                              errormsgs=errormsgs,
+                                              amqp_obj=amqp_obj)
                     else:
                         errormsgs.append('Could not obtain attribute model, '
                                          'please include json attribute model.')
@@ -5728,7 +5733,8 @@ def build_objects_from_json(message):
                         if len(obj['episodes']) > 0:
                             episodes = get_subobject_list(
                                 casas_object=json.dumps(obj['episodes']),
-                                errormsgs=errormsgs)
+                                errormsgs=errormsgs,
+                                amqp_obj=amqp_obj)
                     if len(errormsgs) == 0:
                         result = Training(episodes=episodes)
                 elif obj['obj_type'] == OBJ_TRIAL:
@@ -5749,7 +5755,8 @@ def build_objects_from_json(message):
                         if len(obj['episodes']) > 0:
                             episodes = get_subobject_list(
                                 casas_object=json.dumps(obj['episodes']),
-                                errormsgs=errormsgs)
+                                errormsgs=errormsgs,
+                                amqp_obj=amqp_obj)
                     if len(errormsgs) == 0:
                         result = Trial(episodes=episodes,
                                        novelty=obj['novelty'],
@@ -5764,7 +5771,8 @@ def build_objects_from_json(message):
                         if len(obj['trials']) > 0:
                             trials = get_subobject_list(
                                 casas_object=json.dumps(obj['trials']),
-                                errormsgs=errormsgs)
+                                errormsgs=errormsgs,
+                                amqp_obj=amqp_obj)
                     if len(errormsgs) == 0:
                         result = NoveltyGroup(trials=trials)
                 elif obj['obj_type'] == OBJ_EXPERIMENT:
@@ -5782,12 +5790,14 @@ def build_objects_from_json(message):
                     if len(errormsgs) == 0:
                         training = get_subobject(
                             casas_object='[{}]'.format(json.dumps(obj['training'])),
-                            errormsgs=errormsgs)
+                            errormsgs=errormsgs,
+                            amqp_obj=amqp_obj)
                     if len(errormsgs) == 0:
                         if len(obj['novelty_groups']) > 0:
                             nov_groups = get_subobject_list(
                                 casas_object=json.dumps(obj['novelty_groups']),
-                                errormsgs=errormsgs)
+                                errormsgs=errormsgs,
+                                amqp_obj=amqp_obj)
                     if len(errormsgs) == 0:
                         result = Experiment(training=training,
                                             novelty_groups=nov_groups,
@@ -5941,7 +5951,8 @@ def build_objects_from_json(message):
                                              'please include json attribute data->object_list.')
                     if len(errormsgs) == 0:
                         object_list = build_objects_from_json(
-                            message=json.dumps(obj['data']['object_list']))
+                            message=json.dumps(obj['data']['object_list']),
+                            amqp_obj=amqp_obj)
                         if len(object_list) > 0:
                             if not isinstance(object_list, CasasResponse):
                                 for object_list_item in object_list:
@@ -7033,10 +7044,12 @@ def build_objects_from_json(message):
     return return_objects
 
 
-def get_subobject(casas_object, errormsgs):
+def get_subobject(casas_object, errormsgs, amqp_obj=None):
+    if amqp_obj is not None:
+        amqp_obj.process_data_events()
     log.debug("get_subobject( {} )".format(str(casas_object)))
     new_object = None
-    values = build_objects_from_json(casas_object)
+    values = build_objects_from_json(casas_object, amqp_obj=amqp_obj)
     if isinstance(values, list):
         if len(values) > 0:
             new_object = values[0]
@@ -7050,10 +7063,12 @@ def get_subobject(casas_object, errormsgs):
     return new_object
 
 
-def get_subobject_list(casas_object, errormsgs):
+def get_subobject_list(casas_object, errormsgs, amqp_obj=None):
+    if amqp_obj is not None:
+        amqp_obj.process_data_events()
     log.debug("get_subobject( {} )".format(str(casas_object)))
     new_object_list = list()
-    values = build_objects_from_json(casas_object)
+    values = build_objects_from_json(casas_object, amqp_obj=amqp_obj)
     valid = False
     if isinstance(values, list):
         if len(values) > 0:

@@ -45,6 +45,9 @@ class CartPoleBulletEnv(gym.Env):
         self.tick = 0
         self.time = None
 
+        ## Param for setting initial conditions to zero
+        self.init_zero = False
+
         # Object definitions
         self.nb_blocks = None
         self.cartpole = -10
@@ -52,7 +55,6 @@ class CartPoleBulletEnv(gym.Env):
         self.blocks = list()
         self.walls = None
         self.state = None
-        self.last_pos = [0, 0]
 
         if self._discrete_actions:
             self.action_space = spaces.Discrete(5)
@@ -175,7 +177,6 @@ class CartPoleBulletEnv(gym.Env):
             self.generate_world()
 
         self.tick = 0
-        self.last_pos = [0, 0]
         self.reset_world()
 
         # Run for one step to get everything going
@@ -232,16 +233,20 @@ class CartPoleBulletEnv(gym.Env):
                                        force=[0, 0, 0])
 
         # Reset cart (technicaly ground object)
-        cart_pos = list(self.np_random.uniform(low=-3, high=3, size=(2,))) + [0]
-        cart_vel = list(self.np_random.uniform(low=-1, high=1, size=(2,))) + [100]
+        if self.init_zero:
+            cart_pos = list(self.np_random.uniform(low=0, high=0, size=(2,))) + [0]
+            cart_vel = list(self.np_random.uniform(low=0, high=0, size=(2,))) + [100]
+        else:
+            cart_pos = list(self.np_random.uniform(low=-3, high=3, size=(2,))) + [0]
+            cart_vel = list(self.np_random.uniform(low=-1, high=1, size=(2,))) + [100]
         p.resetBasePositionAndOrientation(self.cartpole, cart_pos, [0, 0, 0, 1])
         p.applyExternalForce(self.cartpole, 0, cart_vel, (0, 0, 0), p.WORLD_FRAME)
 
-        # Update self pos here as well
-        self.last_pos = [cart_pos[0], cart_pos[1]]
-
         # Reset pole
-        randstate = list(self.np_random.uniform(low=-0.01, high=0.01, size=(6,)))
+        if self.init_zero:
+            randstate = list(self.np_random.uniform(low=0, high=0, size=(6,)))
+        else:
+            randstate = list(self.np_random.uniform(low=-0.01, high=0.01, size=(6,)))
         pole_pos = randstate[0:3] + [1]
         # zero so it doesnt spin like a top :)
         pole_ori = list(randstate[3:5]) + [0]
@@ -298,19 +303,14 @@ class CartPoleBulletEnv(gym.Env):
         # Handle pos, ori
         _, vel, _, _ = p.getJointStateMultiDof(self.cartpole, 0)
         pos, _, _, _, _, _ = p.getLinkState(self.cartpole, 0)
-        state['x_position'] = round(pos[0], round_amount)
+        state['x_position'] = round(-pos[0], round_amount)
         state['y_position'] = round(pos[1], round_amount)
         state['z_position'] = round(pos[2], round_amount)
 
         # Handle velocity
-        change_x = state['x_position'] - self.last_pos[0]
-        change_y = state['y_position'] - self.last_pos[1]
-        self.last_pos = [state['x_position'], state['y_position']]
-        #print(change_x * 50, change_y * 50, vel[0], vel[1])
-
-        state['x_velocity'] = round(change_x / self.timeStep, round_amount)
-        state['y_velocity'] = round(change_y / self.timeStep, round_amount)
-        state['z_velocity'] = round(0.0, round_amount)
+        state['x_velocity'] = round(-vel[2], round_amount)
+        state['y_velocity'] = round(vel[1], round_amount)
+        state['z_velocity'] = round(vel[0], round_amount)
 
         world_state['cart'] = state
 
@@ -330,14 +330,14 @@ class CartPoleBulletEnv(gym.Env):
             state['y_position'] = round(eulers[1], round_amount)
             state['z_position'] = round(eulers[2], round_amount)
         else:
-            state['x_quaternion'] = round(pos[0], round_amount)
-            state['y_quaternion'] = round(pos[1], round_amount)
+            state['x_quaternion'] = round(-pos[1], round_amount)
+            state['y_quaternion'] = round(pos[0], round_amount)
             state['z_quaternion'] = round(pos[2], round_amount)
             state['w_quaternion'] = round(pos[3], round_amount)
 
         # Velocity
-        state['x_velocity'] = round(vel[0], round_amount)
-        state['y_velocity'] = round(vel[1], round_amount)
+        state['x_velocity'] = round(-vel[1], round_amount)
+        state['y_velocity'] = round(vel[0], round_amount)
         state['z_velocity'] = round(vel[2], round_amount)
 
         world_state['pole'] = state

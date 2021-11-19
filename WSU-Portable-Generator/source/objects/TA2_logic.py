@@ -202,6 +202,7 @@ class TA2Logic(object):
     def _get_command_line_options(self):
         parser = optparse.OptionParser(usage="usage: %prog [options]")
         parser = self._add_command_line_options(parser)
+        parser = self._add_ta2_command_line_options(parser)
 
         (options, args) = parser.parse_args()
         if options.fulldebug:
@@ -252,6 +253,9 @@ class TA2Logic(object):
                           help=('Causes the program to ignore any secret stored in experiment_'
                                 'secret.'),
                           default=False)
+        return parser
+
+    def _add_ta2_command_line_options(self, parser):
         return parser
 
     def _set_model_filename(self):

@@ -300,8 +300,8 @@ class TA2Agent(TA2Logic):
 
         if len(self.possible_answers) == 0:
             self.possible_answers.append(dict({'action': 'nothing'}))
-            self.possible_answers.append(dict({'action': 'left'}))
             self.possible_answers.append(dict({'action': 'right'}))
+            self.possible_answers.append(dict({'action': 'left'}))
             self.possible_answers.append(dict({'action': 'forward'}))
             self.possible_answers.append(dict({'action': 'backward'}))
 
