@@ -197,6 +197,9 @@ class TA2Logic(object):
         self._model_filename = None
         self.end_training_early = False
         self.end_experiment_early = False
+        self.episode_seed = None
+        self.start_zeroed_out = False
+        self.start_world_state = None
         return
 
     def _get_command_line_options(self):
@@ -555,14 +558,19 @@ class TA2Logic(object):
             else:
                 print(message)
 
+            generator_config = dict({'episode_seed': self.episode_seed,
+                                     'start_zeroed_out': self.start_zeroed_out,
+                                     'start_world_state': self.start_world_state})
             # Start a SAIL-ON experiment!
             if self._experiment_secret is None or self._no_testing:
                 # Based on these variables, we need to start a new experiment.
-                my_experiment = self._amqp.start_sail_on_experiment(model=model,
-                                                                    domain=self._sail_on_domain,
-                                                                    no_testing=self._no_testing,
-                                                                    seed=self._seed,
-                                                                    description=self._description)
+                my_experiment = self._amqp.start_sail_on_experiment(
+                    model=model,
+                    domain=self._sail_on_domain,
+                    no_testing=self._no_testing,
+                    seed=self._seed,
+                    description=self._description,
+                    generator_config=generator_config)
                 self.log.info('experiment is gathering requirements!')
                 # self.log.debug(str(my_experiment))
                 # Store the experiment_secret locally.
@@ -585,7 +593,8 @@ class TA2Logic(object):
                     model=model,
                     experiment_secret=self._experiment_secret,
                     just_one_trial=self._just_one_trial,
-                    domain=self._sail_on_domain)
+                    domain=self._sail_on_domain,
+                    generator_config=generator_config)
                 if isinstance(my_experiment, objects.CasasResponse):
                     if my_experiment.status == 'error':
                         for casas_error in my_experiment.error_list:

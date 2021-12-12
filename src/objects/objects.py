@@ -35,7 +35,7 @@ import types
 import uuid
 
 __major_version__ = '0.7'
-__minor_version__ = '7'
+__minor_version__ = '8'
 __db_version__ = '0.5'
 __version__ = '{}.{}'.format(__major_version__, __minor_version__)
 __database_version__ = re.sub('[.]', '_', __db_version__)
@@ -3869,7 +3869,7 @@ class RequestExperiment(AiqObject):
     def __init__(self, model: Model, novelty: int, novelty_visibility: int, client_rpc_queue: str,
                  git_version: str, experiment_type: str, seed: int = None,
                  domain_dict: dict = None, epoch: float = None, no_testing: bool = False,
-                 description: str = None):
+                 description: str = None, generator_config: dict = None):
         super().__init__()
         self.obj_type = REQ_EXPERIMENT
         self.model = copy.deepcopy(model)
@@ -3900,6 +3900,7 @@ class RequestExperiment(AiqObject):
         if not true_domain:
             raise AiqDataException('An experiment MUST have at least one domain selected.')
         self.description = description
+        self.generator_config = copy.deepcopy(generator_config)
         return
 
     def get_json_obj(self):
@@ -3914,13 +3915,15 @@ class RequestExperiment(AiqObject):
                'epoch': self.epoch,
                'no_testing': self.no_testing,
                'experiment_type': self.experiment_type,
-               'description': self.description}
+               'description': self.description,
+               'generator_config': self.generator_config}
         return copy.deepcopy(obj)
 
 
 class RequestExperimentTrials(RequestExperiment):
     def __init__(self, model: Model, experiment_secret: str, client_rpc_queue: str,
-                 just_one_trial: bool = False, epoch: float = None, domain_dict: dict = None):
+                 just_one_trial: bool = False, epoch: float = None, domain_dict: dict = None,
+                 generator_config: dict = None):
         super().__init__(model=model,
                          novelty=0,
                          novelty_visibility=0,
@@ -3928,7 +3931,8 @@ class RequestExperimentTrials(RequestExperiment):
                          git_version=__version__,
                          experiment_type=TYPE_EXPERIMENT_SAIL_ON,
                          domain_dict=domain_dict,
-                         epoch=epoch)
+                         epoch=epoch,
+                         generator_config=generator_config)
         self.obj_type = REQ_EXP_TRIALS
         self.model = copy.deepcopy(model)
         self.experiment_secret = experiment_secret
@@ -3946,7 +3950,8 @@ class RequestExperimentTrials(RequestExperiment):
                'client_rpc_queue': self.client_rpc_queue,
                'just_one_trial': self.just_one_trial,
                'domain_dict': self.domain_dict,
-               'epoch': self.epoch}
+               'epoch': self.epoch,
+               'generator_config': self.generator_config}
         return copy.deepcopy(obj)
 
 
@@ -4833,7 +4838,7 @@ class GeneratorReset(AiqObject):
 class StartGenerator(AiqObject):
     def __init__(self, domain: str, novelty: int, difficulty: str, seed: int, server_rpc_queue: str,
                  trial_novelty: int, epoch: float = None, day_offset: int = 0,
-                 request_timeout: int = 20, use_image: bool = False):
+                 request_timeout: int = 20, use_image: bool = False, generator_config: dict = None):
         super().__init__()
         self.obj_type = START_GENERATOR
         if domain not in VALID_DOMAINS:
@@ -4856,6 +4861,7 @@ class StartGenerator(AiqObject):
         self.day_offset = day_offset
         self.request_timeout = request_timeout
         self.use_image = use_image
+        self.generator_config = copy.deepcopy(generator_config)
         return
 
     def get_json_obj(self):
@@ -4869,7 +4875,8 @@ class StartGenerator(AiqObject):
                'epoch': self.epoch,
                'day_offset': self.day_offset,
                'request_timeout': self.request_timeout,
-               'use_image': self.use_image}
+               'use_image': self.use_image,
+               'generator_config': self.generator_config}
         return copy.deepcopy(obj)
 
 
@@ -5228,6 +5235,8 @@ def build_objects_from_json(message, amqp_obj=None):
                     if 'description' not in obj:
                         errormsgs.append('Could not obtain attribute description, '
                                          'please include json attribute description.')
+                    if 'generator_config' not in obj:
+                        obj['generator_config'] = None
                     if 'epoch' in obj:
                         epoch = obj['epoch']
                     if len(errormsgs) == 0:
@@ -5241,7 +5250,8 @@ def build_objects_from_json(message, amqp_obj=None):
                                                    domain_dict=obj['domain_dict'],
                                                    epoch=epoch,
                                                    no_testing=obj['no_testing'],
-                                                   description=obj['description'])
+                                                   description=obj['description'],
+                                                   generator_config=obj['generator_config'])
                 elif obj['obj_type'] == REQ_EXP_TRIALS:
                     model = None
                     epoch = None
@@ -5264,6 +5274,8 @@ def build_objects_from_json(message, amqp_obj=None):
                     if 'domain_dict' not in obj:
                         errormsgs.append('Could not obtain attribute domain_dict, '
                                          'please include json attribute domain_dict.')
+                    if 'generator_config' not in obj:
+                        obj['generator_config'] = None
                     if 'epoch' in obj:
                         epoch = obj['epoch']
                     if len(errormsgs) == 0:
@@ -5273,7 +5285,8 @@ def build_objects_from_json(message, amqp_obj=None):
                             client_rpc_queue=obj['client_rpc_queue'],
                             just_one_trial=obj['just_one_trial'],
                             domain_dict=obj['domain_dict'],
-                            epoch=epoch)
+                            epoch=epoch,
+                            generator_config=obj['generator_config'])
                 elif obj['obj_type'] == EXPERIMENT_RESP:
                     if 'server_rpc_queue' not in obj:
                         errormsgs.append('Could not obtain attribute server_rpc_queue, '
@@ -5859,6 +5872,8 @@ def build_objects_from_json(message, amqp_obj=None):
                     if 'use_image' not in obj:
                         errormsgs.append('Could not obtain attribute use_image, '
                                          'please include json attribute use_image.')
+                    if 'generator_config' not in obj:
+                        obj['generator_config'] = None
                     if len(errormsgs) == 0:
                         result = StartGenerator(domain=obj['domain'],
                                                 novelty=obj['novelty'],
@@ -5869,7 +5884,8 @@ def build_objects_from_json(message, amqp_obj=None):
                                                 epoch=obj['epoch'],
                                                 day_offset=obj['day_offset'],
                                                 request_timeout=obj['request_timeout'],
-                                                use_image=obj['use_image'])
+                                                use_image=obj['use_image'],
+                                                generator_config=obj['generator_config'])
                 elif obj['obj_type'] == GENERATOR_RESPONSE:
                     if 'generator_rpc_queue' not in obj:
                         errormsgs.append('Could not obtain attribute generator_rpc_queue, '

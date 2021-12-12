@@ -1,4 +1,5 @@
 # Used for time since epoch sensor
+import copy
 import sys
 import json
 import random
@@ -15,7 +16,8 @@ class TestLoader:
     def __init__(self, domain: str = 'cartpole', novelty_level: int = 0, trial_novelty: int = 0,
                  seed: int = 0, difficulty: str = 'easy', day_offset: int = 0,
                  week_shift: int = None, generate_days: int = None, use_img: bool = False,
-                 path: str = "env_generator/envs/", use_gui: bool = False):
+                 path: str = "env_generator/envs/", use_gui: bool = False,
+                 ta2_generator_config: dict = None):
 
         # Set internal params        
         self.domain = domain
@@ -29,6 +31,12 @@ class TestLoader:
         self.use_img = use_img
         self.path = path
         self.use_gui = use_gui
+        self.ta2_generator_config = copy.deepcopy(ta2_generator_config)
+
+        # Set the custom seed if provided.
+        if self.ta2_generator_config is not None:
+            if 'episode_seed' in self.ta2_generator_config:
+                self.seed = self.ta2_generator_config['episode_seed']
 
         # Determine level here
         self.use_mock = False
@@ -97,40 +105,36 @@ class TestLoader:
             # Filter by novelty level
             if self.level == 0:
                 from .envs.cartpolepp.n_0 import CartPole
-                self.env = CartPole(self.difficulty)
             # Mocks
             elif self.use_mock:
                 if self.level == 1:
                     from .envs.cartpolepp.m_1 import CartPolePPMock1 as CartPole
-                    self.env = CartPole(self.difficulty)
                 elif self.level == 2:
                     from .envs.cartpolepp.m_2 import CartPolePPMock2 as CartPole
-                    self.env = CartPole(self.difficulty)
                 elif self.level == 3:
                     from .envs.cartpolepp.m_3 import CartPolePPMock3 as CartPole
-                    self.env = CartPole(self.difficulty)
                 elif self.level == 4:
                     from .envs.cartpolepp.m_4 import CartPolePPMock4 as CartPole
-                    self.env = CartPole(self.difficulty)
                 elif self.level == 5:
                     from .envs.cartpolepp.m_5 import CartPolePPMock5 as CartPole
-                    self.env = CartPole(self.difficulty)
             else:
                 print(self.use_mock, self.use_novel, self.level)
                 raise ValueError('Domain: ' + self.domain + ', Novelty: ' +
                                  str(self.novelty_level) + ', is not recognized!')
 
-            # Set env camera here, fix later?
-            self.env.use_img = self.use_img
-
-            # Set env path here.
-            self.env.path = os.path.join(self.path, 'cartpolepp')
-
-            # Use seed here
-            self.env.seed(self.seed)
-
             # Set internal reward here
-            self.reward = 0
+            self.reward = 0.0
+
+            # Package params here
+            params = dict()
+            params['seed'] = self.seed
+            params['config'] = self.ta2_generator_config
+            params['path'] = os.path.join(self.path, 'cartpolepp')
+            params['use_img'] = self.use_img
+            params['use_gui'] = self.use_gui
+
+            # Create instance
+            self.env = CartPole(self.difficulty, params=params)
 
         elif self.domain == 'vizdoom':
             from .envs.vizdoom.viz import SailonViz

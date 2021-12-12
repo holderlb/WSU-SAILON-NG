@@ -397,7 +397,8 @@ class Connection:
         return response
 
     def start_sail_on_experiment(self, model: objects.Model, domain: str, no_testing: bool,
-                                 seed: int = None, description: str = None):
+                                 seed: int = None, description: str = None,
+                                 generator_config: dict = None):
         self.log.debug('start_sail_on_experiment()')
 
         if domain not in objects.VALID_DOMAINS:
@@ -426,7 +427,8 @@ class Connection:
             seed=seed,
             domain_dict=domain_dict,
             no_testing=no_testing,
-            description=description)
+            description=description,
+            generator_config=generator_config)
 
         response = self._set_system_request(casas_object=experiment_request,
                                             queue_name=objects.SERVER_EXPERIMENT_QUEUE,
@@ -435,7 +437,8 @@ class Connection:
         return response
 
     def start_work_on_experiment_trials(self, model: objects.Model, experiment_secret: str,
-                                        just_one_trial: bool, domain: str):
+                                        just_one_trial: bool, domain: str,
+                                        generator_config: dict = None):
         self.log.debug('start_work_on_experiment_trials()')
 
         if self._client_rpc_queue is None:
@@ -456,7 +459,8 @@ class Connection:
             experiment_secret=experiment_secret,
             client_rpc_queue=self._client_rpc_queue,
             just_one_trial=just_one_trial,
-            domain_dict=domain_dict)
+            domain_dict=domain_dict,
+            generator_config=generator_config)
 
         response = self._set_system_request(casas_object=experiment_request,
                                             queue_name=objects.SERVER_EXPERIMENT_QUEUE,
@@ -533,7 +537,8 @@ class Connection:
         return response
 
     def start_generator(self, domain: str, novelty: int, difficulty: str, seed: int,
-                        trial_novelty: int, day_offset: int, request_timeout: int, use_image: bool):
+                        trial_novelty: int, day_offset: int, request_timeout: int, use_image: bool,
+                        generator_config: dict = None):
         self.log.debug('start_generator()')
 
         if self._client_rpc_queue is None:
@@ -556,7 +561,8 @@ class Connection:
             trial_novelty=trial_novelty,
             day_offset=day_offset,
             request_timeout=request_timeout,
-            use_image=use_image)
+            use_image=use_image,
+            generator_config=generator_config)
 
         response = self._set_system_request(casas_object=start_gen,
                                             queue_name=objects.LIVE_GENERATOR_QUEUES[domain],

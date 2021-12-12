@@ -16,12 +16,14 @@
                 <color rgba="1 0 0 0"/>
             </material>
         </visual>
+        <!--
         <collision>
             <origin rpy="0 0 0" xyz="0 0 0.0"/>
             <geometry>
                 <box size="0.01 0.01 0.01"/>
             </geometry>
         </collision>
+        -->
     </link>
 
     <link name="cart">
@@ -56,9 +58,9 @@
     <link name="pole">
         <visual>
             <geometry>
-                <cylinder length="2.0" radius="0.03"/>
+                <cylinder length="1.0" radius="0.03"/>
             </geometry>
-            <origin rpy="0 0 0" xyz="0 0 1.05"/>
+            <origin rpy="0 0 0" xyz="0 0 0.55"/>
             <material name="white">
                 <color rgba="1 0 0 1"/>
             </material>
@@ -70,14 +72,14 @@
         </inertial>
         <collision>
             <geometry>
-                <cylinder length="2.0" radius="0.03"/>
+                <cylinder length="1.0" radius="0.03"/>
             </geometry>
-            <origin rpy="0 0 0" xyz="0 0 1.05"/>
+            <origin rpy="0 0 0" xyz="0 0 0.55"/>
         </collision>
     </link>
 
     <joint name="pole_to_cart" type="spherical">
-        <origin xyz="0.0 0.0 0.2"/>
+        <origin xyz="0.0 0.0 0.2" rpy="0 0 0"/>
         <axis xyz="0 0 0"/>
         <parent link="cart"/>
         <child link="pole"/>

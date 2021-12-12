@@ -10,8 +10,5 @@ ADD source/objects /aiq-sail-on/objects/
 # Load TA2.py
 ADD source/TA2.py /aiq-sail-on/
 
-# Add Config
-ADD configs/partial /aiq-sail-on/config/
-
 # Change local dir
 WORKDIR /aiq-sail-on/

@@ -16,6 +16,10 @@ class Agents:
         self.id_to_cvar = None
 
         self.last_dist = np.zeros((4, 4))
+        self.last = [10] * 4
+        self.lastlast = [10] * 4
+        self.hunting = False
+        self.walls = None
 
         return None
 
@@ -115,6 +119,13 @@ class Agents:
     # Enemies shoot at player
     def check_shoot(self, state, commands):
         for ind, val in enumerate(state['enemies']):
+            my_command = None
+            for command in commands:
+                if "ai_" + str(self.id_to_cvar[val['id']]) in command:
+                    my_command = command
+            if '9' in my_command:
+                continue
+
             angle, sign = self.get_angle(state['player'], val)
 
             if angle < self.right_side:
@@ -158,8 +169,6 @@ class Agents:
                 dist = np.abs(np.linalg.norm(np.cross(p2 - p1, p1 - p3)) / np.linalg.norm(p2 - p1))
                 angle, sign = self.get_angle(val2, val)
 
-                enemy_dist = np.abs(np.linalg.norm(p1 - p3))
-
                 check_dist = min(self.last_dist[ind][ind2], dist)
                 if check_dist < (30 + dist/20) and angle < np.pi / 2:
                     action = random.choice([1, 2, 3, 4])
@@ -200,3 +209,10 @@ class Agents:
         ))
 
         return angle, sign
+
+    def ccw(self, A,B,C):
+        return (C['y']-A['y']) * (B['x']-A['x']) > (B['y']-A['y']) * (C['x']-A['x'])
+
+    # Return true if line segments AB and CD intersect
+    def intersect(self, A,B,C,D):
+        return self.ccw(A,C,D) != self.ccw(B,C,D) and self.ccw(A,B,C) != self.ccw(A,B,D)

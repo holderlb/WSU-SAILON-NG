@@ -6,8 +6,8 @@ from .cartpoleplusplus import CartPoleBulletEnv
 
 class CartPolePPMock5(CartPoleBulletEnv):
 
-    def __init__(self, difficulty, renders=False):
-        super().__init__(renders=renders)
+    def __init__(self, difficulty, params: dict = None):
+        super().__init__(params=params)
 
         self.difficulty = difficulty
 
@@ -19,20 +19,18 @@ class CartPolePPMock5(CartPoleBulletEnv):
         # Convert from string to int
         if action == 'nothing':
             action = 0
-        elif action == 'left':
-            action = 1
         elif action == 'right':
+            action = 1
+        elif action == 'left':
             action = 2
         elif action == 'forward':
             action = 3
         elif action == 'backward':
             action = 4
 
-        # Handle math first then direction
-        cart_deg_angle = self.quaternion_to_euler(*p.getLinkState(self.cartpole, 0)[1])[2]
-        cart_angle = (cart_deg_angle) * np.pi / 180
-
-        # Adjust forces so it always apply in reference to world frame
+        # Adjust forces so they always apply in reference to world frame
+        _, ori, _, _, _, _ = p.getLinkState(self.cartpole, 0)
+        cart_angle = p.getEulerFromQuaternion(ori)[2] # yaw
         fx = self.force_mag * np.cos(cart_angle)
         fy = self.force_mag * np.sin(cart_angle) * -1
 
@@ -84,7 +82,7 @@ class CartPolePPMock5(CartPoleBulletEnv):
                     u1 = np.asarray([np.random.rand(), np.random.rand(), np.random.rand()])
                 else:
                     u1 = np.multiply(u1 / np.linalg.norm(u1), force)
-                p.applyExternalForce(i, -1, (u1[0], u1[1], u1[2]), (0, 0, 0), p.LINK_FRAME)
+                p.applyExternalForce(i, -1, (-u1[0], -u1[1], u1[2]), (0, 0, 0), p.LINK_FRAME)
 
         p.stepSimulation()
 

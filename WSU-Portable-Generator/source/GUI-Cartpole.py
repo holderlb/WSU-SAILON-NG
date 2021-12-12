@@ -57,8 +57,8 @@ class TA2Agent(TA2Logic):
         super().__init__()
         self.possible_answers = list()
         self.possible_answers.append(dict({'action': 'nothing'}))
-        self.possible_answers.append(dict({'action': 'left'}))
         self.possible_answers.append(dict({'action': 'right'}))
+        self.possible_answers.append(dict({'action': 'left'}))
         self.possible_answers.append(dict({'action': 'forward'}))
         self.possible_answers.append(dict({'action': 'backward'}))
 
@@ -68,10 +68,10 @@ class TA2Agent(TA2Logic):
                              115: 's',
                              100: 'd'})
 
-        self.key_action = dict({'a': 1,
-                                'd': 2,
-                                'w': 4,
-                                's': 3})
+        self.key_action = dict({'d': 1,
+                                'a': 2,
+                                's': 4,
+                                'w': 3})
 
         # This variable can be set to true and the system will attempt to end training at the
         # completion of the current episode, or sooner if possible.

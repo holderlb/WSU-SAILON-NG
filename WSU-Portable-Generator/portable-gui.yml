@@ -26,6 +26,8 @@ services:
   # We use a custom service name for each service variant so we can have multiple versions
   # running at the same time, just with slightly modified docker-compose files.
   mockn-ta1:
+    volumes:
+      - ./configs/partial:/aiq-sail-on/config:rw
     build:
       context: ./
       dockerfile: Dockerfile-PARTIAL-TA1

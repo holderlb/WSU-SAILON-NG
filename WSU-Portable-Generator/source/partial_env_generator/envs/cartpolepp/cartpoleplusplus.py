@@ -3,50 +3,54 @@ Classic cart-pole system implemented by Rich Sutton et al.
 Copied from http://incompleteideas.net/book/code/pole.c
 """
 
-import math
+import os
+import sys
+import time
+
 import gym
 from gym import spaces
 from gym.utils import seeding
-import os.path
+
 import numpy as np
 import pybullet as p2
 from pybullet_utils import bullet_client as bc
-
-import sys
-import os
-import time
 
 
 class CartPoleBulletEnv(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array'], 'video.frames_per_second': 50}
 
-    def __init__(self, use_img=False, renders=False, discrete_actions=True):
+    def __init__(self, params: dict = None):
         # start the bullet physics server
-        self._renders = renders
-        self._discrete_actions = discrete_actions
         self._render_height = 480
         self._render_width = 640
         self._physics_client_id = -1
-        self.theta_threshold_radians = 12 * 2 * math.pi / 360
+        self.theta_threshold_radians = 12 * 2 * np.pi / 360
         self.x_threshold = 0.4  # 2.4
-        self.use_img = use_img
         high = np.array([self.x_threshold * 2, np.finfo(np.float32).max,
                          self.theta_threshold_radians * 2, np.finfo(np.float32).max])
+        self.action_space = spaces.Discrete(5)
+        self.observation_space = spaces.Box(-high, high, dtype=np.float32)
 
         # Environmental params
         self.force_mag = 10
         self.timeStep = 1.0 / 50.0
-        self.angle_limit = 10
-        self.actions = ['left', 'right', 'forward', 'backward', 'nothing']
+        self.angle_limit = 10.0 * np.pi / 180.0 # 10 degrees in radians
+        self.actions = ['right', 'left', 'forward', 'backward', 'nothing']
+        self.tick_limit = 200
 
         # Internal params
-        self.path = "env_generator/envs/cartpolepp/"
-        self.tick_limit = 200
+        self.params = params
+        self.path = self.params['path']
+        self._renders = self.params['use_gui']
         self.tick = 0
         self.time = None
+        self.np_random = None
+        self.use_img = self.params['use_img']
+        self._p = None
 
-        ## Param for setting initial conditions to zero
+        # Params
         self.init_zero = False
+        self.config = self.params['config']
 
         # Object definitions
         self.nb_blocks = None
@@ -55,28 +59,16 @@ class CartPoleBulletEnv(gym.Env):
         self.blocks = list()
         self.walls = None
         self.state = None
+        self.origin = None
 
-        if self._discrete_actions:
-            self.action_space = spaces.Discrete(5)
-        else:
-            action_dim = 1
-            action_high = np.array([self.force_mag] * action_dim)
-            self.action_space = spaces.Box(-action_high, action_high)
+        # Functions to be run directly after init
+        self.seed(self.params['seed'])
 
-        self.observation_space = spaces.Box(-high, high, dtype=np.float32)
-
-        self.seed()
-        self.viewer = None
-        self._configure()
-
-        return None
-
-    def _configure(self, display=None):
-        self.display = display
+        return
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
-        return [seed]
+        return None
 
     def step(self, action):
         p = self._p
@@ -84,20 +76,18 @@ class CartPoleBulletEnv(gym.Env):
         # Convert from string to int
         if action == 'nothing':
             action = 0
-        elif action == 'left':
-            action = 1
         elif action == 'right':
+            action = 1
+        elif action == 'left':
             action = 2
         elif action == 'forward':
             action = 3
         elif action == 'backward':
             action = 4
 
-        # Handle math first then direction
-        cart_deg_angle = self.quaternion_to_euler(*p.getLinkState(self.cartpole, 0)[1])[2]
-        cart_angle = (cart_deg_angle) * np.pi / 180
-
-        # Adjust forces so it always apply in reference to world frame
+        # Adjust forces so they always apply in reference to world frame
+        _, ori, _, _, _, _ = p.getLinkState(self.cartpole, 0)
+        cart_angle = p.getEulerFromQuaternion(ori)[2] # yaw
         fx = self.force_mag * np.cos(cart_angle)
         fy = self.force_mag * np.sin(cart_angle) * -1
 
@@ -146,15 +136,14 @@ class CartPoleBulletEnv(gym.Env):
 
         # Check pole angle condition
         p = self._p
-        pos, vel, jRF, aJMT = p.getJointStateMultiDof(self.cartpole, 1)
-        pos = self.quaternion_to_euler(*pos)
-        x_angle = abs(pos[0])
-        y_angle = abs(pos[1])
+        _, _, _, _, _, ori, _, _ = p.getLinkState(self.cartpole, 1, 1)
+        eulers = p.getEulerFromQuaternion(ori)
+        x_angle, y_angle = eulers[0], eulers[1]
 
-        if x_angle < self.angle_limit and y_angle < self.angle_limit:
-            return False
-        else:
+        if abs(x_angle) > self.angle_limit or abs(y_angle) > self.angle_limit:
             return True
+        else:
+            return False
 
         return None
 
@@ -168,7 +157,6 @@ class CartPoleBulletEnv(gym.Env):
         return self.actions
 
     def reset(self):
-        # self.close()
         # Set time paremeter for sensor value
         self.time = time.time()
 
@@ -186,9 +174,17 @@ class CartPoleBulletEnv(gym.Env):
 
     # Used to generate the initial world state
     def generate_world(self):
+        # Read user config here
+        if self.config is not None:
+            if 'start_zeroed_out' in self.config:
+                self.init_zero = self.config['start_zeroed_out']
+            if 'episode_seed' in self.config:
+                self.seed(self.config['episode_seed'])
+            if 'start_world_state' in self.config:
+                self.set_world(self.config['start_world_state'])
+
         # Create bullet physics client
         if self._renders:
-        #if True:
             self._p = bc.BulletClient(connection_mode=p2.GUI)
         else:
             self._p = bc.BulletClient(connection_mode=p2.DIRECT)
@@ -208,6 +204,7 @@ class CartPoleBulletEnv(gym.Env):
         # Load world objects
         self.cartpole = p.loadURDF(os.path.join(self.path, 'models', 'ground_cart.urdf'))
         self.walls = p.loadURDF(os.path.join(self.path, 'models', 'walls.urdf'))
+        self.origin = p.loadURDF(os.path.join(self.path, 'models', 'origin.urdf'))
 
         # Set walls to be bouncy
         for joint_nb in range(-1, 6):
@@ -229,24 +226,26 @@ class CartPoleBulletEnv(gym.Env):
 
         # This big line sets the spehrical joint on the pole to loose
         p.setJointMotorControlMultiDof(self.cartpole, 1, p.POSITION_CONTROL, targetPosition=[0, 0, 0, 1],
-                                       targetVelocity=[0, 0, 0], positionGain=0, velocityGain=0.1,
+                                       targetVelocity=[0, 0, 0], positionGain=0, velocityGain=0.0,
                                        force=[0, 0, 0])
 
         # Reset cart (technicaly ground object)
         if self.init_zero:
             cart_pos = list(self.np_random.uniform(low=0, high=0, size=(2,))) + [0]
-            cart_vel = list(self.np_random.uniform(low=0, high=0, size=(2,))) + [100]
+            cart_vel = list(self.np_random.uniform(low=0, high=0, size=(2,))) + [0]
         else:
             cart_pos = list(self.np_random.uniform(low=-3, high=3, size=(2,))) + [0]
-            cart_vel = list(self.np_random.uniform(low=-1, high=1, size=(2,))) + [100]
+            cart_vel = list(self.np_random.uniform(low=-1, high=1, size=(2,))) + [0]
+
         p.resetBasePositionAndOrientation(self.cartpole, cart_pos, [0, 0, 0, 1])
-        p.applyExternalForce(self.cartpole, 0, cart_vel, (0, 0, 0), p.WORLD_FRAME)
+        p.applyExternalForce(self.cartpole, 0, cart_vel, (0, 0, 0), p.LINK_FRAME)
 
         # Reset pole
         if self.init_zero:
             randstate = list(self.np_random.uniform(low=0, high=0, size=(6,)))
         else:
             randstate = list(self.np_random.uniform(low=-0.01, high=0.01, size=(6,)))
+
         pole_pos = randstate[0:3] + [1]
         # zero so it doesnt spin like a top :)
         pole_ori = list(randstate[3:5]) + [0]
@@ -291,6 +290,10 @@ class CartPoleBulletEnv(gym.Env):
 
         return None
 
+    def set_world(self, state):
+        print('Set World is not yet implemented :(')
+        return None
+
     # Unified function for getting state information
     def get_state(self, initial=False):
         p = self._p
@@ -300,44 +303,50 @@ class CartPoleBulletEnv(gym.Env):
         # Get cart info ============================================
         state = dict()
 
-        # Handle pos, ori
-        _, vel, _, _ = p.getJointStateMultiDof(self.cartpole, 0)
+        # Handle pos, vel
         pos, _, _, _, _, _ = p.getLinkState(self.cartpole, 0)
-        state['x_position'] = round(-pos[0], round_amount)
+        state['x_position'] = round(pos[0], round_amount)
         state['y_position'] = round(pos[1], round_amount)
         state['z_position'] = round(pos[2], round_amount)
 
-        # Handle velocity
-        state['x_velocity'] = round(-vel[2], round_amount)
-        state['y_velocity'] = round(vel[1], round_amount)
-        state['z_velocity'] = round(vel[0], round_amount)
+        # Cart velocity from planar joint (buggy in PyBullet; thus reverse order)
+        # _, vel, _, _ = p.getJointStateMultiDof(self.cartpole, 0)
+        # state['x_velocity'] = round(vel[2], round_amount)
+        # state['y_velocity'] = round(vel[1], round_amount)
+        # state['z_velocity'] = round(vel[0], round_amount)
 
+        # Cart velocity from cart
+        _, _, _, _, _, _, vel, _ = p.getLinkState(self.cartpole, 0, 1)
+        state['x_velocity'] = round(vel[0], round_amount)
+        state['y_velocity'] = round(vel[1], round_amount)
+        state['z_velocity'] = round(vel[2], round_amount)
+
+        # Set world state of cart
         world_state['cart'] = state
 
         # Get pole info =============================================
         state = dict()
         use_euler = False
 
-        # Position and orientation, the other two not used
-        pos, vel, jRF, aJMT = p.getJointStateMultiDof(self.cartpole, 1)
+        # Orientation and A_velocity, the others not used
+        _, _, _, _, _, ori, _, vel = p.getLinkState(self.cartpole, 1, 1)
 
-        # Convert quats to eulers
-        eulers = self.quaternion_to_euler(*pos)
-
-        # Position
+        # Orientation
         if use_euler:
-            state['x_position'] = round(eulers[0], round_amount)
-            state['y_position'] = round(eulers[1], round_amount)
-            state['z_position'] = round(eulers[2], round_amount)
+            # Convert quats to eulers
+            eulers = p.getEulerFromQuaternion(ori)
+            state['x_euler'] = round(eulers[0], round_amount)
+            state['y_euler'] = round(eulers[1], round_amount)
+            state['z_euler'] = round(eulers[2], round_amount)
         else:
-            state['x_quaternion'] = round(-pos[1], round_amount)
-            state['y_quaternion'] = round(pos[0], round_amount)
-            state['z_quaternion'] = round(pos[2], round_amount)
-            state['w_quaternion'] = round(pos[3], round_amount)
+            state['x_quaternion'] = round(ori[0], round_amount)
+            state['y_quaternion'] = round(ori[1], round_amount)
+            state['z_quaternion'] = round(ori[2], round_amount)
+            state['w_quaternion'] = round(ori[3], round_amount)
 
-        # Velocity
-        state['x_velocity'] = round(-vel[1], round_amount)
-        state['y_velocity'] = round(vel[0], round_amount)
+        # A_velocity
+        state['x_velocity'] = round(vel[0], round_amount)
+        state['y_velocity'] = round(vel[1], round_amount)
         state['z_velocity'] = round(vel[2], round_amount)
 
         world_state['pole'] = state
@@ -363,7 +372,6 @@ class CartPoleBulletEnv(gym.Env):
         world_state['blocks'] = block_state
 
         # Get wall info ======================================
-        # Hardcoded cause I don't know how to get the info :(
         if initial:
             state = list()
             state.append([-5, -5, 0])
@@ -445,52 +453,3 @@ class CartPoleBulletEnv(gym.Env):
         rgb_array = np.reshape(np.array(px), (self._render_height, self._render_width, -1))
         rgb_array = rgb_array[:, :, :3]
         return rgb_array
-
-    def configure(self, args):
-        pass
-
-    def eulerToQuaternion(self, yaw, pitch, roll):
-        qx = np.sin(yaw / 2) * np.sin(pitch / 2) * np.cos(roll / 2) + np.cos(yaw / 2) * np.cos(pitch / 2) * np.sin(
-            roll / 2)
-        qy = np.sin(yaw / 2) * np.cos(pitch / 2) * np.cos(roll / 2) + np.cos(yaw / 2) * np.sin(pitch / 2) * np.sin(
-            roll / 2)
-        qz = np.cos(yaw / 2) * np.sin(pitch / 2) * np.cos(roll / 2) - np.sin(yaw / 2) * np.cos(pitch / 2) * np.sin(
-            roll / 2)
-        qw = np.cos(yaw / 2) * np.cos(pitch / 2) * np.cos(roll / 2) - np.sin(yaw / 2) * np.sin(pitch / 2) * np.sin(
-            roll / 2)
-
-        return (qx, qy, qz, qw)
-
-    def quaternion_to_euler(self, x, y, z, w):
-        ysqr = y * y
-
-        t0 = +2.0 * (w * x + y * z)
-        t1 = +1.0 - 2.0 * (x * x + ysqr)
-        X = np.degrees(np.arctan2(t0, t1))
-
-        t2 = +2.0 * (w * y - z * x)
-        t2 = np.where(t2 > +1.0, +1.0, t2)
-        # t2 = +1.0 if t2 > +1.0 else t2
-
-        t2 = np.where(t2 < -1.0, -1.0, t2)
-        # t2 = -1.0 if t2 < -1.0 else t2
-        Y = np.degrees(np.arcsin(t2))
-
-        t3 = +2.0 * (w * z + x * y)
-        t4 = +1.0 - 2.0 * (ysqr + z * z)
-        Z = np.degrees(np.arctan2(t3, t4))
-
-        return (X, Y, Z)
-
-    def close(self):
-        if self._physics_client_id >= 0:
-            self._p.disconnect()
-        self._physics_client_id = -1
-
-
-class CartPoleContinuousBulletEnv(CartPoleBulletEnv):
-    metadata = {'render.modes': ['human', 'rgb_array'], 'video.frames_per_second': 50}
-
-    def __init__(self, renders=False):
-        # start the bullet physics server
-        CartPoleBulletEnv.__init__(self, renders, discrete_actions=False)

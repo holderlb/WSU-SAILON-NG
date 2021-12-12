@@ -7,8 +7,8 @@ from .cartpoleplusplus import CartPoleBulletEnv
 
 class CartPolePPMock4(CartPoleBulletEnv):
 
-    def __init__(self, difficulty, renders=False):
-        super().__init__(renders=renders)
+    def __init__(self, difficulty, params: dict = None):
+        super().__init__(params=params)
 
         self.difficulty = difficulty
 
@@ -28,17 +28,26 @@ class CartPolePPMock4(CartPoleBulletEnv):
 
         # This big line sets the spehrical joint on the pole to loose
         p.setJointMotorControlMultiDof(self.cartpole, 1, p.POSITION_CONTROL, targetPosition=[0, 0, 0, 1],
-                                       targetVelocity=[0, 0, 0], positionGain=0, velocityGain=0.1,
+                                       targetVelocity=[0, 0, 0], positionGain=0, velocityGain=0.0,
                                        force=[0, 0, 0])
 
         # Reset cart (technicaly ground object)
-        cart_pos = list(self.np_random.uniform(low=-3, high=3, size=(2,))) + [0]
-        cart_vel = list(self.np_random.uniform(low=-50, high=50, size=(2,))) + [0]
+        if self.init_zero:
+            cart_pos = list(self.np_random.uniform(low=0, high=0, size=(2,))) + [0]
+            cart_vel = list(self.np_random.uniform(low=0, high=0, size=(2,))) + [0]
+        else:
+            cart_pos = list(self.np_random.uniform(low=-3, high=3, size=(2,))) + [0]
+            cart_vel = list(self.np_random.uniform(low=-1, high=1, size=(2,))) + [0]
+
         p.resetBasePositionAndOrientation(self.cartpole, cart_pos, [0, 0, 0, 1])
         p.applyExternalForce(self.cartpole, 0, cart_vel, (0, 0, 0), p.LINK_FRAME)
 
         # Reset pole
-        randstate = list(self.np_random.uniform(low=-0.05, high=0.05, size=(6,)))
+        if self.init_zero:
+            randstate = list(self.np_random.uniform(low=0, high=0, size=(6,)))
+        else:
+            randstate = list(self.np_random.uniform(low=-0.01, high=0.01, size=(6,)))
+
         pole_pos = randstate[0:3] + [1]
         # zero so it doesnt spin like a top :)
         pole_ori = list(randstate[3:5]) + [0]
@@ -70,7 +79,7 @@ class CartPolePPMock4(CartPoleBulletEnv):
                 pos = self.np_random.uniform(low=-4.0, high=4.0, size=(3,))
                 # Z is not centered at 0.0
                 pos[2] = pos[2] + 5.0
-            p.resetBasePositionAndOrientation(i, pos, [0, 0, 0, 1])
+            p.resetBasePositionAndOrientation(i, pos, [0, 0, 1, 0])
 
         # Set block velocities
         for i in self.blocks:

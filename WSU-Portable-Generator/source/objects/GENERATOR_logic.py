@@ -103,6 +103,7 @@ class GeneratorLogic(object):
         self.is_episode_done = False
         self.use_image = False
         self.request_timeout = 30
+        self.ta2_generator_config = None
 
         self.GENERATOR = None
 
@@ -247,6 +248,7 @@ class GeneratorLogic(object):
             self.day_offset = request.day_offset
             self.use_image = request.use_image
             self.request_timeout = request.request_timeout
+            self.ta2_generator_config = request.generator_config
 
             self.initilize_generator(domain=self.domain,
                                      novelty=self.novelty,
@@ -254,7 +256,8 @@ class GeneratorLogic(object):
                                      seed=self.seed,
                                      trial_novelty=self.trial_novelty,
                                      day_offset=self.day_offset,
-                                     use_image=self.use_image)
+                                     use_image=self.use_image,
+                                     ta2_generator_config=self.ta2_generator_config)
             self._unsubscribe_generator_queue()
             self._subscribe_private_queue()
 
@@ -333,7 +336,8 @@ class GeneratorLogic(object):
         raise ValueError('get_novelty_description() not defined in client.')
 
     def initilize_generator(self, domain: str, novelty: int, difficulty: str, seed: int,
-                            trial_novelty: int, day_offset: int, use_image: bool):
+                            trial_novelty: int, day_offset: int, use_image: bool,
+                            ta2_generator_config: dict):
         raise ValueError('initilize_generator() not defined in client.')
 
     def get_feature_vector(self) -> (dict, dict):

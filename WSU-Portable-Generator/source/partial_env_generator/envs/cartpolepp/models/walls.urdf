@@ -120,7 +120,7 @@
     <link name="wall5">
         <visual>
             <geometry>
-                <box size="10.01 10.1 0.1" />
+                <box size="10.1 10.1 0.1" />
             </geometry>
             <origin xyz="0 0 10"/>
             <material name="orange">
@@ -129,7 +129,7 @@
         </visual>
         <collision>
             <geometry>
-                <box size="10.01 10.1 0.1" />
+                <box size="10.1 10.1 0.1" />
             </geometry>
             <origin xyz="0 0 10"/>
         </collision>
@@ -149,16 +149,16 @@
     <link name="wall6">
         <visual>
             <geometry>
-                <box size="10.01 10.1 0.1" />
+                <box size="10.1 10.1 0.1" />
             </geometry>
             <origin xyz="0 0 -0.1"/>
             <material name="white">
-                <color rgba="1.0 1.0 1.0 0.8"/>
+                <color rgba="1.0 1.0 1.0 0.3"/>
             </material>
         </visual>
         <collision>
             <geometry>
-                <box size="10.01 10.1 0.1" />
+                <box size="10.1 10.1 0.1" />
             </geometry>
             <origin xyz="0 0 -0.1"/>
         </collision>

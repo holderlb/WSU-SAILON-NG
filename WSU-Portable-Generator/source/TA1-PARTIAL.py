@@ -49,7 +49,7 @@ class LiveGeneratorThread(threading.Thread):
                  amqp_port: str, amqp_vhost: str, amqp_ssl: bool, ta2_response_queue: queue.Queue,
                  live_output_queue: queue.Queue, domain: str, novelty: int, difficulty: str,
                  seed: int, trial_novelty: int, day_offset: int, request_timeout: int,
-                 use_image: bool):
+                 use_image: bool, generator_config: dict):
         threading.Thread.__init__(self)
         self.name = 'LiveGeneratorThread'
         self.log = log.getChild(self.name)
@@ -69,6 +69,7 @@ class LiveGeneratorThread(threading.Thread):
         self.trial_novelty = trial_novelty
         self.day_offset = day_offset
         self.use_image = use_image
+        self.generator_config = copy.deepcopy(generator_config)
         self.done = False
 
         if self.domain not in objects.VALID_DOMAINS:
@@ -98,7 +99,8 @@ class LiveGeneratorThread(threading.Thread):
                                   trial_novelty=self.trial_novelty,
                                   day_offset=self.day_offset,
                                   request_timeout=self.request_timeout,
-                                  use_image=self.use_image)
+                                  use_image=self.use_image,
+                                  generator_config=self.generator_config)
 
         # Begin our loop.
         while not self.done:
@@ -141,7 +143,7 @@ class NoveltyDescriptionThread(threading.Thread):
                  amqp_port: str, amqp_vhost: str, amqp_ssl: bool, response_queue: queue.Queue,
                  domain: str, novelty: int, difficulty: str, request_timeout: int):
         threading.Thread.__init__(self)
-        self.name = 'LiveGeneratorThread'
+        self.name = 'NoveltyDescriptionThread'
         self.log = log.getChild(self.name)
         self.amqp_user = amqp_user
         self.amqp_pass = amqp_pass
@@ -293,6 +295,19 @@ class TA1:
             self.is_testing = True
 
         self.is_profiling = False
+
+        self._exper_save_to_json = config.getboolean('options', 'save_experiment_json')
+        self._exper_load_from_json = config.getboolean('options', 'load_experiment_json')
+        self._exper_json_filename = config.get('options', 'experiment_json_file')
+
+        # Get the maximum number of seconds to sleep before finishing the init. We will randomly
+        # generate a number of seconds between 0 and the given value to sleep.
+        self._exper_startup_sleep_window = config.getfloat('options', 'startup_sleep_window')
+        sleep_seconds = float(random.random()) * float(self._exper_startup_sleep_window)
+        # Now sleep for the number of seconds we have generated.
+        if self._exper_startup_sleep_window != objects.DEFAULT_TA1_SLEEP_WINDOW:
+            self.log.info('Sleeping for {} seconds before continuing...'.format(sleep_seconds))
+        time.sleep(sleep_seconds)
 
         # for section in config.sections():
         #     for key in config[section]:
@@ -461,6 +476,7 @@ class TA1:
         self._exper_no_testing = False
         self._exper_no_training = False
         self._exper_just_one_trial = False
+        self._exper_generator_config = None
 
         self.amqp = rabbitmq.Connection(agent_name=self.name,
                                         amqp_user=self.amqp_user,
@@ -519,6 +535,10 @@ class TA1:
         config.set('options', 'testing', str(objects.DEFAULT_TA1_TESTING))
         config.set('options', 'demo', str(objects.DEFAULT_TA1_DEMO))
         config.set('options', 'shortdemo', str(objects.DEFAULT_TA1_SHORTDEMO))
+        config.set('options', 'save_experiment_json', str(objects.DEFAULT_TA1_SAVE_EXPERIMENT_JSON))
+        config.set('options', 'load_experiment_json', str(objects.DEFAULT_TA1_LOAD_EXPERIMENT_JSON))
+        config.set('options', 'experiment_json_file', str(objects.DEFAULT_TA1_JSON_EXPERIMENT_FILE))
+        config.set('options', 'startup_sleep_window', str(objects.DEFAULT_TA1_SLEEP_WINDOW))
         return config
 
     def subscribe_experiment_queue(self):
@@ -1009,10 +1029,19 @@ class TA1:
                            'model_experiment_id=%s;')
                     data = (model_experiment_id,)
                     cr.execute(sql, data)
+                    # Refresh any needed AMQP heartbeats.
+                    self.amqp.process_data_events()
                     row = cr.fetchone()
+                    # Refresh any needed AMQP heartbeats.
+                    self.amqp.process_data_events()
                     if row is not None:
                         msg = '[{}]'.format(json.dumps(row[0]))
-                        experiment = objects.build_objects_from_json(message=msg)
+                        # Refresh any needed AMQP heartbeats.
+                        self.amqp.process_data_events()
+                        experiment = objects.build_objects_from_json(message=msg,
+                                                                     amqp_obj=self.amqp)
+                        # Refresh any needed AMQP heartbeats.
+                        self.amqp.process_data_events()
                         experiment = experiment[0]
                         experiment.model_experiment_id = model_experiment_id
         except psycopg2.InterfaceError as e:
@@ -1024,57 +1053,100 @@ class TA1:
             errormsgs.append("There were errors getting the experiment json.")
         return experiment
 
-    def clear_abandoned_trials(self, errormsgs: list):
-        self.log.debug('clear_abandoned_trials()')
+    def lock_experiment_trial_to_clear(self, errormsgs: list) -> int:
+        self.log.debug('lock_experiment_trial_to_clear()')
+        experiment_trial_id = None
+        try:
+            my_uuid = str(uuid.uuid4())
+            is_locked = False
+            max_wait = 10.0
+            end_time = float(time.time()) + max_wait
+            while not is_locked and float(time.time()) < end_time:
+                with self.db_conn:
+                    with self.db_conn.cursor() as cr:
+                        sql = ('SELECT experiment_trial_id FROM experiment_trial WHERE '
+                               'is_active=%s AND is_complete=%s AND '
+                               'utc_last_updated<(NOW() - interval\'1 hour\') LIMIT 1;')
+                        data = (True,
+                                False,)
+                        self.log.debug(cr.mogrify(sql, data))
+                        cr.execute(sql, data)
+                        row = cr.fetchone()
+                        if row is None:
+                            # There is no available trial, so no point in trying again.
+                            is_locked = True
+                        elif row is not None:
+                            ext_id = row[0]
+                            sql = ('UPDATE experiment_trial SET locked_by=%s, '
+                                   'utc_last_updated=NOW() WHERE '
+                                   'is_active=%s AND is_complete=%s AND '
+                                   'utc_last_updated<(NOW() - interval\'1 hour\') AND '
+                                   'experiment_trial_id=%s;')
+                            data = (my_uuid,
+                                    True,
+                                    False,
+                                    ext_id,)
+                            cr.execute(sql, data)
+                            self.db_conn.commit()
+                            sql = ('SELECT experiment_trial_id FROM experiment_trial WHERE '
+                                   'locked_by=%s AND experiment_trial_id=%s;')
+                            data = (my_uuid,
+                                    ext_id,)
+                            cr.execute(sql, data)
+                            row = cr.fetchone()
+                            if row is not None:
+                                if row[0] is not None:
+                                    experiment_trial_id = row[0]
+                                    is_locked = True
+                            if not is_locked:
+                                self.amqp.sleep(duration=(random.random() / 2.0))
+        except psycopg2.InterfaceError as e:
+            self.log.error("psycopg2.InterfaceError: " + str(e.pgerror))
+            errormsgs.append("Database connection unavailable, please try again in a few minutes")
+            self.reconnect_db()
+        except psycopg2.DatabaseError as e:
+            self.log.error("psycopg2.DatabaseError: " + str(e.pgerror))
+            errormsgs.append("There were errors locking the experiment_trial for clearing.")
+        return experiment_trial_id
+
+    def clear_abandoned_trial(self, experiment_trial_id: int, errormsgs: list):
+        self.log.debug('clear_abandoned_trial(experiment_trial_id={})'.format(experiment_trial_id))
         try:
             with self.db_conn:
                 with self.db_conn.cursor() as cr:
-                    sql = ('SELECT experiment_trial_id FROM experiment_trial WHERE '
-                           'is_active=%s AND is_complete=%s AND '
-                           'utc_last_updated<(NOW() - interval\'1 hour\');')
-                    data = (True,
-                            False,)
-                    self.log.debug(cr.mogrify(sql, data))
-                    cr.execute(sql, data)
-                    row = cr.fetchone()
-                    trial_ids = list()
-                    while row is not None:
-                        trial_ids.append(row[0])
-                        row = cr.fetchone()
-
                     trial_sql = ('UPDATE experiment_trial SET locked_by=NULL, is_active=%s, '
                                  'utc_last_updated=NULL WHERE experiment_trial_id=%s;')
                     episode_sql = ('UPDATE trial_episode SET novelty=NULL, performance=NULL, '
                                    'novelty_probability=NULL, novelty_characterization=NULL, '
                                    'novelty_threshold=NULL, utc_stamp_started=NULL, '
                                    'utc_stamp_ended=NULL WHERE experiment_trial_id=%s;')
-                    for t_id in trial_ids:
-                        episode_ids = list()
-                        sql = ('SELECT trial_episode_id FROM trial_episode WHERE '
-                               'experiment_trial_id=%s;')
-                        data = (t_id,)
-                        self.log.debug(cr.mogrify(sql, data))
-                        cr.execute(sql, data)
+                    episode_ids = list()
+                    sql = ('SELECT trial_episode_id FROM trial_episode WHERE '
+                           'experiment_trial_id=%s;')
+                    data = (experiment_trial_id,)
+                    self.log.debug(cr.mogrify(sql, data))
+                    cr.execute(sql, data)
+                    row = cr.fetchone()
+                    while row is not None:
+                        episode_ids.append(row[0])
                         row = cr.fetchone()
-                        while row is not None:
-                            episode_ids.append(row[0])
-                            row = cr.fetchone()
 
-                        for ep_id in episode_ids:
-                            # Refresh any needed AMQP heartbeats.
-                            self.amqp.process_data_events()
+                    for ep_id in episode_ids:
+                        # Refresh any needed AMQP heartbeats.
+                        self.amqp.process_data_events()
 
-                            del_sql = 'DELETE FROM test_instance WHERE trial_episode_id=%s;'
-                            data = (ep_id,)
-                            self.log.debug(cr.mogrify(del_sql, data))
-                            cr.execute(del_sql, data)
-                            data = (t_id,)
-                            self.log.debug(cr.mogrify(episode_sql, data))
-                            cr.execute(episode_sql, data)
-                            data = (False,
-                                    t_id,)
-                            self.log.debug(cr.mogrify(trial_sql, data))
-                            cr.execute(trial_sql, data)
+                        del_sql = 'DELETE FROM test_instance WHERE trial_episode_id=%s;'
+                        data = (ep_id,)
+                        self.log.debug(cr.mogrify(del_sql, data))
+                        cr.execute(del_sql, data)
+                        data = (experiment_trial_id,)
+                        self.log.debug(cr.mogrify(episode_sql, data))
+                        cr.execute(episode_sql, data)
+                        data = (False,
+                                experiment_trial_id,)
+                        self.log.debug(cr.mogrify(trial_sql, data))
+                        cr.execute(trial_sql, data)
+                    self.db_conn.commit()
         except psycopg2.InterfaceError as e:
             self.log.error("psycopg2.InterfaceError: " + str(e.pgerror))
             errormsgs.append("Database connection unavailable, please try again in a few minutes")
@@ -1082,6 +1154,14 @@ class TA1:
         except psycopg2.DatabaseError as e:
             self.log.error("psycopg2.DatabaseError: " + str(e.pgerror))
             errormsgs.append("There were errors inserting the experiment_trial.")
+        return
+
+    def clear_abandoned_trials(self, errormsgs: list):
+        for i in range(2):
+            experiment_trial_id = self.lock_experiment_trial_to_clear(errormsgs=errormsgs)
+            if len(errormsgs) == 0 and experiment_trial_id is not None:
+                self.clear_abandoned_trial(experiment_trial_id=experiment_trial_id,
+                                           errormsgs=errormsgs)
         return
 
     def add_all_experiment_trials(self, model_experiment_id: int, experiment: objects.Experiment,
@@ -1095,6 +1175,8 @@ class TA1:
                 domain = None
                 if len(trial.episodes) > 0:
                     domain = trial.episodes[0].domain
+                for ep in trial.episodes:
+                    self.log.debug(str(ep.get_json_obj()))
                 description = self.get_novelty_description(domain=domain,
                                                            novelty=trial.novelty,
                                                            difficulty=trial.difficulty)
@@ -1173,6 +1255,8 @@ class TA1:
                        .format(experiment_trial_id, len(trial.episodes)))
         for i in range(len(trial.episodes)):
             novelty_initiated = (trial.episodes[i].novelty == trial.episodes[i].trial_novelty)
+            if trial.episodes[i].trial_novelty == objects.NOVELTY_200:
+                novelty_initiated = False
             self.handle_trial_episode(experiment_trial_id=experiment_trial_id,
                                       episode_index=trial.episodes[i].trial_episode_index,
                                       novelty=trial.episodes[i].novelty,
@@ -1283,7 +1367,7 @@ class TA1:
                     with self.db_conn.cursor() as cr:
                         sql = ('SELECT experiment_trial_id FROM experiment_trial WHERE '
                                'model_experiment_id=%s AND is_active=%s AND is_complete=%s AND '
-                               'locked_by IS NULL LIMIT 1;')
+                               'locked_by IS NULL ORDER BY trial LIMIT 1;')
                         data = (model_experiment_id,
                                 False,
                                 False,)
@@ -1822,6 +1906,9 @@ class TA1:
         self.log.debug(str(cache_trial_novelty))
 
         for domain in cache_valid_domains:
+            # Refresh any needed AMQP heartbeats.
+            self.amqp.process_data_events()
+
             # Only prepare the domains we want.
             if not request.domain_dict[domain]:
                 continue
@@ -1837,6 +1924,9 @@ class TA1:
             domain_id = self.domain_ids[domain]
             self.dataset_cache[domain_id] = dict()
             for data_type in cache_valid_data_types:
+                # Refresh any needed AMQP heartbeats.
+                self.amqp.process_data_events()
+
                 self.log.debug('data_type = {}'.format(data_type))
                 self.dataset_cache[domain_id][data_type] = dict()
                 self.log.debug('cache_novelty_types: {}'.format(str(cache_novelty_types)))
@@ -2141,6 +2231,7 @@ class TA1:
                     row = cr.fetchone()
                     if row is not None:
                         data_id = row[0]
+                    self.db_conn.commit()
         except psycopg2.InterfaceError as e:
             self.log.error("psycopg2.InterfaceError: " + str(e.pgerror))
             errormsgs.append("Database connection unavailable, please try again in a few minutes")
@@ -2174,6 +2265,7 @@ class TA1:
                         row = cr.fetchone()
                         if row is not None:
                             test_instance_id = row[0]
+                        self.db_conn.commit()
         except psycopg2.InterfaceError as e:
             self.log.error("psycopg2.InterfaceError: " + str(e.pgerror))
             errormsgs.append("Database connection unavailable, please try again in a few minutes")
@@ -2310,8 +2402,12 @@ class TA1:
                         cr.execute(sql, data)
                         row = cr.fetchone()
                         if row is not None:
+                            # Refresh any needed AMQP heartbeats.
+                            self.amqp.process_data_events()
+
                             msg = '[{}]'.format(json.dumps(row[0]))
-                            experiment = objects.build_objects_from_json(message=msg)
+                            experiment = objects.build_objects_from_json(message=msg,
+                                                                         amqp_obj=self.amqp)
                             experiment = experiment[0]
                             experiment.model_experiment_id = copy.deepcopy(row[1])
         except psycopg2.InterfaceError as e:
@@ -2824,7 +2920,7 @@ class TA1:
                                      domain=self.domain_names[domain_id],
                                      data_type=data_type,
                                      episode_index=ep_index,
-                                     trial_novelty=i+1,
+                                     trial_novelty=i+101,
                                      use_image=self._image_by_domain[domain])
                 training_episodes.append(copy.deepcopy(ep))
 
@@ -2836,7 +2932,7 @@ class TA1:
             novelty_trials = list()
 
             for visibility in vis_list:
-                for j in list(range(num_eps)):
+                for j in list(range(5)):
                     trial_episodes = list()
                     for i in list(range(num_eps)):
                         ep_index = None
@@ -2850,13 +2946,13 @@ class TA1:
                                              domain=self.domain_names[domain_id],
                                              data_type=data_type,
                                              episode_index=ep_index,
-                                             trial_novelty=j+1,
+                                             trial_novelty=j+101,
                                              use_image=self._image_by_domain[domain])
                         trial_episodes.append(copy.deepcopy(ep))
                     for i in range(len(trial_episodes)):
                         trial_episodes[i].trial_episode_index = i
                     trial = objects.Trial(episodes=trial_episodes,
-                                          novelty=j+1,
+                                          novelty=j+101,
                                           novelty_visibility=visibility,
                                           difficulty=difficulty)
                     novelty_trials.append(copy.deepcopy(trial))
@@ -3114,9 +3210,18 @@ class TA1:
                     # Refresh any needed AMQP heartbeats.
                     self.amqp.process_data_events()
 
-                    experiment = self.build_sail_on_experiment(
-                        domain_id=domain_id,
-                        data_source=self._domain_data_source[domain])
+                    # Check if we want to load the experiment from a json file or build
+                    # a new one from scratch.
+                    if self._exper_load_from_json:
+                        with open(self._exper_json_filename) as json_file:
+                            experiment_obj = json.load(json_file)
+                            experiment = objects.build_objects_from_json(
+                                message=json.dumps(experiment_obj),
+                                amqp_obj=self.amqp)[0]
+                    else:
+                        experiment = self.build_sail_on_experiment(
+                            domain_id=domain_id,
+                            data_source=self._domain_data_source[domain])
 
                     # Refresh any needed AMQP heartbeats.
                     self.amqp.process_data_events()
@@ -3138,6 +3243,7 @@ class TA1:
                     self._exper_no_testing = request.no_testing
                     self._exper_no_training = False
                     self._exper_just_one_trial = False
+                    self._exper_generator_config = copy.deepcopy(request.generator_config)
 
                     # Refresh any needed AMQP heartbeats.
                     self.amqp.process_data_events()
@@ -3162,6 +3268,12 @@ class TA1:
                                                       experiment=self._experiment,
                                                       errormsgs=errormsgs)
 
+                    # This is also where we want to save the experiment json to a file
+                    # if that config value has been set to true.
+                    if self._exper_save_to_json:
+                        with open(self._exper_json_filename, 'w') as json_file:
+                            json.dump(self._experiment.get_json_obj(), json_file)
+
                     # Refresh any needed AMQP heartbeats.
                     self.amqp.process_data_events()
 
@@ -3180,6 +3292,10 @@ class TA1:
             user_id = self.handle_user(aiq_username=request.model.aiq_username,
                                        aiq_secret=request.model.aiq_secret,
                                        errormsgs=errormsgs)
+
+            # Refresh any needed AMQP heartbeats.
+            self.amqp.process_data_events()
+
             if len(errormsgs) == 0:
                 model_request = objects.RequestModel(aiq_username=request.model.aiq_username,
                                                      aiq_secret=request.model.aiq_secret,
@@ -3191,6 +3307,9 @@ class TA1:
                                           errormsgs=errormsgs)
                 # If we didn't put an entry in errormsgs, that means the model is valid for
                 # the user we have provided.
+
+            # Refresh any needed AMQP heartbeats.
+            self.amqp.process_data_events()
 
             if len(errormsgs) == 0:
                 self.build_domain_cache(request=request,
@@ -3240,6 +3359,7 @@ class TA1:
                 self._exper_no_testing = False
                 self._exper_no_training = True
                 self._exper_just_one_trial = request.just_one_trial
+                self._exper_generator_config = copy.deepcopy(request.generator_config)
 
             if len(errormsgs) == 0:
                 # Refresh any needed AMQP heartbeats.
@@ -4216,6 +4336,8 @@ class TA1:
 
     def get_novelty_description(self, domain: str, novelty: int, difficulty: str) -> \
             objects.NoveltyDescription:
+        self.log.debug('get_novelty_description(domain={}, novelty={}, difficulty={})'
+                       .format(domain, novelty, difficulty))
         response_queue = queue.Queue()
         tmp_thread = NoveltyDescriptionThread(log=self.log,
                                               amqp_user=self.amqp_user,
@@ -4291,7 +4413,8 @@ class TA1:
                                                     trial_novelty=episode.trial_novelty,
                                                     day_offset=episode.day_offset,
                                                     request_timeout=self._AMQP_EXPERIMENT_TIMEOUT,
-                                                    use_image=episode.use_image)
+                                                    use_image=episode.use_image,
+                                                    generator_config=self._exper_generator_config)
             self._live_thread.start()
             # Get the dataset_id so we can add a new episode.
             domain_id = self.domain_ids[episode.domain]
@@ -4907,6 +5030,8 @@ class TA1:
                 self._exper_no_testing = False
                 self._exper_no_training = False
                 self._exper_just_one_trial = False
+                del self._exper_generator_config
+                self._exper_generator_config = None
                 self.benchmark_data = None
                 self.STATE = None
                 del self.domain_ids
@@ -5184,6 +5309,8 @@ class TA1:
             self._exper_no_testing = False
             self._exper_no_training = False
             self._exper_just_one_trial = False
+            del self._exper_generator_config
+            self._exper_generator_config = None
             self.benchmark_data = None
             self.STATE = None
             del self.domain_ids
@@ -5237,6 +5364,8 @@ class TA1:
             self._exper_no_testing = False
             self._exper_no_training = False
             self._exper_just_one_trial = False
+            del self._exper_generator_config
+            self._exper_generator_config = None
             self.benchmark_data = None
             self.STATE = None
             del self.domain_ids
