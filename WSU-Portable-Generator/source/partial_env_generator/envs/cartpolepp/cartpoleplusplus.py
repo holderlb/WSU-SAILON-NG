@@ -179,9 +179,11 @@ class CartPoleBulletEnv(gym.Env):
             if 'start_zeroed_out' in self.config:
                 self.init_zero = self.config['start_zeroed_out']
             if 'episode_seed' in self.config:
-                self.seed(self.config['episode_seed'])
+                if self.config['episode_seed'] is not None:
+                    self.seed(self.config['episode_seed'])
             if 'start_world_state' in self.config:
-                self.set_world(self.config['start_world_state'])
+                if self.config['start_world_state'] is not None:
+                    self.set_world(self.config['start_world_state'])
 
         # Create bullet physics client
         if self._renders:
