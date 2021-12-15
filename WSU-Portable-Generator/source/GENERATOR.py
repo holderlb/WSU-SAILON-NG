@@ -65,7 +65,8 @@ class ThreadedTestHandler(threading.Thread):
                                             seed=self.seed,
                                             trial_novelty=self.trial_novelty,
                                             day_offset=self.day_offset,
-                                            use_img=self.use_image))
+                                            use_img=self.use_image,
+                                            ta2_generator_config=self.ta2_generator_config))
         while not self.is_done:
             time.sleep(0.1)
         return
