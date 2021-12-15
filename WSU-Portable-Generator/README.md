@@ -393,7 +393,7 @@ requires some Python setup, which we describe below based on an Anaconda environ
 ```
 4.  Create a new environment with the basic versions.
 ```
-(base) [user@host ~]$ conda create --name aiq-env python=3.7 python-dateutil==2.8.1 psutil pytz
+(base) [user@host ~]$ conda create --name aiq-env python=3.7 python-dateutil==2.8.1 psutil pytz numpy
 ```
 5.  Activate the new environment so we can finish installing the remaining packages.
 ```
@@ -401,7 +401,7 @@ requires some Python setup, which we describe below based on an Anaconda environ
 ```
 6.  Install the remaining packages with pip.
 ```
-(aiq-env) [user@host ~]$ pip install pika==1.1.0
+(aiq-env) [user@host ~]$ pip install pika==1.1.0 blosc==1.10.4
 ```
 
 ### Running the External TA2 Agent
