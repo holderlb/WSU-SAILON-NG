@@ -50,6 +50,12 @@ docker-compose -f portable-generator.yml down
 
 # Change Log
 
+## v0.7.9
+
+* Moved `episode_seed` definition from inside TA2.py to the config file.
+* Moved `start_zeroed_out` definition from inside TA2.py to the config file.
+* Moved `start_world_state` definition from inside TA2.py to the config file.
+
 ## v0.7.3
 
 ### CartPole
@@ -155,7 +161,18 @@ but only provides a small set of mock novelties.
 * `description` is an optional field that will be recorded and associated
     with the experiment instance that is run.
 
-*  `seed` is an optional field that will seed the environment for consistency.
+* `seed` is an optional integer that will provide the random seed used when building an experiment
+    so that you can always build the same experiment.
+
+* `episode_seed` is an optional integer that will overwrite the experiment setting and force EVERY
+    episode to use this seed value.
+
+* `start_zeroed_out` is an optional boolean (default=`False`) for the CartPole domain that will
+    have your cart physics start zeroed out when set to `True`.
+
+* `start_world_state` is an optional JSON string that is converted to a dictionary representing the
+    starting world state for the CartPole domain.  The string is converted using `json.loads(val)`
+    and will throw an exception if the string is not a valid dictionary.
 
 ### [sail-on]
 

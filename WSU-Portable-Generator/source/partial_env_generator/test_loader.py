@@ -36,7 +36,8 @@ class TestLoader:
         # Set the custom seed if provided.
         if self.ta2_generator_config is not None:
             if 'episode_seed' in self.ta2_generator_config:
-                self.seed = self.ta2_generator_config['episode_seed']
+                if self.ta2_generator_config['episode_seed'] is not None:
+                    self.seed = self.ta2_generator_config['episode_seed']
 
         # Determine level here
         self.use_mock = False

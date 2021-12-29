@@ -137,6 +137,9 @@ class TA2Logic(object):
         self._experiment_secret = None
         self._no_testing = False
         self._just_one_trial = False
+        self._episode_seed = None
+        self._start_zeroed_out = False
+        self._start_world_state = None
 
         self._experiment_type = self._config.get('aiq-sail-on', 'experiment_type')
         if self._experiment_type not in objects.VALID_EXPERIMENT_TYPES:
@@ -155,6 +158,13 @@ class TA2Logic(object):
         self._aiq_secret = self._config.get('aiq-sail-on', 'secret')
         if self._config.has_option('aiq-sail-on', 'seed'):
             self._seed = self._config.getint('aiq-sail-on', 'seed')
+        if self._config.has_option('aiq-sail-on', 'episode_seed'):
+            self._episode_seed = self._config.getint('aiq-sail-on', 'episode_seed')
+        if self._config.has_option('aiq-sail-on', 'start_zeroed_out'):
+            self._start_zeroed_out = self._config.getboolean('aiq-sail-on', 'start_zeroed_out')
+        if self._config.has_option('aiq-sail-on', 'start_world_state'):
+            self._start_world_state = self._config.get('aiq-sail-on', 'start_world_state')
+            self._start_world_state = json.loads(self.start_world_state)
 
         self._sail_on_domain = self._config.get('sail-on', 'domain')
         if self._sail_on_domain not in objects.VALID_DOMAINS:
@@ -197,9 +207,6 @@ class TA2Logic(object):
         self._model_filename = None
         self.end_training_early = False
         self.end_experiment_early = False
-        self.episode_seed = None
-        self.start_zeroed_out = False
-        self.start_world_state = None
         return
 
     def _get_command_line_options(self):
@@ -558,9 +565,9 @@ class TA2Logic(object):
             else:
                 print(message)
 
-            generator_config = dict({'episode_seed': self.episode_seed,
-                                     'start_zeroed_out': self.start_zeroed_out,
-                                     'start_world_state': self.start_world_state})
+            generator_config = dict({'episode_seed': self._episode_seed,
+                                     'start_zeroed_out': self._start_zeroed_out,
+                                     'start_world_state': self._start_world_state})
             # Start a SAIL-ON experiment!
             if self._experiment_secret is None or self._no_testing:
                 # Based on these variables, we need to start a new experiment.

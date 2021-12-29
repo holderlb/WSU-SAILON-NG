@@ -71,21 +71,6 @@ class TA2Agent(TA2Logic):
         # will attempt to cleanly end the experiment at the conclusion of the current episode,
         # or sooner if possible.
         self.end_experiment_early = False
-        ############################################################################################
-        # These variables are sent in the initial communication to the TA1 and passed to the       #
-        # generators by the TA1 at the start of each episode.  Updates to these variables past the #
-        # class init function will not be sent to the TA1.                                         #
-        ############################################################################################
-        # Have EVERY episode use this seed value if not None. Currently not valid for SmartEnv.
-        self.episode_seed = None
-        # For CartPole domain, have your cart physics start zeroed out when set to True.
-        self.start_zeroed_out = False
-        # For CartPole domain, set the world state using this JSON dictionary when not None.
-        # This dictionary must be JSON valid (or None) or an exception will be thrown.
-        self.start_world_state = None
-        ############################################################################################
-        # End of generator configuration variables.                                                #
-        ############################################################################################
 
         # If you need values from the command line, you can get values from your custom options
         # here.  Set custom options in the _add_ta2_command_line_options() function.
