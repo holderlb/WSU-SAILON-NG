@@ -172,7 +172,7 @@ The implementations of these mock novelties can be found in the folder
   * Easy: friction=0.0125
   * Medium: friction varies uniformly from 0.0125 to 0.1 based on distance from x=0
   * Hard: friction=0.0125, but works in reverse, effectively increasing push force
-* Level 3: Sensor precision decreased
+* Level 3: Decrease sensor precision
   * Level 0: Maximum floating point precision
   * Easy: Each sensor value mapped to 1 of 10 buckets over sensor's range
   * Medium: Each sensor value mapped to 1 of 6 buckets over sensor's range
