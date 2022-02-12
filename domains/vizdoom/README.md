@@ -264,9 +264,9 @@ The implementations of these mock novelties can be found in the folder
 
 The below FAQ refers to Phase 2. Answers may change for Phase 3.
 
-* 1. Why doesn't the sensor data include information on projectiles?**
+1. Why doesn't the sensor data include information on projectiles?**
 
-  * Projectiles have been removed from the game. There is only one weapon (pistol) and one ammo type (bullets).
+   * Projectiles have been removed from the game. There is only one weapon (pistol) and one ammo type (bullets).
 
 **2. How will novel objects and attributes appear in the JSON sensor information?**
 
