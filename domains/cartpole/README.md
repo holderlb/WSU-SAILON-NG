@@ -9,6 +9,7 @@
 * [Novelty Indicator](#noveltyindicator)
 * [Novelty Characterization](#noveltycharacterization)
 * [Sample (Mock) Novelty](#samplemocknovelty)
+* [Phase 1 Revealed Novelty](#phase1revealednovelty)
 * [Frequently Asked Questions](#faq)
 
 <a name="taskdescription">
@@ -156,6 +157,26 @@ also called Mock novelties. These are described below.
 
 The implementations of these mock novelties can be found in the folder
 [WSU-Portable-Generator/source/partial_env_generator/envs/cartpolepp](https://github.com/holderlb/WSU-SAILON-NG/tree/master/WSU-Portable-Generator/source/partial_env_generator/envs/cartpolepp).
+
+<a name="phase1revealednovelty">
+
+## Phase 1 Revealed Novelty
+
+* Level 1: Increase length of pole
+  * Level 0: length=0.5
+  * Easy: length=2
+  * Medium: length=4
+  * Hard: length=7
+* Level 2: Increase friction between cart and track
+  * Level 0: friction=0
+  * Easy: friction=0.0125
+  * Medium: friction varies uniformly from 0.0125 to 0.1 based on distance from x=0
+  * Hard: friction=0.0125, but works in reverse, effectively increasing push force
+* Level 3: Sensor precision decreased
+  * Level 0: Maximum floating point precision
+  * Easy: Each sensor value mapped to 1 of 10 buckets over sensor's range
+  * Medium: Each sensor value mapped to 1 of 6 buckets over sensor's range
+  * Hard: Each sensor value mapped to 1 of 3 buckets over sensor's range
 
 <a name="faq">
 
