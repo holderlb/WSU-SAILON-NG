@@ -266,7 +266,7 @@ Note: We did not have any TA2 teams playing VizDoom for Phase 1, so only one dif
 
 * Level 1 (Class): Different types of enemies
   * Level 0: ShotgunGuy
-  * Level 1: ShotgunGuy, Cacodemon, ChaingunGuy, Fatso, HellKnight
+  * Novelty: ShotgunGuy, Cacodemon, ChaingunGuy, Fatso, HellKnight
 * Level 2 (Attribute): Addition of health sensor
   * Level 0: Health sensor always 0
   * Novelty: Health sensor active for enemies and agent
