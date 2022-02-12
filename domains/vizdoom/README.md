@@ -268,43 +268,43 @@ The below FAQ refers to Phase 2. Answers may change for Phase 3.
 
    * Projectiles have been removed from the game. There is only one weapon (pistol) and one ammo type (bullets).
 
-**2. How will novel objects and attributes appear in the JSON sensor information?**
+2. How will novel objects and attributes appear in the JSON sensor information?**
 
-The object types and their attributes, as shown in the sample JSON above, are fixed. No new object types or attributes will appear in the JSON.
+   * The object types and their attributes, as shown in the sample JSON above, are fixed. No new object types or attributes will appear in the JSON.
 
-**3. Can the player shoot over ammo/health packs and traps? Is this the same for enemies?**
+3. Can the player shoot over ammo/health packs and traps? Is this the same for enemies?**
 
-Yes, the player and enemies can shoot over health/ammo/traps but not through obstacles or walls.
+   * Yes, the player and enemies can shoot over health/ammo/traps but not through obstacles or walls.
 
-**4. Do bullets penetrate enemies? Can enemies damage each other?**
+4. Do bullets penetrate enemies? Can enemies damage each other?**
 
-Bullets do not pass through enemies. Enemies can damage each other.
+   * Bullets do not pass through enemies. Enemies can damage each other.
 
-**5. Can enemies hit traps?**
+5. Can enemies hit traps?**
 
-No. Enemies do not pick up health packs, ammo packs, or traps. This may change post-novelty.
+   * No. Enemies do not pick up health packs, ammo packs, or traps. This may change post-novelty.
 
-**6. How much damage does each bullet do?**
+6. How much damage does each bullet do?**
 
-Each bullet (player and enemy) does approximately 5 damage, depending on the armor level. Enemies start with 10hp and 5points of armor, which results in 3-4 shots to kill. These values may change post-novelty.
+   * Each bullet (player and enemy) does approximately 5 damage, depending on the armor level. Enemies start with 10hp and 5points of armor, which results in 3-4 shots to kill. These values may change post-novelty.
 
-**7. Does a player have a maximum ammo cap?**
+7. Does a player have a maximum ammo cap?**
 
-The player has a maximum cap of 200 for both health and ammo. The enemy has infinite ammo.
+   * The player has a maximum cap of 200 for both health and ammo. The enemy has infinite ammo.
 
-**8. How large (x,y) are each of the items and agents?**
+8. How large (x,y) are each of the items and agents?**
 
-Objects in the game are defined by a radius R and height H. The (x,y) size of an object is (2R x 2R). The H and R for VizDoom objects are defined in ``ViZDoom/src/vizdoom/wadsrc/static/actors/`` on the [VizDoom GitHub](https://github.com/mwydmuch/ViZDoom). For the player, R = 16 and H = 56. For the enemies (ZombieMan), R = 20 and H = 56. Obstacles, R = 16 and H = 52. For health packs, ammo packs and traps, R = 20 and H = 52.
+   * Objects in the game are defined by a radius R and height H. The (x,y) size of an object is (2R x 2R). The H and R for VizDoom objects are defined in ``ViZDoom/src/vizdoom/wadsrc/static/actors/`` on the [VizDoom GitHub](https://github.com/mwydmuch/ViZDoom). For the player, R = 16 and H = 56. For the enemies (ZombieMan), R = 20 and H = 56. Obstacles, R = 16 and H = 52. For health packs, ammo packs and traps, R = 20 and H = 52.
 
-**9. Is the ID counter global (i.e., playerID and enemyID cannot be the same value)?**
+9. Is the ID counter global (i.e., playerID and enemyID cannot be the same value)?**
 
-ID's are unique per object. So, no two object have the same ID. However, objects may not have the same ID from game to game.
+   * ID's are unique per object. So, no two object have the same ID. However, objects may not have the same ID from game to game.
 
-**10. Can we setup levels in a specific configuration (objects, agents in specific locations)?**
+10. Can we setup levels in a specific configuration (objects, agents in specific locations)?**
 
-You can do this by modifying or replacing the novelty level WAD file (
+    * You can do this by modifying or replacing the novelty level WAD file (
 ``WSU-SAILON-NG/WSU-Portable-Generator/source/partial_env_generator/envs/vizdoom/phase_2_reduced.wad``). A more readable version of the WAD file is in the directory ``WSU-SAILON-NG/WSU-Portable-Generator/source/partial_env_generator/envs/vizdoom/wad_reduced``. To get started with editing Doom scenarios, see [Custom Scenarios](http://vizdoom.cs.put.edu.pl/tutorial#scenarios).
     
-**11. Are obstacles fixed?**
+11. Are obstacles fixed?**
     
-Obstacles have a large mass but can move a very small amount when moved into or when shot. 
+    * Obstacles have a large mass but can move a very small amount when moved into or when shot. 
