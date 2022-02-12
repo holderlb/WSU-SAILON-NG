@@ -258,6 +258,22 @@ also called Mock novelties. These are described below.
 The implementations of these mock novelties can be found in the folder
 [WSU-Portable-Generator/source/partial_env_generator/envs/vizdoom/wad_reduced/SCRIPTS.txt](https://github.com/holderlb/WSU-SAILON-NG/tree/master/WSU-Portable-Generator/source/partial_env_generator/envs/vizdoom/wad_reduced/SCRIPTS.txt).
 
+<a name="phase1revealednovelty">
+
+## Phase 1 Revealed Novelty
+
+Note: We did not have any TA2 teams playing VizDoom for Phase 1, so only one difficulty level used.
+
+* Level 1 (Class): Different types of enemies
+  * Level 0: ShotgunGuy
+  * Level 1: ShotgunGuy, Cacodemon, ChaingunGuy, Fatso, HellKnight
+* Level 2 (Attribute): Addition of health sensor
+  * Level 0: Health sensor always 0
+  * Novelty: Health sensor active for enemies and agent
+* Level 3 (Representation): Decrease sensor precision
+  * Level 0: Sensors use full floating point precision
+  * Novelty: Sensor values mapped to 1 of 10 buckets across sensor's range
+
 <a name="faq">
 
 ## Frequently Asked Questions
