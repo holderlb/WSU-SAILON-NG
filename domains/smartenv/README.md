@@ -120,7 +120,7 @@ also called Mock novelties. These are described below.
 * Level 4: Two sensor values always give same reading.
 * Level 5: Second inhabitant simulated by overlaying copy of existing inhabitant.
 
-<a name="phase1revelaednovelty">
+<a name="phase1revealednovelty">
 
 ## Phase 1 Revealed Novelty
 
