@@ -262,17 +262,22 @@ The implementations of these mock novelties can be found in the folder
 
 ## Phase 1 Revealed Novelty
 
-Note: We did not have any TA2 teams playing VizDoom for Phase 1, so only one difficulty level used.
+* Level 1 (Class): Change in size of enemy hit box (smaller means harder to hit)
+  * No novelty: Size = 20
+  * Easy: Size = 15
+  * Medium: Size = 10
+  * Hard: Size = 5
 
-* Level 1 (Class): Different types of enemies
-  * Level 0: ShotgunGuy
-  * Novelty: ShotgunGuy, Cacodemon, ChaingunGuy, Fatso, HellKnight
-* Level 2 (Attribute): Addition of health sensor
-  * Level 0: Health sensor always 0
-  * Novelty: Health sensor active for enemies and agent
-* Level 3 (Representation): Decrease sensor precision
-  * Level 0: Sensors use full floating point precision
-  * Novelty: Sensor values mapped to 1 of 10 buckets across sensor's range
+* Level 2 (Attribute): Change in enemy health and available ammo packs (+1 ammo each)
+  * No novelty: Health = 10hp (3 shots to kill), 2-4 ammo packs
+  * Easy: Health = 20hp (5 shots to kill), 10 ammo packs
+  * Medium: Health = 30hp (7 shots to kill), 20 ammo packs
+  * Hard: Health = 40hp (9 shots to kill), 30 ammo packs
+* Level 3 (Representation): Decrease position precision by bucketizing position values
+  * No novelty: Maximum floating point precision
+  * Easy: Discretize position values into 50 buckets
+  * Medium: Health = Discretize position values into 40 buckets
+  * Hard: Health = Discretize position values into 30 buckets
 
 <a name="faq">
 

@@ -126,13 +126,15 @@ also called Mock novelties. These are described below.
 
 * Level 1 (Class): Not revealed (too close to Phase 2 novelty)
 * Level 2 (Attribute): Sensors inactive in pre-novelty become active post-novelty
-  * Easy: 1-2 sensors inactive
-  * Medium: 3-4 sensors inactive
-  * Hard: 5-6 sensors inactive
-* Level 3 (Representation): Only room-level sensors active
-  * Easy: In 1 room
-  * Medium: In 2 rooms
-  * Hard: In 3 rooms
+  * No Novelty: 0 inactive sensors become active
+  * Easy: 5 inactive sensors become active
+  * Medium: 10 inactive sensors become active
+  * Hard: All inactive sensors become active (15-20 depending on floorplan)
+* Level 3 (Representation): Partition floorplan into areas; all sensors in area have same value
+  * No novelty: # areas = # sensors
+  * Easy: Floorplan partitioned into 10 areas
+  * Medium: Floorplan partitioned into 8 areas
+  * Hard: Floorplan partitioned into 5 areas
 
 <a name="faq">
 
