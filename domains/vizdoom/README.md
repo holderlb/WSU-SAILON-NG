@@ -268,11 +268,11 @@ The implementations of these mock novelties can be found in the folder
   * Medium: Size = 10
   * Hard: Size = 5
 
-* Level 2 (Attribute): Change in enemy health and available ammo packs (+1 ammo each)
+* Level 2 (Attribute): Change in enemy health and available ammo packs (+15 ammo each)
   * No novelty: Health = 10hp (3 shots to kill), 2-4 ammo packs
-  * Easy: Health = 20hp (5 shots to kill), 10 ammo packs
-  * Medium: Health = 30hp (7 shots to kill), 20 ammo packs
-  * Hard: Health = 40hp (9 shots to kill), 30 ammo packs
+  * Easy: Health = 20hp (~5 shots to kill)
+  * Medium: Health = 30hp (~7 shots to kill)
+  * Hard: Health = 40hp (~9 shots to kill)
 * Level 3 (Representation): Decrease position precision by bucketizing position values
   * No novelty: Maximum floating point precision
   * Easy: Discretize position values into 50 buckets
