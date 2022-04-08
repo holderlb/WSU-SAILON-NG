@@ -16,10 +16,9 @@ class TestLoader:
     def __init__(self, domain: str = 'cartpole', novelty_level: int = 0, trial_novelty: int = 0,
                  seed: int = 0, difficulty: str = 'easy', day_offset: int = 0,
                  week_shift: int = None, generate_days: int = None, use_img: bool = False,
-                 path: str = "env_generator/envs/", use_gui: bool = False,
+                 path: str = "partial_env_generator/envs/", use_gui: bool = False,
                  ta2_generator_config: dict = None):
-
-        # Set internal params        
+        # Set internal params
         self.domain = domain
         self.novelty_level = novelty_level
         self.trial_novelty = trial_novelty
@@ -39,28 +38,30 @@ class TestLoader:
                 if self.ta2_generator_config['episode_seed'] is not None:
                     self.seed = self.ta2_generator_config['episode_seed']
 
-        # Determine level here
+        # Determine options
         self.use_mock = False
         self.use_novel = False
+        self.use_phase_one = False
         self.level = -1
 
-        # Convert novelty level to nums
-        if self.novelty_level == 200:
-            self.use_novel = False
-        elif int(self.novelty_level/100) == 1:
+        if self.novelty_level in [50, 51, 52, 53]:
+            self.use_phase_one = True
+        elif self.novelty_level in [101, 102, 103, 104, 105]:
             self.use_mock = True
-        elif int(self.novelty_level/100) == 2:
+        elif self.novelty_level in [201, 202, 203, 204, 205]:
             self.use_novel = True
+            print('Real novelties [201-205] are not included in portable generator')
+            raise Exception("Invalid novelty level sent to test_loader!")
+        elif self.novelty_level in [200]:
+            None
         else:
             raise Exception("Invalid novelty level sent to test_loader!")
 
-        self.level = int(str(self.novelty_level)[-1])
-        if self.level < 0 or self.level >= 6:
-            raise Exception("Invalid novelty level sent to test_loader!")
+        self.level = self.novelty_level % 50
 
         # Convert trial level to nums
         self.trial = int(str(self.trial_novelty)[-1])
-        if self.trial < 0 or self.trial >= 6:
+        if self.trial < 0 or self.trial >= 7:
             raise Exception("Invalid trial level sent to test_loader!")
 
         # Do a little catching here for difficulty
@@ -95,17 +96,12 @@ class TestLoader:
         return
 
     def load_test(self):
-        # Partial only has mock novelties :P
-        if self.use_novel and self.level != 0:
-            print('Shame on you and your ancestors!')
-            print('No real novelties allowed!!')
-            sys.exit()
-
         # Filter by domain
         if self.domain == 'cartpole':
             # Filter by novelty level
-            if self.level == 0:
+            if self.level == 0 and not self.use_phase_one:
                 from .envs.cartpolepp.n_0 import CartPole
+
             # Mocks
             elif self.use_mock:
                 if self.level == 1:
@@ -118,6 +114,19 @@ class TestLoader:
                     from .envs.cartpolepp.m_4 import CartPolePPMock4 as CartPole
                 elif self.level == 5:
                     from .envs.cartpolepp.m_5 import CartPolePPMock5 as CartPole
+
+            # Old phase 1 rebuilt in 3d
+            elif self.use_phase_one:
+                if self.level == 0:
+                    from .envs.cartpolepp.p_0 import CartPole as CartPole
+                elif self.level == 1:
+                    from .envs.cartpolepp.p_1 import CartPole as CartPole
+                elif self.level == 2:
+                    from .envs.cartpolepp.p_2 import CartPole as CartPole
+                elif self.level == 3:
+                    from .envs.cartpolepp.p_3 import CartPole as CartPole
+
+            # Throw error at this point
             else:
                 print(self.use_mock, self.use_novel, self.level)
                 raise ValueError('Domain: ' + self.domain + ', Novelty: ' +
@@ -139,22 +148,26 @@ class TestLoader:
 
         elif self.domain == 'vizdoom':
             from .envs.vizdoom.viz import SailonViz
-            self.env = SailonViz(self.use_mock, self.use_novel, self.level, self.use_img,
+            self.env = SailonViz(self.use_mock, self.use_novel, self.novelty_level, self.use_img,
                                  self.seed, self.difficulty, path=self.path, use_gui=self.use_gui)
 
             # Set internal reward here
-            self.reward = 2000
+            self.reward = 2000.0
 
         elif self.domain == 'smartenv':
             from .envs.smarthome.synsysenv import SynsysEnv
-            self.env = SynsysEnv(novelty=self.novelty_level,
+            self.env = SynsysEnv(novelty=self.level,
                                  difficulty=self.difficulty,
-                                 use_novel=self.is_novel,
+                                 use_novel=self.use_novel,
+                                 use_mock=self.use_mock,
+                                 use_img=self.use_img,
+                                 seed=self.seed,
+                                 trial=self.trial,
                                  day_offset=self.day_offset,
                                  week_shift=self.week_shift,
                                  generate_days=self.generate_days)
             # Set internal reward here
-            self.reward = 0
+            self.reward = 0.0
         else:
             raise ValueError('Domain: ' + self.domain + ', is not recognized!')
 
@@ -228,6 +241,3 @@ class TestLoader:
 
         # Send response
         return self.response
-
-# EoF
-
