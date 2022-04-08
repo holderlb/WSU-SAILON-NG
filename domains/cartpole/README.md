@@ -162,6 +162,12 @@ The implementations of these mock novelties can be found in the folder
 
 ## Phase 1 Revealed Novelty
 
+<img src="phase1.png" width="600">
+    
+* All:
+    * Action space limited to two actions ['left', 'right', 'nothing']. Other actions get mapped to 'nothing'.
+    * Most sensors are set to a fixed value since the information is no longer available.
+    
 * Level 1 (Class): Increase length of pole
   * No Novelty: length=0.5
   * Easy: length=2
@@ -170,7 +176,7 @@ The implementations of these mock novelties can be found in the folder
 * Level 2 (Attribute): Increase friction between cart and track
   * No Novelty: friction=0
   * Easy: friction=0.0125
-  * Medium: friction varies uniformly from 0.0125 to 0.1 based on distance from x=0
+  * Medium: friction varies randomly from 0.0125 to 0.1 based on current zone (x pos)
   * Hard: friction=0.0125, but works in reverse, effectively increasing push force
 * Level 3 (Representation): Decrease sensor precision
   * No Novelty: Maximum floating point precision
