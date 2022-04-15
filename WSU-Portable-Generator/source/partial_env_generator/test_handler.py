@@ -11,7 +11,7 @@ class TestHandler:
     # Init function, accepts connection and address info
     def __init__(self, domain: str = 'cartpole', novelty: int = 0, difficulty: str = 'easy',
                  seed: int = 123, trial_novelty: int = 0, day_offset: int = 0, use_img: bool = False,
-                 path: str = "partial_env_generator/envs/", use_gui: bool = False,
+                 path: str = "env_generator/envs/", use_gui: bool = False,
                  ta2_generator_config: dict = None):
 
         # Set parameters
