@@ -186,7 +186,9 @@ See below for an example.
     "image": null
 }
 ```
-Additional wall sensor will be sent on the intial feature_vector:
+The first call will have an additional two feature vectors:
+
+* Walls defining the edges of the world.
 
 ```
     "walls": [
@@ -203,6 +205,23 @@ Additional wall sensor will be sent on the intial feature_vector:
             "y2": 64.0
         },
         ...
+```
+* Hints given pointers to the novelty used.
+```
+    Full hint example:
+    "hint": {
+        "level": 1,
+        "entity": "trap",
+        "attribute": "quantity",
+        "change": "increase"
+    }
+    No hint example:
+    "hint": {
+        "level": None,
+        "entity": None,
+        "attribute": None,
+        "change": None
+    }
 ```
 
 <a name="actionlabel">
@@ -254,6 +273,9 @@ also called Mock novelties. These are described below.
 * Level 3: Enemies move toward player.
 * Level 4: Enemy damage increases as closer to player.
 * Level 5: Enemies spread out.
+* Level 6: Wind force added.
+* Level 7: Enemies move behind obstacles.
+* Level 8: Ammo and Health packs disappear over time.
 
 The implementations of these mock novelties can be found in the folder
 [WSU-Portable-Generator/source/partial_env_generator/envs/vizdoom/wad_reduced/SCRIPTS.txt](https://github.com/holderlb/WSU-SAILON-NG/tree/master/WSU-Portable-Generator/source/partial_env_generator/envs/vizdoom/wad_reduced/SCRIPTS.txt).

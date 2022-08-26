@@ -91,7 +91,9 @@ For example,
 }
 
 ```
-The first call will have additional feature vector defining the corners of the cube world.
+The first call will have an additional two feature vectors:
+
+* Walls defining the corners of the cube world.
 
 ```
     "walls": [
@@ -104,6 +106,24 @@ The first call will have additional feature vector defining the corners of the c
         [5,5, 10],
         [-5,5, 10],
     ]
+```
+
+* Hints given pointers to the novelty used.
+```
+    Full hint example:
+    "hint": {
+        "level": 1,
+        "entity": "cart",
+        "attribute": "mass",
+        "change": "increase"
+    }
+    No hint example:
+    "hint": {
+        "level": None,
+        "entity": None,
+        "attribute": None,
+        "change": None
+    }
 ```
 
 <a name="actionlabel">
@@ -154,6 +174,9 @@ also called Mock novelties. These are described below.
 * Level 3: The objects initially move toward some random point.
 * Level 4: The objects change size.
 * Level 5: The objects are attracted to each other.
+* Level 6: Gravity affects blocks. Increased gravity the cart and pole.
+* Level 7: Blocks attracted to center of floor (0, 0, 0).
+* Level 8: New stationary blocks spawn over time. 
 
 The implementations of these mock novelties can be found in the folder
 [WSU-Portable-Generator/source/partial_env_generator/envs/cartpolepp](https://github.com/holderlb/WSU-SAILON-NG/tree/master/WSU-Portable-Generator/source/partial_env_generator/envs/cartpolepp).

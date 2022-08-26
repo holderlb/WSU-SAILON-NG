@@ -65,6 +65,25 @@ For example,
     ]
 }
 ```
+The first call will have an additional feature vector:
+
+* Hints given pointers to the novelty used.
+```
+    Full hint example:
+    "hint": {
+        "level": 1,
+        "entity": "sensor",
+        "attribute": "quantity",
+        "change": "decrease"
+    }
+    No hint example:
+    "hint": {
+        "level": None,
+        "entity": None,
+        "attribute": None,
+        "change": None
+    }
+```
 
 <a name="actionlabel">
 
@@ -119,6 +138,9 @@ also called Mock novelties. These are described below.
 * Level 3: Activity not seen in pre-novelty, but seen in post-novelty.
 * Level 4: Two sensor values always give same reading.
 * Level 5: Second inhabitant simulated by overlaying copy of existing inhabitant.
+* Level 6: Sensor values provided at random times.
+* Level 7: Inhabitant spends more time outside of home.
+* Level 8: Multiple days of data compressed into one.
 
 <a name="phase1revealednovelty">
 
