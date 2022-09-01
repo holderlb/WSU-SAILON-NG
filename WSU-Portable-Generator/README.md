@@ -50,6 +50,19 @@ docker-compose -f portable-generator.yml down
 
 # Change Log
 
+## v0.8.1
+
+* Major version bump, there were objects definition changes used for communicating between the
+  agents, so you will need to make sure to update external agents by copying over the contents
+  of the `source/objects/` directory so your agent can communicate with our systems.
+  * Specifically, for any TA2 agent, the files `source/objects/objects.py` and
+    `source/objects/rabbitmq.py` were updated and need to be updated in any TA2 agent wishing
+    to interact with the updated system.
+  * Other files relating to the generators and TA1.py were also updated.
+
+* Added hints to initial feature vector for all domains based on hint level.
+* Mock novelties [6, 7, 8] available for all domains.
+
 ## v0.7.9
 
 * Moved `episode_seed` definition from inside TA2.py to the config file.
@@ -106,15 +119,19 @@ You can change some of the experiment parameters using the `configs/partial/TA1.
 * `[sail-on].trials` (int) changes the number of trials per novelty/difficulty/visibility
   combination. The *total* number of trials in an experiment is
   ```
-  total_trials = trials * len(novelty) * len(difficulty) * 2
+  total_trials = trials * len(novelty) * len(difficulty) * len(novelty_visibility)
   ```
-  The last `2` represents the visibility of the novelty (if the TA2 is informed of the novelty
-  having been initiated or not) and is currently not configurable.
 * `[sail-on].novelty` (comma separated list) are the novelties the TA1 will use in building a new
   experiment. For our internal system `200` represents level-0 novelty and `101`-`105` represents
   the mock novelties.
 * `[sail-on].difficulty` (comma separated list) are the difficulties the TA1 will use in building
   a new experiment. Valid options are `easy`, `medium`, and `hard`.
+* `[sail-on].novelty_visibility` (comma separated list) are the states (`0` and `1`) representing
+  if the novelty status will be provided to the connected TA2 agent.
+* `[sail-on].hint_level` (comma separated list) has valid values `-1`, `0`, `1`, `2`, and `3`.
+  Please see the section on hints for a description of these different levels.
+* `[sail-on].phase` Please leave this value set to `3`, other values are not available in the
+  portable generator.
 
 ### Per-Domain Options
 
@@ -351,21 +368,31 @@ the experiment, the corresponding method in the TA2Agent class is called.
 
     * For `difficulty` in `difficulty levels`:
 
-        *  For `novelty_visibility` in [`no visibility`, `novelty visible`]:
-        
-            * Testing begins.
+        * For `novelty_visibility` in [`no visibility`, `novelty visible`]:
 
-            *  For `trial` in `number of trials`:
+            * If `novelty visible`:
 
-                *  TA2 should reset the model to the saved state at this point.
+                * `hint_level_list` = [`-1`, `0`, `1`, `2`, `3`]
 
-                *  For `episode` in `testing episodes`:
+            * Else:
 
-                    *  For `feature vector` in `episode`:
+                * `hint_level_list` = [`-1`]
 
-                        *  Evaluate `feature vector` and return your `prediction`.
+            * For `hint_level` in `hint_level_list`:
 
-            *  Testing ends.
+                * Testing begins.
+
+                * For `trial` in `number of trials`:
+
+                    *  TA2 should reset the model to the saved state at this point.
+
+                    *  For `episode` in `testing episodes`:
+
+                        *  For `feature vector` in `episode`:
+
+                            *  Evaluate `feature vector` and return your `prediction`.
+
+                * Testing ends.
 
 *  The experiment concludes!
 

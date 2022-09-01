@@ -35,14 +35,15 @@ import threading
 import time
 import uuid
 
+from objects import objects
 from objects.GENERATOR_logic import GeneratorLogic
-from env_generator.test_handler import TestHandler
+from env_generator.phase_3.test_handler import TestHandler as TestHandler_3
 
 
 class ThreadedTestHandler(threading.Thread):
     def __init__(self, domain: str, novelty: int, difficulty: str, seed: int, trial_novelty: int,
                  day_offset: int, response_queue: queue.Queue, use_image: bool,
-                 ta2_generator_config: dict):
+                 ta2_generator_config: dict, hint_level: int, phase: str):
         threading.Thread.__init__(self)
         self.domain = domain
         self.novelty = novelty
@@ -53,20 +54,25 @@ class ThreadedTestHandler(threading.Thread):
         self.response_queue = response_queue
         self.use_image = use_image
         self.ta2_generator_config = copy.deepcopy(ta2_generator_config)
+        self.hint_level = hint_level
+        self.phase = phase
 
         self.is_done = False
         return
 
     def run(self):
         # Initialize GENERATOR here with novelty, difficulty, and seed.
-        self.response_queue.put(TestHandler(domain=self.domain,
-                                            novelty=self.novelty,
-                                            difficulty=self.difficulty,
-                                            seed=self.seed,
-                                            trial_novelty=self.trial_novelty,
-                                            day_offset=self.day_offset,
-                                            use_img=self.use_image,
-                                            ta2_generator_config=self.ta2_generator_config))
+        if self.phase == objects.PHASE_3:
+            self.response_queue.put(TestHandler_3(domain=self.domain,
+                                                  novelty=self.novelty,
+                                                  difficulty=self.difficulty,
+                                                  seed=self.seed,
+                                                  trial_novelty=self.trial_novelty,
+                                                  day_offset=self.day_offset,
+                                                  use_img=self.use_image,
+                                                  ta2_generator_config=self.ta2_generator_config,
+                                                  hint_level=self.hint_level,
+                                                  phase=self.phase))
         while not self.is_done:
             time.sleep(0.1)
         return
@@ -99,7 +105,7 @@ class GeneratorAgent(GeneratorLogic):
 
     def initilize_generator(self, domain: str, novelty: int, difficulty: str, seed: int,
                             trial_novelty: int, day_offset: int, use_image: bool,
-                            ta2_generator_config: dict):
+                            ta2_generator_config: dict, hint_level: int, phase: str):
         del self.GENERATOR
         # Set variable is_episode_done to False.
         self.is_episode_done = False
@@ -115,7 +121,9 @@ class GeneratorAgent(GeneratorLogic):
                                            day_offset=day_offset,
                                            response_queue=response_queue,
                                            use_image=use_image,
-                                           ta2_generator_config=ta2_generator_config)
+                                           ta2_generator_config=ta2_generator_config,
+                                           hint_level=hint_level,
+                                           phase=phase)
         threaded_gen.start()
         while self.GENERATOR is None:
             try:

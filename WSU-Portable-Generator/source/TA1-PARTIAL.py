@@ -49,7 +49,7 @@ class LiveGeneratorThread(threading.Thread):
                  amqp_port: str, amqp_vhost: str, amqp_ssl: bool, ta2_response_queue: queue.Queue,
                  live_output_queue: queue.Queue, domain: str, novelty: int, difficulty: str,
                  seed: int, trial_novelty: int, day_offset: int, request_timeout: int,
-                 use_image: bool, generator_config: dict):
+                 use_image: bool, generator_config: dict, hint_level: int, phase: str):
         threading.Thread.__init__(self)
         self.name = 'LiveGeneratorThread'
         self.log = log.getChild(self.name)
@@ -70,6 +70,8 @@ class LiveGeneratorThread(threading.Thread):
         self.day_offset = day_offset
         self.use_image = use_image
         self.generator_config = copy.deepcopy(generator_config)
+        self.hint_level = hint_level
+        self.phase = phase
         self.done = False
 
         if self.domain not in objects.VALID_DOMAINS:
@@ -100,7 +102,9 @@ class LiveGeneratorThread(threading.Thread):
                                   day_offset=self.day_offset,
                                   request_timeout=self.request_timeout,
                                   use_image=self.use_image,
-                                  generator_config=self.generator_config)
+                                  generator_config=self.generator_config,
+                                  hint_level=self.hint_level,
+                                  phase=self.phase)
 
         # Begin our loop.
         while not self.done:
@@ -356,6 +360,24 @@ class TA1:
         for difficulty in split_difficulty:
             if difficulty in objects.VALID_DIFFICULTY:
                 self._server_difficulty.append(difficulty)
+        self._server_novelty_visibility = list()
+        server_novelty_visibility = config.get('sail-on', 'novelty_visibility')
+        split_novelty_visibility = str(server_novelty_visibility).split(',')
+        for novelty_visibility in split_novelty_visibility:
+            if int(novelty_visibility) in objects.VALID_NOVELTY_VISIBILITY:
+                if int(novelty_visibility) not in self._server_novelty_visibility:
+                    self._server_novelty_visibility.append(int(novelty_visibility))
+        self._server_hint = list()
+        server_hint = config.get('sail-on', 'hint_level')
+        split_hint = str(server_hint).split(',')
+        for hint_level in split_hint:
+            if int(hint_level) in objects.VALID_HINT:
+                if int(hint_level) not in self._server_hint:
+                    self._server_hint.append(int(hint_level))
+        self._PHASE = objects.PHASE_3
+        phase = config.get('sail-on', 'phase')
+        if phase in objects.VALID_PHASE:
+            self._PHASE = phase
         self._random_sleep_seconds = 0
         if config.has_option(section='sail-on', option='random_sleep_seconds'):
             random_sleep = config.getint('sail-on', 'random_sleep_seconds')
@@ -421,6 +443,7 @@ class TA1:
         self.model_experiment_id = None
         self.novelty_initiated = False
         self.novelty_visibility = 0
+        self.episode_hint_json = None
         self.rolling_score = list()
         self.experiment_type = None
         self.experiment_trial_id = None
@@ -522,9 +545,12 @@ class TA1:
         config.set('sail-on', 'testing_novelty_p2', '0.8')
         config.set('sail-on', 'novelty', '200')
         config.set('sail-on', 'difficulty', 'easy,medium,hard')
+        config.set('sail-on', 'novelty_visibility', '0,1')
+        config.set('sail-on', 'hint_level', '-1,0,1,2,3')
         config.set('sail-on', 'trials', '30')
         config.set('sail-on', 'normal_timeout_seconds', str(objects.GLOBAL_TIMEOUT_SECONDS))
         config.set('sail-on', 'training_timeout_multiplier', '100')
+        config.set('sail-on', 'phase', str(objects.PHASE_3))
         # To allow for all the docker images to have the same command, we need to allow all
         # the usual command line args to be defined in the config file.  The command line will
         # override any setting in the config file.
@@ -854,7 +880,8 @@ class TA1:
         return model
 
     def handle_experiment_request(self, experiment_request: objects.RequestExperiment,
-                                  new_model: objects.Model, vhost: str, errormsgs: list):
+                                  new_model: objects.Model, vhost: str, phase: str,
+                                  errormsgs: list):
         self.log.debug('handle_experiment_request({}, vhost={})'.format(
             str(experiment_request), vhost))
         experiment_response = None
@@ -866,8 +893,9 @@ class TA1:
                     experiment_secret = uuid.uuid4().hex
                     sql = ('INSERT INTO model_experiment '
                            '(model_id, novelty, novelty_visibility, seed, git_version, secret, '
-                           'experiment_type, vhost) '
-                           'VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING model_experiment_id;')
+                           'experiment_type, vhost, phase) '
+                           'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) '
+                           'RETURNING model_experiment_id;')
                     data = (new_model.model_id,
                             experiment_request.novelty,
                             experiment_request.novelty_visibility,
@@ -875,7 +903,8 @@ class TA1:
                             experiment_request.git_version,
                             experiment_secret,
                             experiment_request.experiment_type,
-                            vhost,)
+                            vhost,
+                            phase,)
                     cr.execute(sql, data)
                     self.db_conn.commit()
                     row = cr.fetchone()
@@ -1142,10 +1171,10 @@ class TA1:
                         data = (experiment_trial_id,)
                         self.log.debug(cr.mogrify(episode_sql, data))
                         cr.execute(episode_sql, data)
-                        data = (False,
-                                experiment_trial_id,)
-                        self.log.debug(cr.mogrify(trial_sql, data))
-                        cr.execute(trial_sql, data)
+                    data = (False,
+                            experiment_trial_id,)
+                    self.log.debug(cr.mogrify(trial_sql, data))
+                    cr.execute(trial_sql, data)
                     self.db_conn.commit()
         except psycopg2.InterfaceError as e:
             self.log.error("psycopg2.InterfaceError: " + str(e.pgerror))
@@ -1188,6 +1217,7 @@ class TA1:
                     novelty_visibility=trial.novelty_visibility,
                     difficulty=trial.difficulty,
                     is_active=False,
+                    hint_level=trial.hint_level,
                     errormsgs=errormsgs)
 
                 self.add_all_trial_episodes(experiment_trial_id=experiment_trial_id,
@@ -1199,30 +1229,33 @@ class TA1:
                                 errormsgs: list, trial: int = 0, novelty: int = 0,
                                 novelty_visibility: int = 0,
                                 difficulty: str = objects.DIFFICULTY_MEDIUM,
-                                is_active: bool = True):
+                                is_active: bool = True, hint_level: int = objects.HINT_NONE):
         self.log.debug('handle_experiment_trial(model_experiment_id={}, '
                        'trial={}, novelty={}, difficulty={}, '
-                       'novelty_description={}, '
+                       'novelty_description={}, hint_level={}, '
                        'novelty_visibility={})'.format(model_experiment_id,
                                                        trial,
                                                        novelty,
                                                        difficulty,
                                                        str(novelty_description),
+                                                       hint_level,
                                                        novelty_visibility))
         experiment_trial_id = None
         try:
             with self.db_conn:
                 with self.db_conn.cursor() as cr:
                     sql = ('INSERT INTO experiment_trial (model_experiment_id, trial, novelty, '
-                           'novelty_visibility, difficulty, novelty_description, is_active) '
-                           'VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING experiment_trial_id;')
+                           'novelty_visibility, difficulty, novelty_description, is_active, '
+                           'hint_level) '
+                           'VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING experiment_trial_id;')
                     data = (model_experiment_id,
                             trial,
                             novelty,
                             novelty_visibility,
                             difficulty,
                             Json(novelty_description),
-                            is_active,)
+                            is_active,
+                            hint_level,)
                     cr.execute(sql, data)
                     self.db_conn.commit()
                     row = cr.fetchone()
@@ -1246,6 +1279,7 @@ class TA1:
                                       episode_index=i,
                                       novelty=objects.NOVELTY_200,
                                       novelty_initiated=False,
+                                      hint_level=objects.HINT_NONE,
                                       errormsgs=errormsgs)
         return
 
@@ -1261,27 +1295,30 @@ class TA1:
                                       episode_index=trial.episodes[i].trial_episode_index,
                                       novelty=trial.episodes[i].novelty,
                                       novelty_initiated=novelty_initiated,
+                                      hint_level=trial.episodes[i].hint_level,
                                       errormsgs=errormsgs)
 
         return
 
     def handle_trial_episode(self, experiment_trial_id: int, episode_index: int, novelty: int,
-                             novelty_initiated: bool, errormsgs: list):
+                             novelty_initiated: bool, hint_level: int, errormsgs: list):
         self.log.debug('handle_trial_episode(experiment_trial_id={}, episode_index={}, novelty={}, '
-                       'novelty_initiated={})'
+                       'novelty_initiated={}, hint_level={})'
                        .format(experiment_trial_id,
                                episode_index,
                                novelty,
-                               novelty_initiated))
+                               novelty_initiated,
+                               hint_level))
         try:
             with self.db_conn:
                 with self.db_conn.cursor() as cr:
                     sql = ('INSERT INTO trial_episode (experiment_trial_id, episode_index, '
-                           'novelty, novelty_initiated) VALUES (%s, %s, %s, %s);')
+                           'novelty, novelty_initiated, hint_level) VALUES (%s, %s, %s, %s, %s);')
                     data = (experiment_trial_id,
                             episode_index,
                             novelty,
-                            novelty_initiated,)
+                            novelty_initiated,
+                            hint_level,)
                     cr.execute(sql, data)
                     self.db_conn.commit()
         except psycopg2.InterfaceError as e:
@@ -1418,7 +1455,7 @@ class TA1:
         try:
             with self.db_conn:
                 with self.db_conn.cursor() as cr:
-                    sql = ('SELECT trial, novelty, novelty_visibility, difficulty, '
+                    sql = ('SELECT trial, novelty, novelty_visibility, difficulty, hint_level, '
                            'novelty_description FROM experiment_trial '
                            'WHERE experiment_trial_id=%s;')
                     data = (experiment_trial_id,)
@@ -1429,14 +1466,16 @@ class TA1:
                         novelty = row[1]
                         novelty_vis = row[2]
                         difficulty = row[3]
-                        nov_description = row[4]
+                        hint_level = row[4]
+                        nov_description = row[5]
                         ng_index = 0
                         found = False
                         for ng in self._experiment.novelty_groups:
                             if len(ng.trials) > trial:
                                 ngt = ng.trials[trial]
                                 if ngt.novelty == novelty and ngt.difficulty == difficulty and \
-                                        ngt.novelty_visibility == novelty_vis:
+                                        ngt.novelty_visibility == novelty_vis and \
+                                        ngt.hint_level == hint_level:
                                     found = True
                                     break
                             if not found:
@@ -1511,15 +1550,17 @@ class TA1:
 
     def set_trial_episode_stats(self, trial_episode_id: int, novelty: int, performance: float,
                                 novelty_probability: float, novelty_threshold: float,
-                                novelty_characterization: dict, errormsgs: list):
+                                novelty_characterization: dict, hint_json: dict, errormsgs: list):
         self.log.debug('set_trial_episode_stats(trial_episode_id={}, novelty={}, performance={}, '
-                       'novelty_probability={}, novelty_threshold={}, characterization={})'
+                       'novelty_probability={}, novelty_threshold={}, characterization={}, '
+                       'hint_json={})'
                        .format(trial_episode_id,
                                novelty,
                                performance,
                                novelty_probability,
                                novelty_threshold,
-                               novelty_characterization))
+                               novelty_characterization,
+                               hint_json))
         try:
             with self.db_conn:
                 with self.db_conn.cursor() as cr:
@@ -1533,6 +1574,18 @@ class TA1:
                             novelty_threshold,
                             Json(novelty_characterization),
                             trial_episode_id,)
+                    if hint_json is not None:
+                        sql = ('UPDATE trial_episode SET novelty=%s, performance=%s, '
+                               'novelty_probability=%s, novelty_threshold=%s, '
+                               'novelty_characterization=%s, hint_json=%s '
+                               'WHERE trial_episode_id=%s;')
+                        data = (novelty,
+                                performance,
+                                novelty_probability,
+                                novelty_threshold,
+                                Json(novelty_characterization),
+                                Json(hint_json),
+                                trial_episode_id,)
                     cr.execute(sql, data)
                     self.db_conn.commit()
         except psycopg2.InterfaceError as e:
@@ -2529,7 +2582,7 @@ class TA1:
 
     def select_first_episode_index(self, domain_id: int, data_type: str, novelty: int,
                                    difficulty: str, trial_novelty: int, size: int) -> int:
-        episode_index = 0
+        # episode_index = 0
         num_episodes = self.dataset_cache[domain_id][data_type][novelty][difficulty][
             trial_novelty]['episodes'] - 1
         if size < num_episodes:
@@ -2589,7 +2642,9 @@ class TA1:
                                          data_type=data_type,
                                          episode_index=episode_index,
                                          trial_novelty=objects.NOVELTY_200,
-                                         use_image=self._image_by_domain[domain])
+                                         use_image=self._image_by_domain[domain],
+                                         hint_level=objects.HINT_NONE,
+                                         phase=self._PHASE)
                     training_episodes.append(copy.deepcopy(ep))
             # Give training_episodes a good shuffle before putting it in the Training object.
             random.shuffle(training_episodes)
@@ -2634,7 +2689,9 @@ class TA1:
                                          episode_index=episode_index,
                                          trial_novelty=train_novelty,
                                          day_offset=i,
-                                         use_image=self._image_by_domain[domain])
+                                         use_image=self._image_by_domain[domain],
+                                         hint_level=objects.HINT_NONE,
+                                         phase=self._PHASE)
                     training_episodes.append(copy.deepcopy(ep))
                     if data_source == objects.SOURCE_RECORDED:
                         episode_index += 1
@@ -2688,212 +2745,234 @@ class TA1:
                             n][d][n]['episodes']
                         episode_indexes[n][d][n] = list(range(size))
 
-        for novelty_visibility in [0, 1]:
+        for novelty_visibility in self._server_novelty_visibility:
             for novelty, difficulty in novelty_diff:
-                # Refresh any needed AMQP heartbeats.
-                self.amqp.process_data_events()
-                n_zero = None
-                n_level = None
-                if data_source == objects.SOURCE_LIVE:
-                    n_zero = objects.SEED_NUM_TESTING
-                    n_level = objects.SEED_NUM_TESTING
+                hint_list = copy.deepcopy(self._server_hint)
+                if novelty == objects.NOVELTY_200:
+                    hint_list = list([objects.HINT_NONE])
+                if novelty_visibility == objects.NOVELTY_VISIBILITY_0:
+                    hint_list = list([objects.HINT_NONE])
+                for hint_level in hint_list:
+                    # Refresh any needed AMQP heartbeats.
+                    self.amqp.process_data_events()
+                    n_zero = None
+                    n_level = None
+                    if data_source == objects.SOURCE_LIVE:
+                        n_zero = objects.SEED_NUM_TESTING
+                        n_level = objects.SEED_NUM_TESTING
 
-                trials = list()
-                for t in list(range(self._SAIL_ON_TRIALS)):
-                    ep_before_nov, ep_n_level, ep_n_zero = \
-                        self.calculate_episode_numbers_for_domain(
-                            domain_id=domain_id,
-                            data_type=data_type,
-                            novelty=novelty,
-                            difficulty=difficulty,
-                            trial_novelty=novelty,
-                            novelty_p=self._testing_novelty_p2,
-                            initial_episodes=num_episodes,
-                            n_zero=n_zero,
-                            n_level=n_level,
-                            pre_novel_eps=pre_novel_episodes)
-                    episode_index_z = None
-                    episode_index_l = None
-                    episode_index = None
-                    if data_source == objects.SOURCE_RECORDED:
-                        if domain == objects.DOMAIN_SMARTENV:
-                            episode_index_z = self.select_first_episode_index(
-                                domain_id=domain_id,
-                                data_type=data_type,
-                                novelty=objects.NOVELTY_200,
-                                difficulty=difficulty,
-                                trial_novelty=novelty,
-                                size=ep_before_nov + ep_n_zero)
-                            episode_index_l = self.select_first_episode_index(
+                    trials = list()
+                    # Reset testing seeds list for each config permutation.
+                    del testing_seeds
+                    testing_seeds = list()
+                    for t in list(range(self._SAIL_ON_TRIALS)):
+                        ep_before_nov, ep_n_level, ep_n_zero = \
+                            self.calculate_episode_numbers_for_domain(
                                 domain_id=domain_id,
                                 data_type=data_type,
                                 novelty=novelty,
                                 difficulty=difficulty,
                                 trial_novelty=novelty,
-                                size=ep_n_level)
-                        else:
-                            size = self.dataset_cache[domain_id][objects.DTYPE_TEST][
-                                objects.NOVELTY_200][difficulty][novelty]['episodes']
-                            episode_indexes[objects.NOVELTY_200][difficulty][novelty] = \
-                                list(range(size))
-                            size = self.dataset_cache[domain_id][objects.DTYPE_TEST][novelty][
-                                difficulty][novelty]['episodes']
-                            episode_indexes[novelty][difficulty][novelty] = list(range(size))
-                    trial_episodes = list()
-                    for i in list(range(ep_before_nov)):
-                        # Guarantee unique seeds for every training episode.
-                        seed = random.randint(objects.SEED_NUM_TRAINING,
-                                              objects.SEED_NUM_TESTING)
-                        # We only care about this for live training.
-                        if data_source == objects.SOURCE_LIVE:
-                            while seed in testing_seeds:
-                                seed = random.randint(objects.SEED_NUM_TRAINING,
-                                                      objects.SEED_NUM_TESTING)
-                            testing_seeds.append(seed)
-                        else:
-                            if domain == objects.DOMAIN_SMARTENV:
-                                episode_index = episode_index_z
-                                episode_index_z += 1
-                            else:
-                                episode_index = random.choice(episode_indexes[objects.NOVELTY_200][
-                                                                  difficulty][novelty])
-                                episode_indexes[objects.NOVELTY_200][difficulty][
-                                    novelty].remove(episode_index)
-                        ep = objects.Episode(novelty=objects.NOVELTY_200,
-                                             difficulty=difficulty,
-                                             seed=seed,
-                                             domain=domain,
-                                             data_type=data_type,
-                                             episode_index=episode_index,
-                                             trial_novelty=novelty,
-                                             use_image=self._image_by_domain[domain])
-                        trial_episodes.append(copy.deepcopy(ep))
-                    # Only shuffle the episodes if not smartenv.
-                    if domain != objects.DOMAIN_SMARTENV:
-                        random.shuffle(trial_episodes)
-
-                    # At this point if the testing_novelty_p2 is greater than 0 we want to
-                    # guarantee that the first episode after initiating novelty is always
-                    # a novel episode.
-                    if self._testing_novelty_p2 > 0.0:
-                        # Here we append a single episode of a novelty level at the point where
-                        # novelty has been initiated (big red button).
+                                novelty_p=self._testing_novelty_p2,
+                                initial_episodes=num_episodes,
+                                n_zero=n_zero,
+                                n_level=n_level,
+                                pre_novel_eps=pre_novel_episodes)
+                        episode_index_z = None
+                        episode_index_l = None
                         episode_index = None
-                        # Guarantee unique seeds for every training episode.
-                        seed = random.randint(objects.SEED_NUM_TRAINING,
-                                              objects.SEED_NUM_TESTING)
-                        # We only care about this for live training.
-                        if data_source == objects.SOURCE_LIVE:
-                            while seed in testing_seeds:
-                                seed = random.randint(objects.SEED_NUM_TRAINING,
-                                                      objects.SEED_NUM_TESTING)
-                            testing_seeds.append(seed)
-                        else:
+                        if data_source == objects.SOURCE_RECORDED:
                             if domain == objects.DOMAIN_SMARTENV:
-                                episode_index = episode_index_l
-                                episode_index_l += 1
+                                episode_index_z = self.select_first_episode_index(
+                                    domain_id=domain_id,
+                                    data_type=data_type,
+                                    novelty=objects.NOVELTY_200,
+                                    difficulty=difficulty,
+                                    trial_novelty=novelty,
+                                    size=ep_before_nov + ep_n_zero)
+                                episode_index_l = self.select_first_episode_index(
+                                    domain_id=domain_id,
+                                    data_type=data_type,
+                                    novelty=novelty,
+                                    difficulty=difficulty,
+                                    trial_novelty=novelty,
+                                    size=ep_n_level)
                             else:
-                                episode_index = random.choice(episode_indexes[novelty][difficulty][
-                                                                  novelty])
-                                episode_indexes[novelty][difficulty][novelty].remove(episode_index)
-                        ep = objects.Episode(novelty=novelty,
-                                             difficulty=difficulty,
-                                             seed=seed,
-                                             domain=domain,
-                                             data_type=data_type,
-                                             episode_index=episode_index,
-                                             trial_novelty=novelty,
-                                             use_image=self._image_by_domain[domain])
-                        trial_episodes.append(copy.deepcopy(ep))
+                                size = self.dataset_cache[domain_id][objects.DTYPE_TEST][
+                                    objects.NOVELTY_200][difficulty][novelty]['episodes']
+                                episode_indexes[objects.NOVELTY_200][difficulty][novelty] = \
+                                    list(range(size))
+                                size = self.dataset_cache[domain_id][objects.DTYPE_TEST][novelty][
+                                    difficulty][novelty]['episodes']
+                                episode_indexes[novelty][difficulty][novelty] = list(range(size))
+                        trial_episodes = list()
+                        for i in list(range(ep_before_nov)):
+                            # Guarantee unique seeds for every training episode.
+                            seed = random.randint(objects.SEED_NUM_TRAINING,
+                                                  objects.SEED_NUM_TESTING)
+                            # We only care about this for live training.
+                            if data_source == objects.SOURCE_LIVE:
+                                while seed in testing_seeds:
+                                    seed = random.randint(objects.SEED_NUM_TRAINING,
+                                                          objects.SEED_NUM_TESTING)
+                                testing_seeds.append(seed)
+                            else:
+                                if domain == objects.DOMAIN_SMARTENV:
+                                    episode_index = episode_index_z
+                                    episode_index_z += 1
+                                else:
+                                    episode_index = random.choice(episode_indexes[
+                                        objects.NOVELTY_200][difficulty][novelty])
+                                    episode_indexes[objects.NOVELTY_200][difficulty][
+                                        novelty].remove(episode_index)
+                            ep = objects.Episode(novelty=objects.NOVELTY_200,
+                                                 difficulty=difficulty,
+                                                 seed=seed,
+                                                 domain=domain,
+                                                 data_type=data_type,
+                                                 episode_index=episode_index,
+                                                 trial_novelty=novelty,
+                                                 use_image=self._image_by_domain[domain],
+                                                 hint_level=objects.HINT_NONE,
+                                                 phase=self._PHASE)
+                            trial_episodes.append(copy.deepcopy(ep))
+                        # Only shuffle the episodes if not smartenv.
+                        if domain != objects.DOMAIN_SMARTENV:
+                            random.shuffle(trial_episodes)
 
-                    temp_episodes = list()
-                    for i in list(range(ep_n_zero)):
-                        episode_index = None
-                        # Guarantee unique seeds for every training episode.
-                        seed = random.randint(objects.SEED_NUM_TRAINING,
-                                              objects.SEED_NUM_TESTING)
-                        # We only care about this for live training.
-                        if data_source == objects.SOURCE_LIVE:
-                            while seed in testing_seeds:
-                                seed = random.randint(objects.SEED_NUM_TRAINING,
-                                                      objects.SEED_NUM_TESTING)
-                            testing_seeds.append(seed)
-                        else:
+                        # At this point if the testing_novelty_p2 is greater than 0 we want to
+                        # guarantee that the first episode after initiating novelty is always
+                        # a novel episode.
+                        if self._testing_novelty_p2 > 0.0:
+                            # Here we append a single episode of a novelty level at the point where
+                            # novelty has been initiated (big red button).
+                            episode_index = None
+                            # Guarantee unique seeds for every training episode.
+                            seed = random.randint(objects.SEED_NUM_TRAINING,
+                                                  objects.SEED_NUM_TESTING)
+                            # We only care about this for live training.
+                            if data_source == objects.SOURCE_LIVE:
+                                while seed in testing_seeds:
+                                    seed = random.randint(objects.SEED_NUM_TRAINING,
+                                                          objects.SEED_NUM_TESTING)
+                                testing_seeds.append(seed)
+                            else:
+                                if domain == objects.DOMAIN_SMARTENV:
+                                    episode_index = episode_index_l
+                                    episode_index_l += 1
+                                else:
+                                    episode_index = random.choice(episode_indexes[novelty][
+                                                                      difficulty][novelty])
+                                    episode_indexes[novelty][difficulty][novelty].remove(
+                                        episode_index)
+                            ep = objects.Episode(novelty=novelty,
+                                                 difficulty=difficulty,
+                                                 seed=seed,
+                                                 domain=domain,
+                                                 data_type=data_type,
+                                                 episode_index=episode_index,
+                                                 trial_novelty=novelty,
+                                                 use_image=self._image_by_domain[domain],
+                                                 hint_level=hint_level,
+                                                 phase=self._PHASE)
+                            trial_episodes.append(copy.deepcopy(ep))
+
+                        temp_episodes = list()
+                        for i in list(range(ep_n_zero)):
+                            episode_index = None
+                            # Guarantee unique seeds for every training episode.
+                            seed = random.randint(objects.SEED_NUM_TRAINING,
+                                                  objects.SEED_NUM_TESTING)
+                            # We only care about this for live training.
+                            if data_source == objects.SOURCE_LIVE:
+                                while seed in testing_seeds:
+                                    seed = random.randint(objects.SEED_NUM_TRAINING,
+                                                          objects.SEED_NUM_TESTING)
+                                testing_seeds.append(seed)
+                            else:
+                                if domain == objects.DOMAIN_SMARTENV:
+                                    episode_index = episode_index_z
+                                    episode_index_z += 1
+                                else:
+                                    episode_index = random.choice(episode_indexes[
+                                                                      objects.NOVELTY_200][
+                                                                      difficulty][novelty])
+                                    episode_indexes[objects.NOVELTY_200][difficulty][
+                                        novelty].remove(episode_index)
+                            ep = objects.Episode(novelty=objects.NOVELTY_200,
+                                                 difficulty=difficulty,
+                                                 seed=seed,
+                                                 domain=domain,
+                                                 data_type=data_type,
+                                                 episode_index=episode_index,
+                                                 trial_novelty=novelty,
+                                                 use_image=self._image_by_domain[domain],
+                                                 hint_level=objects.HINT_NONE,
+                                                 phase=self._PHASE)
+                            temp_episodes.append(copy.deepcopy(ep))
+                        # We remove 1 from ep_n_level for the episode immediately after the big red
+                        # button is pressed.  Only do this if ep_n_level is greater than 0 and
+                        # self._testing_novelty_p2 is greater than 0.0.
+                        if ep_n_level > 0 and self._testing_novelty_p2 > 0.0:
+                            ep_n_level = ep_n_level - 1
+                        for i in list(range(ep_n_level)):
+                            episode_index = None
+                            # Guarantee unique seeds for every training episode.
+                            seed = random.randint(objects.SEED_NUM_TRAINING,
+                                                  objects.SEED_NUM_TESTING)
+                            # We only care about this for live training.
+                            if data_source == objects.SOURCE_LIVE:
+                                while seed in testing_seeds:
+                                    seed = random.randint(objects.SEED_NUM_TRAINING,
+                                                          objects.SEED_NUM_TESTING)
+                                testing_seeds.append(seed)
+                            else:
+                                if domain == objects.DOMAIN_SMARTENV:
+                                    episode_index = episode_index_l
+                                    episode_index_l += 1
+                                else:
+                                    episode_index = random.choice(episode_indexes[novelty][
+                                                                      difficulty][novelty])
+                                    episode_indexes[novelty][difficulty][novelty].remove(
+                                        episode_index)
+                            ep = objects.Episode(novelty=novelty,
+                                                 difficulty=difficulty,
+                                                 seed=seed,
+                                                 domain=domain,
+                                                 data_type=data_type,
+                                                 episode_index=episode_index,
+                                                 trial_novelty=novelty,
+                                                 use_image=self._image_by_domain[domain],
+                                                 hint_level=hint_level,
+                                                 phase=self._PHASE)
+                            temp_episodes.append(copy.deepcopy(ep))
+                        # Only shuffle the episodes if not smartenv.
+                        if domain != objects.DOMAIN_SMARTENV:
+                            random.shuffle(temp_episodes)
+
+                        for ep in temp_episodes:
+                            trial_episodes.append(copy.deepcopy(ep))
+
+                        for i in range(len(trial_episodes)):
+                            # Iterate through and give day offsets for smartenv domain.
                             if domain == objects.DOMAIN_SMARTENV:
-                                episode_index = episode_index_z
-                                episode_index_z += 1
-                            else:
-                                episode_index = random.choice(episode_indexes[objects.NOVELTY_200][
-                                                                  difficulty][novelty])
-                                episode_indexes[objects.NOVELTY_200][difficulty][
-                                    novelty].remove(episode_index)
-                        ep = objects.Episode(novelty=objects.NOVELTY_200,
-                                             difficulty=difficulty,
-                                             seed=seed,
-                                             domain=domain,
-                                             data_type=data_type,
-                                             episode_index=episode_index,
-                                             trial_novelty=novelty,
-                                             use_image=self._image_by_domain[domain])
-                        temp_episodes.append(copy.deepcopy(ep))
-                    # We remove 1 from ep_n_level for the episode immediately after the big red
-                    # button is pressed.  Only do this if ep_n_level is greater than 0 and
-                    # self._testing_novelty_p2 is greater than 0.0.
-                    if ep_n_level > 0 and self._testing_novelty_p2 > 0.0:
-                        ep_n_level = ep_n_level - 1
-                    for i in list(range(ep_n_level)):
-                        episode_index = None
-                        # Guarantee unique seeds for every training episode.
-                        seed = random.randint(objects.SEED_NUM_TRAINING,
-                                              objects.SEED_NUM_TESTING)
-                        # We only care about this for live training.
-                        if data_source == objects.SOURCE_LIVE:
-                            while seed in testing_seeds:
-                                seed = random.randint(objects.SEED_NUM_TRAINING,
-                                                      objects.SEED_NUM_TESTING)
-                            testing_seeds.append(seed)
-                        else:
-                            if domain == objects.DOMAIN_SMARTENV:
-                                episode_index = episode_index_l
-                                episode_index_l += 1
-                            else:
-                                episode_index = random.choice(episode_indexes[novelty][difficulty][
-                                    novelty])
-                                episode_indexes[novelty][difficulty][novelty].remove(episode_index)
-                        ep = objects.Episode(novelty=novelty,
-                                             difficulty=difficulty,
-                                             seed=seed,
-                                             domain=domain,
-                                             data_type=data_type,
-                                             episode_index=episode_index,
-                                             trial_novelty=novelty,
-                                             use_image=self._image_by_domain[domain])
-                        temp_episodes.append(copy.deepcopy(ep))
-                    # Only shuffle the episodes if not smartenv.
-                    if domain != objects.DOMAIN_SMARTENV:
-                        random.shuffle(temp_episodes)
+                                trial_episodes[i].day_offset = i
+                            # Set the trial_episode_index for all episodes.
+                            trial_episodes[i].trial_episode_index = i
 
-                    for ep in temp_episodes:
-                        trial_episodes.append(copy.deepcopy(ep))
-
-                    for i in range(len(trial_episodes)):
-                        # Iterate through and give day offsets for smartenv domain.
-                        if domain == objects.DOMAIN_SMARTENV:
-                            trial_episodes[i].day_offset = i
-                        # Set the trial_episode_index for all episodes.
-                        trial_episodes[i].trial_episode_index = i
-
-                    trial = objects.Trial(episodes=trial_episodes,
-                                          novelty=novelty,
-                                          novelty_visibility=novelty_visibility,
-                                          difficulty=difficulty)
-                    trials.append(copy.deepcopy(trial))
-                novelty_group = objects.NoveltyGroup(trials=trials)
-                novelty_groups.append(copy.deepcopy(novelty_group))
+                        trial = objects.Trial(episodes=trial_episodes,
+                                              novelty=novelty,
+                                              novelty_visibility=novelty_visibility,
+                                              difficulty=difficulty,
+                                              hint_level=hint_level)
+                        trials.append(copy.deepcopy(trial))
+                    novelty_group = objects.NoveltyGroup(trials=trials)
+                    novelty_groups.append(copy.deepcopy(novelty_group))
 
         new_experiment = objects.Experiment(training=training,
                                             novelty_groups=novelty_groups,
-                                            budget=self._budget_by_domain[domain])
+                                            budget=self._budget_by_domain[domain],
+                                            phase=self._PHASE)
         return new_experiment
 
     def build_demo_sail_on_experiment(self, domain_id: int, data_source: str) -> objects.Experiment:
@@ -2921,7 +3000,9 @@ class TA1:
                                      data_type=data_type,
                                      episode_index=ep_index,
                                      trial_novelty=i+101,
-                                     use_image=self._image_by_domain[domain])
+                                     use_image=self._image_by_domain[domain],
+                                     hint_level=objects.HINT_NONE,
+                                     phase=self._PHASE)
                 training_episodes.append(copy.deepcopy(ep))
 
             for i in range(len(training_episodes)):
@@ -2947,20 +3028,24 @@ class TA1:
                                              data_type=data_type,
                                              episode_index=ep_index,
                                              trial_novelty=j+101,
-                                             use_image=self._image_by_domain[domain])
+                                             use_image=self._image_by_domain[domain],
+                                             hint_level=objects.HINT_NONE,
+                                             phase=self._PHASE)
                         trial_episodes.append(copy.deepcopy(ep))
                     for i in range(len(trial_episodes)):
                         trial_episodes[i].trial_episode_index = i
                     trial = objects.Trial(episodes=trial_episodes,
                                           novelty=j+101,
                                           novelty_visibility=visibility,
-                                          difficulty=difficulty)
+                                          difficulty=difficulty,
+                                          hint_level=objects.HINT_NONE)
                     novelty_trials.append(copy.deepcopy(trial))
             novelty_group = objects.NoveltyGroup(trials=novelty_trials)
             novelty_groups.append(copy.deepcopy(novelty_group))
             new_experiment = objects.Experiment(training=training,
                                                 novelty_groups=novelty_groups,
-                                                budget=self._budget_by_domain[domain])
+                                                budget=self._budget_by_domain[domain],
+                                                phase=self._PHASE)
         else:
             training_episodes = list()
             for i in list(range(num_eps)):
@@ -2975,7 +3060,9 @@ class TA1:
                                      domain=self.domain_names[domain_id],
                                      data_type=data_type,
                                      episode_index=ep_index,
-                                     use_image=self._image_by_domain[domain])
+                                     use_image=self._image_by_domain[domain],
+                                     hint_level=objects.HINT_NONE,
+                                     phase=self._PHASE)
                 training_episodes.append(copy.deepcopy(ep))
             for i in range(len(training_episodes)):
                 training_episodes[i].trial_episode_index = i
@@ -2998,20 +3085,24 @@ class TA1:
                                          domain=self.domain_names[domain_id],
                                          data_type=data_type,
                                          episode_index=ep_index,
-                                         use_image=self._image_by_domain[domain])
+                                         use_image=self._image_by_domain[domain],
+                                         hint_level=objects.HINT_NONE,
+                                         phase=self._PHASE)
                     trial_episodes.append(copy.deepcopy(ep))
                 for i in range(len(trial_episodes)):
                     trial_episodes[i].trial_episode_index = i
                 trial = objects.Trial(episodes=trial_episodes,
                                       novelty=novelty,
                                       novelty_visibility=visibility,
-                                      difficulty=difficulty)
+                                      difficulty=difficulty,
+                                      hint_level=objects.HINT_NONE)
                 novelty_trials.append(copy.deepcopy(trial))
             novelty_group = objects.NoveltyGroup(trials=novelty_trials)
             novelty_groups.append(copy.deepcopy(novelty_group))
             new_experiment = objects.Experiment(training=training,
                                                 novelty_groups=novelty_groups,
-                                                budget=self._budget_by_domain[domain])
+                                                budget=self._budget_by_domain[domain],
+                                                phase=self._PHASE)
         return new_experiment
 
     def log_ta1_state(self):
@@ -3031,6 +3122,9 @@ class TA1:
                              'image_by_domain': self._image_by_domain,
                              'is_domain_live': self._is_domain_live,
                              'server_novelty': self._server_novelty,
+                             'server_novelty_visibility': self._server_novelty_visibility,
+                             'server_hint_levels': self._server_hint,
+                             'server_phase': self._PHASE,
                              'version': objects.__version__,
                              'exper_no_testing': self._exper_no_testing,
                              'exper_just_one_trial': self._exper_just_one_trial})
@@ -3054,6 +3148,7 @@ class TA1:
             experiment_response = self.handle_experiment_request(experiment_request=request,
                                                                  new_model=model,
                                                                  vhost=self.amqp_vhost,
+                                                                 phase=self._PHASE,
                                                                  errormsgs=errormsgs)
             # Save the model_experiment_id. We need that for trials.
             self.model_experiment_id = experiment_response.model_experiment_id
@@ -3106,6 +3201,7 @@ class TA1:
             experiment_response = self.handle_experiment_request(experiment_request=request,
                                                                  new_model=model,
                                                                  vhost=self.amqp_vhost,
+                                                                 phase=self._PHASE,
                                                                  errormsgs=errormsgs)
             # Save the model_experiment_id. We need that for trials.
             self.model_experiment_id = experiment_response.model_experiment_id
@@ -3525,13 +3621,14 @@ class TA1:
                             novelty_visibility=0,
                             client_rpc_queue='',
                             git_version=objects.__version__,
-                            experiment_type=objects.TYPE_EXPERIMENT_SAIL_ON,
+                            experiment_type=objects.TYPE_EXPERIMENT_SAIL_ON_SOTA,
                             seed=None,
                             domain_dict=request.domain_dict)
                         response = self.handle_experiment_request(
                             experiment_request=ex_request,
                             new_model=model,
                             vhost=self.amqp_vhost,
+                            phase=self._experiment.phase,
                             errormsgs=errormsgs)
 
                     if len(errormsgs) == 0:
@@ -3702,7 +3799,7 @@ class TA1:
                     # the user we have provided.
 
                 if len(errormsgs) == 0:
-                    self.experiment_type = objects.TYPE_EXPERIMENT_SAIL_ON
+                    self.experiment_type = objects.TYPE_EXPERIMENT_SAIL_ON_SOTA
                     # Here we should check if the experiment exists for the model,
                     # if it is for the same vhost, and if it is not complete.
                     self.model_experiment_id = self.get_model_experiment_id_for_work(
@@ -4414,7 +4511,9 @@ class TA1:
                                                     day_offset=episode.day_offset,
                                                     request_timeout=self._AMQP_EXPERIMENT_TIMEOUT,
                                                     use_image=episode.use_image,
-                                                    generator_config=self._exper_generator_config)
+                                                    generator_config=self._exper_generator_config,
+                                                    hint_level=episode.hint_level,
+                                                    phase=episode.phase)
             self._live_thread.start()
             # Get the dataset_id so we can add a new episode.
             domain_id = self.domain_ids[episode.domain]
@@ -4509,6 +4608,11 @@ class TA1:
                 self._live_thread = None
             elif isinstance(response, objects.BasicData):
                 self.episode_data_count += 1
+                if self.episode_data_count == 1:
+                    if 'hint' in response.feature_vector:
+                        self.episode_hint_json = copy.deepcopy(response.feature_vector['hint'])
+                    else:
+                        self.episode_hint_json = None
                 # Grab the domain_id and dataset_id that we are dealing with.
                 domain_id = self.domain_ids[episode.domain]
                 dataset_id = self.dataset_cache[domain_id][episode.data_type][episode.novelty][
@@ -5128,6 +5232,7 @@ class TA1:
                     novelty_probability=request.novelty_probability,
                     novelty_threshold=request.novelty_threshold,
                     novelty_characterization=request.novelty_characterization,
+                    hint_json=self.episode_hint_json,
                     errormsgs=errormsgs)
 
                 if not self.trial_budget_active:
@@ -5209,6 +5314,7 @@ class TA1:
                     novelty_probability=request.novelty_probability,
                     novelty_threshold=request.novelty_threshold,
                     novelty_characterization=request.novelty_characterization,
+                    hint_json=self.episode_hint_json,
                     errormsgs=errormsgs)
 
                 if not self.trial_budget_active:

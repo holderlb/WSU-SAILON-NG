@@ -41,6 +41,13 @@ class SailonViz:
         self.time = None
         self.time_delta = 1.0 / 35.0
 
+        # Set to true for phase 3 (will change enemy / player spawn locations)
+        # for right now just treat as level 1 phase 0
+        if self.level == 50:
+            self.use_new_spawn = True
+        else:
+            self.use_new_spawn = False
+
         # Set internal params
         self.step_limit = 2000
         self.actions = {'nothing': [False, False, False, False, False, 0],
@@ -52,14 +59,24 @@ class SailonViz:
                         'turn_left': [False, False, False, False, False, -45],
                         'turn_right': [False, False, False, False, False, 45]}
 
+        if self.level == 53:
+            if self.difficulty == 'easy':
+                buckets = 50
+            if self.difficulty == 'medium':
+                buckets = 40
+            if self.difficulty == 'hard':
+                buckets = 30
+
+            self.bucket_vals = np.arange(-512, 512, step=1023.9 / buckets)
+
         # Decide on agent behvoiur here
-        self.Agents = Agents(self.level, self.difficulty, self.use_mock)
+        self.Agents = Agents(self.level, self.difficulty, self.use_mock, seed)
 
         # Make and load game parameters here
         game = vzd.DoomGame()
         package_path = self.path + "vizdoom/"
         game.load_config(package_path + 'basic.cfg')
-        game.set_doom_scenario_path(package_path + "phase_2_reduced.wad")
+        game.set_doom_scenario_path(package_path + "phase_3_reduced.wad")
 
         # Set in game limit
         game.set_episode_timeout(self.step_limit)
@@ -92,11 +109,11 @@ class SailonViz:
         game.add_available_game_variable(vzd.vizdoom.USER43)
 
         # Send level speicfic info here (filtered in wad to select right novelty)
-        level_string = str((self.level * 10) + int(self.use_novel))
-        game.add_game_args("+set novelty " + level_string)
+        game.add_game_args("+set novelty " + str(self.level))
         conv = {'easy': 1, 'medium': 2, 'hard': 3}
         difficulty_str = str(conv[self.difficulty])
         game.add_game_args("+set difficulty_n " + difficulty_str)
+        game.add_game_args("+set use_new_spawn" + str(self.use_new_spawn))
 
         # Enables information about all objects present in the current episode/level.
         game.set_objects_info_enabled(True)
@@ -224,6 +241,8 @@ class SailonViz:
         # If we haven't already shown or saved the plot, then we need to
         # draw the figure first...
         plt.legend(loc='center right', handlelength=0)
+        plt.ylabel('Y-axis')
+        plt.xlabel('X-axis')
         fig.canvas.draw()
 
         # Now we can save it to a numpy array.
@@ -269,17 +288,29 @@ class SailonViz:
                             self.enemies_health[object.id] = game_vars[i]
                             self.id_to_cvar[object.id] = i + 1
 
-
         # Start formatting the data
         data = {'enemies': [], 'items': {'health': [], 'ammo': [], 'trap': [], 'obstacle': []}}
         for object in state.objects:
             # print(object.name)
             # Base entity information
-            entity = {'id': int(object.id),
-                      'angle': round(object.angle, 4),
-                      'x_position': round(float(object.position_x), 4),
-                      'y_position': round(float(object.position_y), 4),
-                      'z_position': round(float(object.position_z), 4)}
+            if self.level != 53:
+                entity = {'id': int(object.id),
+                          'angle': round(object.angle, 4),
+                          'x_position': round(float(object.position_x), 4),
+                          'y_position': round(float(object.position_y), 4),
+                          'z_position': round(float(object.position_z), 4)}
+            # This is for bucketing phase 1 level 3
+            else:
+                entity = {'id': int(object.id),
+                          'angle': round(object.angle, 4),
+                          'x_position': round(float(object.position_x), 4),
+                          'y_position': round(float(object.position_y), 4),
+                          'z_position': round(float(object.position_z), 4)}
+
+                entity['x_position'] = self.bucket_vals[(np.abs(self.bucket_vals - entity['x_position'])).argmin()]
+                entity['x_position'] = round(entity['x_position'], 4)
+                entity['y_position'] = self.bucket_vals[(np.abs(self.bucket_vals - entity['y_position'])).argmin()]
+                entity['y_position'] = round(entity['y_position'], 4)
 
             # Check for player
             if object.name == 'Doomer':
@@ -317,6 +348,9 @@ class SailonViz:
                                           'y1': round(line.y1, 2), 'y2': round(line.y2, 2)})
             self.walls = data['walls']
 
+        if initial:
+            self.Agents.walls = self.walls
+
         return data
 
     def reset(self):
@@ -337,3 +371,4 @@ class SailonViz:
         observation = self.get_state(initial=True)
 
         return observation
+

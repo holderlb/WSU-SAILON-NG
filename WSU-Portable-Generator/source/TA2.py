@@ -66,7 +66,7 @@ class TA2Agent(TA2Logic):
         self.possible_answers = list()
         # This variable can be set to true and the system will attempt to end training at the
         # completion of the current episode, or sooner if possible.
-        self.end_training_early = False
+        self.end_training_early = True
         # This variable is checked only during the evaluation phase.  If set to True the system
         # will attempt to cleanly end the experiment at the conclusion of the current episode,
         # or sooner if possible.

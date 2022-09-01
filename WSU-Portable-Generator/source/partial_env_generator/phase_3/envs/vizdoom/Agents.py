@@ -1,25 +1,41 @@
 import random
 import numpy as np
 
+FORWARD = 1
+BACKWARD = 2
+LEFT = 3
+RIGHT = 4
+TLEFT = 5
+TRIGHT = 6
+SHOOT = 7
+NOTHING = 8
+
 
 class Agents:
 
-    def __init__(self, level, difficulty, mock):
+    def __init__(self, level, difficulty, mock, seed):
+        np.random.seed(seed)
+        random.seed(seed)
+        # level and novelty selections
         self.level = level
         self.difficulty = difficulty
         self.mock = mock
 
         # Set looking bounds (vision cone)
-        self.left_side = 7 / 8 * np.pi
+        self.left_side = np.pi * 7 / 8
         self.right_side = np.pi / 8
 
         self.id_to_cvar = None
 
-        self.last_dist = np.zeros((4, 4))
-        self.last = [10] * 4
-        self.lastlast = [10] * 4
-        self.hunting = False
+        # Used for checking wall colision
         self.walls = None
+
+        # Used for check
+        self.last_dist = np.zeros((4, 4))
+
+        # Mock novelties
+        # Used for revealed novelty 7
+        self.covers = None
 
         return None
 
@@ -36,19 +52,23 @@ class Agents:
             commands.append("set ai_" + str(ind + 1) + " " + str(3))
 
         # Enemies move towards player
-        if self.level == 3:
+        if self.level == 103:
             commands = self.move_towards(state, commands)
 
         # Enemies move away from avg
-        elif self.level == 5:
+        elif self.level == 105:
             commands = self.spread_out(state, commands)
+
+        # Enemies move away from avg
+        elif self.level == 107:
+            commands = self.take_cover(state, commands)
 
         # Any other is pure random
         else:
             commands = []
             # Random behavoiur:
             for ind in range(4):
-                action = random.choice(list(range(7))) + 1
+                action = random.choice([FORWARD, BACKWARD, LEFT, RIGHT, TLEFT, TRIGHT, SHOOT])
                 commands.append("set ai_" + str(ind + 1) + " " + str(action))
 
         # Enemies always check for facing to see if shoot
@@ -59,6 +79,7 @@ class Agents:
 
         return commands
 
+    # Novelty 103
     # Move agent towards player
     def move_towards(self, state, commands):
         for ind, val in enumerate(state['enemies']):
@@ -81,6 +102,8 @@ class Agents:
 
         return commands
 
+    # Novelty 105
+    # Enemies move away
     def spread_out(self, state, commands):
         # Find avg pos
         avg_x = 0.0
@@ -116,6 +139,61 @@ class Agents:
 
         return commands
 
+    # Novelty 107
+    # Enemies move away from player behind cover
+    def take_cover(self, state, commands):
+        if self.difficulty == 'easy':
+            cover_dist = 256
+        elif self.difficulty == 'medium':
+            cover_dist = 128
+        elif self.difficulty == 'hard':
+            cover_dist = 64
+
+        # Assign closet obstacle to agent
+        if self.covers is None:
+            self.covers = {}
+            for en_ind, enemy in enumerate(state['enemies']):
+                enemy_pos = np.asarray([enemy['x_position'], enemy['y_position']])
+                min_dist = None
+
+                for obs_ind, obstacle in enumerate(state['items']['obstacle']):
+                    obs_pos = np.asarray([obstacle['x_position'], obstacle['y_position']])
+                    dist = np.linalg.norm(enemy_pos - obs_pos)
+                    if min_dist is None or dist < min_dist:
+                        min_dist = dist
+                        self.covers[en_ind] = obs_ind
+
+        # TODO: This is default goto script, make better
+        for ind, val in enumerate(state['enemies']):
+            obs = state['items']['obstacle'][self.covers[ind]]
+            # Determine point to go to
+            obs_pos = np.asarray([obs['x_position'], obs['y_position']])
+            player_pos = np.asarray([state['player']['x_position'], state['player']['y_position']])
+
+            angle = np.arctan2(obs_pos[0] - player_pos[0], obs_pos[1] - player_pos[1])
+
+            goal = {'x_position': obs_pos[0] + -np.cos(angle) * cover_dist,
+                    'y_position': obs_pos[1] + -np.sin(angle) * cover_dist}
+
+            # Get info
+            angle, sign = self.get_angle(goal, val)
+
+            if angle < self.right_side:
+                # Forward, left, right, shoot?
+                action = random.choice([FORWARD, LEFT, RIGHT])
+            else:
+                if sign == -1.0:
+                    # Turn right
+                    action = TLEFT
+                else:
+                    # Turn left
+                    action = TRIGHT
+
+            # Send ai action
+            commands[self.id_to_cvar[val['id']] - 1] = "set ai_" + str(self.id_to_cvar[val['id']]) + " " + str(action)
+
+        return commands
+
     # Enemies shoot at player
     def check_shoot(self, state, commands):
         for ind, val in enumerate(state['enemies']):
@@ -123,13 +201,11 @@ class Agents:
             for command in commands:
                 if "ai_" + str(self.id_to_cvar[val['id']]) in command:
                     my_command = command
-            if '9' in my_command:
-                continue
 
             angle, sign = self.get_angle(state['player'], val)
 
             if angle < self.right_side:
-                if np.random.rand() > 0.5:
+                if random.random() > 0.5:
                     # Shoot is action = 7
                     commands[self.id_to_cvar[val['id']] - 1] = "set ai_" + str(self.id_to_cvar[val['id']]) + " " + str(7)
 
@@ -197,7 +273,7 @@ class Agents:
         # If its buggy throw random value out
         #TODO: Figure out why an enemy is in the exact same pos as player
         if np.linalg.norm(np.asarray([pl_x - en_x, pl_y - en_y])) == 0:
-            return np.random.rand() * 3.14, 1
+            return random.random() * 3.14, 1
 
         enemy_face_vector = np.asarray([pl_x - en_x, pl_y - en_y]) / np.linalg.norm(
             np.asarray([pl_x - en_x, pl_y - en_y]))

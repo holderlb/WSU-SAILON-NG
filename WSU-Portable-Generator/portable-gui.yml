@@ -20,7 +20,7 @@ services:
     environment:
       - POSTGRES_USER=aiq_user
       - POSTGRES_PASSWORD=gvC1Ik5i3w
-      - POSTGRES_DB=aiq_data_v0_5
+      - POSTGRES_DB=aiq_data_v0_6
 
   # The TA1 service.
   # We use a custom service name for each service variant so we can have multiple versions

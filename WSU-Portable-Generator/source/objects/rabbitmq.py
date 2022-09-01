@@ -458,6 +458,7 @@ class Connection:
             model=model,
             experiment_secret=experiment_secret,
             client_rpc_queue=self._client_rpc_queue,
+            experiment_type=objects.TYPE_EXPERIMENT_SAIL_ON,
             just_one_trial=just_one_trial,
             domain_dict=domain_dict,
             generator_config=generator_config)
@@ -494,7 +495,7 @@ class Connection:
             novelty_visibility=0,
             client_rpc_queue=self._client_rpc_queue,
             git_version=objects.__version__,
-            experiment_type=objects.TYPE_EXPERIMENT_SAIL_ON,
+            experiment_type=objects.TYPE_EXPERIMENT_SAIL_ON_SOTA,
             seed=seed,
             domain_dict=domain_dict,
             no_testing=no_testing,
@@ -527,6 +528,7 @@ class Connection:
             model=model,
             experiment_secret=experiment_secret,
             client_rpc_queue=self._client_rpc_queue,
+            experiment_type=objects.TYPE_EXPERIMENT_SAIL_ON_SOTA,
             just_one_trial=just_one_trial,
             domain_dict=domain_dict)
 
@@ -538,7 +540,7 @@ class Connection:
 
     def start_generator(self, domain: str, novelty: int, difficulty: str, seed: int,
                         trial_novelty: int, day_offset: int, request_timeout: int, use_image: bool,
-                        generator_config: dict = None):
+                        hint_level: int, phase: str, generator_config: dict = None):
         self.log.debug('start_generator()')
 
         if self._client_rpc_queue is None:
@@ -562,7 +564,9 @@ class Connection:
             day_offset=day_offset,
             request_timeout=request_timeout,
             use_image=use_image,
-            generator_config=generator_config)
+            generator_config=generator_config,
+            hint_level=hint_level,
+            phase=phase)
 
         response = self._set_system_request(casas_object=start_gen,
                                             queue_name=objects.LIVE_GENERATOR_QUEUES[domain],

@@ -49,7 +49,8 @@ ALTER TYPE public.difficulty_type OWNER TO aiq_user;
 
 CREATE TYPE public.experiment_types AS ENUM (
     'AIQ',
-    'SAIL-ON'
+    'SAIL-ON',
+    'SAIL-ON-SOTA'
 );
 
 
@@ -335,7 +336,8 @@ CREATE TABLE public.experiment_trial (
     utc_stamp_ended timestamp without time zone,
     locked_by uuid,
     is_complete boolean DEFAULT false NOT NULL,
-    utc_last_updated timestamp without time zone
+    utc_last_updated timestamp without time zone,
+    hint_level smallint DEFAULT -1 NOT NULL
 );
 
 
@@ -390,7 +392,8 @@ CREATE TABLE public.model_experiment (
     sota_experiment_id bigint,
     is_active boolean DEFAULT true NOT NULL,
     experiment_json json,
-    vhost text NOT NULL
+    vhost text NOT NULL,
+    phase text DEFAULT '3' NOT NULL
 );
 
 
@@ -595,7 +598,9 @@ CREATE TABLE public.trial_episode (
     utc_stamp_started timestamp without time zone,
     utc_stamp_ended timestamp without time zone,
     novelty_threshold numeric,
-    budget_active boolean DEFAULT false NOT NULL
+    budget_active boolean DEFAULT false NOT NULL,
+    hint_json jsonb,
+    hint_level smallint DEFAULT -1 NOT NULL
 );
 
 
@@ -862,11 +867,11 @@ ALTER TABLE ONLY public.experiment_log
 
 
 --
--- Name: experiment_trial experiment_trial_mod_ex_id_trial_novelty_novelty_vis_difficulty; Type: CONSTRAINT; Schema: public; Owner: aiq_user
+-- Name: experiment_trial experiment_trial_mod_ex_id_trial_nov_nov_vis_diff_hint; Type: CONSTRAINT; Schema: public; Owner: aiq_user
 --
 
 ALTER TABLE ONLY public.experiment_trial
-    ADD CONSTRAINT experiment_trial_mod_ex_id_trial_novelty_novelty_vis_difficulty UNIQUE (model_experiment_id, trial, novelty, novelty_visibility, difficulty);
+    ADD CONSTRAINT experiment_trial_mod_ex_id_trial_nov_nov_vis_diff_hint UNIQUE (model_experiment_id, trial, novelty, novelty_visibility, difficulty, hint_level);
 
 
 --
@@ -1215,6 +1220,13 @@ CREATE INDEX experiment_trial_utc_last_updated_index ON public.experiment_trial 
 
 
 --
+-- Name: experiment_trial_hint_level_index; Type: INDEX; Schema: public; Owner: aiq_user
+--
+
+CREATE INDEX experiment_trial_hint_level_index ON public.experiment_trial USING btree (hint_level);
+
+
+--
 -- Name: model_experiment_git_version_index; Type: INDEX; Schema: public; Owner: aiq_user
 --
 
@@ -1282,6 +1294,13 @@ CREATE INDEX model_experiment_utc_stamp_started_index ON public.model_experiment
 --
 
 CREATE INDEX model_experiment_vhost_index ON public.model_experiment USING btree (vhost);
+
+
+--
+-- Name: model_experiment_phase_index; Type: INDEX; Schema: public; Owner: aiq_user
+--
+
+CREATE INDEX model_experiment_phase_index ON public.model_experiment USING btree (phase);
 
 
 --

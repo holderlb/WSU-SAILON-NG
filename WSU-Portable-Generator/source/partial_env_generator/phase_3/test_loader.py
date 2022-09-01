@@ -1,5 +1,6 @@
 # Used for time since epoch sensor
 import copy
+import datetime
 import sys
 import json
 import random
@@ -10,6 +11,8 @@ import numpy as np
 from base64 import b64encode
 import blosc
 
+from .hints import Selector
+
 
 class TestLoader:
 
@@ -17,7 +20,7 @@ class TestLoader:
                  seed: int = 0, difficulty: str = 'easy', day_offset: int = 0,
                  week_shift: int = None, generate_days: int = None, use_img: bool = False,
                  path: str = "env_generator/envs/", use_gui: bool = False,
-                 ta2_generator_config: dict = None):
+                 ta2_generator_config: dict = None, hint_level: int = -1, phase: str = '3'):
         # Set internal params
         self.domain = domain
         self.novelty_level = novelty_level
@@ -31,6 +34,10 @@ class TestLoader:
         self.path = path
         self.use_gui = use_gui
         self.ta2_generator_config = copy.deepcopy(ta2_generator_config)
+        self.hint_level = hint_level
+        self.phase = phase
+        self.max_episode_time = datetime.timedelta(minutes=5)
+        self.stamp_episode_start = datetime.datetime.now()
 
         # Set the custom seed if provided.
         if self.ta2_generator_config is not None:
@@ -46,12 +53,11 @@ class TestLoader:
 
         if self.novelty_level in [50, 51, 52, 53]:
             self.use_phase_one = True
-        elif self.novelty_level in [101, 102, 103, 104, 105]:
+        elif self.novelty_level in [101, 102, 103, 104, 105, 106, 107, 108]:
             self.use_mock = True
-        elif self.novelty_level in [201, 202, 203, 204, 205]:
-            self.use_novel = True
-            print('Real novelties [201-205] are not included in portable generator')
-            raise Exception("Invalid novelty level sent to test_loader!")
+        elif self.novelty_level in [201, 202, 203, 204, 205, 206, 207, 208]:
+            print('WARNING! REAL NOVELTY IS NOT HERE')
+            print('ITS IN ANOTHER CASTLE!')
         elif self.novelty_level in [200]:
             None
         else:
@@ -61,7 +67,7 @@ class TestLoader:
 
         # Convert trial level to nums
         self.trial = int(str(self.trial_novelty)[-1])
-        if self.trial < 0 or self.trial >= 7:
+        if self.trial < 0 or self.trial >= 20:
             raise Exception("Invalid trial level sent to test_loader!")
 
         # Do a little catching here for difficulty
@@ -82,6 +88,12 @@ class TestLoader:
         self.sensors = None
         self.actions = None
         self.response = None
+
+        # Get hint here
+        self.hint = Selector().get_hint(domain=self.domain,
+                                        novelty_level=self.novelty_level,
+                                        hint_level=self.hint_level)
+        self.hint_sent = False
 
         # Set seeds (thread wide here)
         random.seed(self.seed)
@@ -114,6 +126,12 @@ class TestLoader:
                     from .envs.cartpolepp.m_4 import CartPolePPMock4 as CartPole
                 elif self.level == 5:
                     from .envs.cartpolepp.m_5 import CartPolePPMock5 as CartPole
+                elif self.level == 6:
+                    from .envs.cartpolepp.m_6 import CartPolePPMock6 as CartPole
+                elif self.level == 7:
+                    from .envs.cartpolepp.m_7 import CartPolePPMock7 as CartPole
+                elif self.level == 8:
+                    from .envs.cartpolepp.m_8 import CartPolePPMock8 as CartPole
 
             # Old phase 1 rebuilt in 3d
             elif self.use_phase_one:
@@ -182,6 +200,9 @@ class TestLoader:
         self.obs = obs
         self.is_done = False
         self.info = {}
+        self.hint_sent = False
+
+        self.stamp_episode_start = datetime.datetime.now()
 
         return None
 
@@ -199,6 +220,10 @@ class TestLoader:
         self.reward = reward
         self.is_done = done
         self.info = info
+
+        if abs(datetime.datetime.now() - self.stamp_episode_start) > self.max_episode_time:
+            self.is_done = True
+            self.reward = reward
 
         return None
 
@@ -238,6 +263,10 @@ class TestLoader:
         if self.response['sensors']['image'] is not None:
             comp_img = blosc.pack_array(self.response['sensors']['image'])
             self.response['sensors']['image'] = b64encode(comp_img).decode('ascii')
+
+        if not self.hint_sent:
+            self.hint_sent = True
+            self.response['sensors']['hint'] = self.hint
 
         # Send response
         return self.response

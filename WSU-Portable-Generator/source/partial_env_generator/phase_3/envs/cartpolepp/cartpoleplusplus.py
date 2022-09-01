@@ -6,7 +6,7 @@ Copied from http://incompleteideas.net/book/code/pole.c
 import os
 import sys
 import time
-
+import random
 import gym
 from gym import spaces
 from gym.utils import seeding
@@ -37,6 +37,7 @@ class CartPoleBulletEnv(gym.Env):
         self.angle_limit = 10.0 * np.pi / 180.0 # 10 degrees in radians
         self.actions = ['right', 'left', 'forward', 'backward', 'nothing']
         self.tick_limit = 200
+        self.gravity = -9.8
 
         # Internal params
         self.params = params
@@ -68,6 +69,7 @@ class CartPoleBulletEnv(gym.Env):
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
+        random.seed(seed)
         return None
 
     def step(self, action):
@@ -114,6 +116,9 @@ class CartPoleBulletEnv(gym.Env):
 
         # Apply correccted forces
         p.applyExternalForce(self.cartpole, 0, (fx, fy, 0.0), (0, 0, 0), p.LINK_FRAME)
+        # Rotation forces
+        # p.applyExternalForce(self.cartpole, 0, (1, 0, 0.0), (1.0, 1.0, 0), p.LINK_FRAME)
+        # p.applyExternalForce(self.cartpole, 0, (-1, 0, 0.0), (-1.0, 0, 0), p.LINK_FRAME)
 
         # Apply anti-gravity to blocks
         for i in self.blocks:
@@ -199,7 +204,7 @@ class CartPoleBulletEnv(gym.Env):
         # Load world simulation
         p = self._p
         p.resetSimulation()
-        p.setGravity(0, 0, -9.8)
+        p.setGravity(0, 0, self.gravity)
         p.setTimeStep(self.timeStep)
         p.setRealTimeSimulation(0)
 
@@ -258,7 +263,7 @@ class CartPoleBulletEnv(gym.Env):
             p.removeBody(i)
 
         # Load blocks in
-        self.nb_blocks = np.random.randint(3) + 2
+        self.nb_blocks = random.randint(0, 2) + 2
         self.blocks = [None] * self.nb_blocks
         for i in range(self.nb_blocks):
             self.blocks[i] = p.loadURDF(os.path.join(self.path, 'models', 'block.urdf'))
@@ -285,7 +290,7 @@ class CartPoleBulletEnv(gym.Env):
         for i in self.blocks:
             vel = self.np_random.uniform(low=6.0, high=10.0, size=(3,))
             for ind, val in enumerate(vel):
-                if np.random.rand() < 0.5:
+                if random.random() < 0.5:
                     vel[ind] = val * -1
 
             p.resetBaseVelocity(i, vel, [0, 0, 0])
