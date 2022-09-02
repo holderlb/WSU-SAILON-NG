@@ -122,7 +122,7 @@ You can change some of the experiment parameters using the `configs/partial/TA1.
   total_trials = trials * len(novelty) * len(difficulty) * len(novelty_visibility)
   ```
 * `[sail-on].novelty` (comma separated list) are the novelties the TA1 will use in building a new
-  experiment. For our internal system `200` represents level-0 novelty and `101`-`105` represents
+  experiment. For our internal system `200` represents level-0 novelty and `101`-`108` represents
   the mock novelties.
 * `[sail-on].difficulty` (comma separated list) are the difficulties the TA1 will use in building
   a new experiment. Valid options are `easy`, `medium`, and `hard`.
