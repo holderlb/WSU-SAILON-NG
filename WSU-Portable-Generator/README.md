@@ -119,7 +119,11 @@ You can change some of the experiment parameters using the `configs/partial/TA1.
 * `[sail-on].trials` (int) changes the number of trials per novelty/difficulty/visibility
   combination. The *total* number of trials in an experiment is
   ```
-  total_trials = trials * len(novelty) * len(difficulty) * len(novelty_visibility)
+  total_trials = 0
+  if 0 in novelty_visibility:
+      total_trials += trials * len(novelty) * len(difficulty)
+  if 1 in novelty_visibility:
+      total_trials += trials * len(novelty) * len(difficulty) * len(hint_level)
   ```
 * `[sail-on].novelty` (comma separated list) are the novelties the TA1 will use in building a new
   experiment. For our internal system `200` represents level-0 novelty and `101`-`108` represents
