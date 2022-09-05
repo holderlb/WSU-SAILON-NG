@@ -224,6 +224,35 @@ The first call will have an additional two feature vectors:
     }
 ```
 
+<a name="samplehints">
+
+## List of Mock Hints
+
+Table of how hints are returned using hint level:
+
+HintLevel | NoveltyLevel | Entity | Attribute | Change
+---|---|---|---|---
+-1 | None | None | None | None
+0 | Given | None | None | None
+1 | Given | Given | None | None
+2 | Given | Given | Given | None
+3 | Given | Given | Given | Given
+
+Table of hints for mock novelties:
+
+Level | Entity | Attribute | Change
+---|---|---|---
+1 | health | quanatity | decrease
+2 | enemy | speed | increase
+3 | enemy | direction | toward player
+4 | enemy | damage | increasing
+5 | enemy | direction | away enemy
+6 | enemy | position | shift
+6 | player | position | shift
+7 | enemy | direction | toward obstacle
+8 | ammo | quantity | decreasing
+8 | health | quantity | decreasing
+
 <a name="actionlabel">
 
 ## Action Label

@@ -181,6 +181,35 @@ also called Mock novelties. These are described below.
 The implementations of these mock novelties can be found in the folder
 [WSU-Portable-Generator/source/partial_env_generator/envs/cartpolepp](https://github.com/holderlb/WSU-SAILON-NG/tree/master/WSU-Portable-Generator/source/partial_env_generator/envs/cartpolepp).
 
+<a name="samplehints">
+
+## List of Mock Hints
+
+Table of how hints are returned using hint level:
+
+HintLevel | NoveltyLevel | Entity | Attribute | Change
+---|---|---|---|---
+-1 | None | None | None | None
+0 | Given | None | None | None
+1 | Given | Given | None | None
+2 | Given | Given | Given | None
+3 | Given | Given | Given | Given
+
+Table of hints for mock novelties:
+
+Level | Entity | Attribute | Change
+---|---|---|---
+1 | cart | mass | increase
+2 | block | speed | decrease
+2 | block | mass | increase
+3 | block | direction | toward location
+4 | block | size | increase
+5 | block | direction | toward block
+6 | block | gravity | increase
+7 | block | direction | toward location
+8 | block | quantity | increasing
+
+
 <a name="phase1revealednovelty">
 
 ## Phase 1 Revealed Novelty
