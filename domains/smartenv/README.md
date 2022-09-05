@@ -85,35 +85,6 @@ The first call will have an additional feature vector:
     }
 ```
 
-
-<a name="samplehints">
-
-## List of Mock Hints
-
-Table of how hints are returned using hint level:
-
-HintLevel | NoveltyLevel | Entity | Attribute | Change
----|---|---|---|---
--1 | None | None | None | None
-0 | Given | None | None | None
-1 | Given | Given | None | None
-2 | Given | Given | Given | None
-3 | Given | Given | Given | Given
-
-Table of hints for mock novelties:
-
-Level | Entity | Attribute | Change
----|---|---|---
-1 | sensor | quantity | decrease
-2 | sensor | variance | decrease
-3 | activity | distribution | shift
-4 | sensor | correlation | increase
-5 | inhabitant | quantity | increase
-6 | sensor | frequency | shift
-7 | leave_home | quantity | increase
-7 | enter_home | quantity | increase
-8 | sensor | frequency | decrease
-
 <a name="actionlabel">
 
 ## Activity Label Response and Feedback
@@ -170,6 +141,34 @@ also called Mock novelties. These are described below.
 * Level 6: Sensor values provided at random times.
 * Level 7: Inhabitant spends more time outside of home.
 * Level 8: Multiple days of data compressed into one.
+
+<a name="samplehints">
+
+## List of Mock Hints
+
+Table of how hints are returned using hint level:
+
+HintLevel | NoveltyLevel | Entity | Attribute | Change
+---|---|---|---|---
+-1 | None | None | None | None
+0 | Given | None | None | None
+1 | Given | Given | None | None
+2 | Given | Given | Given | None
+3 | Given | Given | Given | Given
+
+Table of hints for mock novelties:
+
+Level | Entity | Attribute | Change
+---|---|---|---
+1 | sensor | quantity | decrease
+2 | sensor | variance | decrease
+3 | activity | distribution | shift
+4 | sensor | correlation | increase
+5 | inhabitant | quantity | increase
+6 | sensor | frequency | shift
+7 | leave_home | quantity | increase
+7 | enter_home | quantity | increase
+8 | sensor | frequency | decrease
 
 <a name="phase1revealednovelty">
 
