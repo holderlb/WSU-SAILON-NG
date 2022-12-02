@@ -62,8 +62,30 @@ class ThreadedTestHandler(threading.Thread):
 
     def run(self):
         # Initialize GENERATOR here with novelty, difficulty, and seed.
-        if self.phase == objects.PHASE_3:
+        if self.phase == objects.PHASE_2:
+            from env_generator.phase_2.test_handler import TestHandler as TestHandler_2
+            self.response_queue.put(TestHandler_2(domain=self.domain,
+                                                  novelty=self.novelty,
+                                                  difficulty=self.difficulty,
+                                                  seed=self.seed,
+                                                  trial_novelty=self.trial_novelty,
+                                                  day_offset=self.day_offset,
+                                                  use_img=self.use_image,
+                                                  ta2_generator_config=self.ta2_generator_config))
+        elif self.phase == objects.PHASE_3:
             self.response_queue.put(TestHandler_3(domain=self.domain,
+                                                  novelty=self.novelty,
+                                                  difficulty=self.difficulty,
+                                                  seed=self.seed,
+                                                  trial_novelty=self.trial_novelty,
+                                                  day_offset=self.day_offset,
+                                                  use_img=self.use_image,
+                                                  ta2_generator_config=self.ta2_generator_config,
+                                                  hint_level=self.hint_level,
+                                                  phase=self.phase))
+        elif self.phase in [objects.PHASE_4A, objects.PHASE_4B]:
+            from env_generator.phase_4.test_handler import TestHandler as TestHandler_4
+            self.response_queue.put(TestHandler_4(domain=self.domain,
                                                   novelty=self.novelty,
                                                   difficulty=self.difficulty,
                                                   seed=self.seed,

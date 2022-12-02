@@ -337,7 +337,9 @@ CREATE TABLE public.experiment_trial (
     locked_by uuid,
     is_complete boolean DEFAULT false NOT NULL,
     utc_last_updated timestamp without time zone,
-    hint_level smallint DEFAULT -1 NOT NULL
+    hint_level smallint DEFAULT -1 NOT NULL,
+    filename text,
+    is_data_imported boolean DEFAULT false NOT NULL
 );
 
 
@@ -1045,13 +1047,6 @@ CREATE INDEX data_episode_id_index ON public.data USING btree (episode_id);
 
 
 --
--- Name: data_feature_vector_index; Type: INDEX; Schema: public; Owner: aiq_user
---
-
-CREATE INDEX data_feature_vector_index ON public.data USING btree (feature_vector);
-
-
---
 -- Name: data_label_index; Type: INDEX; Schema: public; Owner: aiq_user
 --
 
@@ -1224,6 +1219,20 @@ CREATE INDEX experiment_trial_utc_last_updated_index ON public.experiment_trial 
 --
 
 CREATE INDEX experiment_trial_hint_level_index ON public.experiment_trial USING btree (hint_level);
+
+
+--
+-- Name: experiment_trial_filename_index; Type: INDEX; Schema: public; Owner: aiq_user
+--
+
+CREATE INDEX experiment_trial_filename_index ON public.experiment_trial USING btree (filename);
+
+
+--
+-- Name: experiment_trial_is_data_imported_index; Type: INDEX; Schema: public; Owner: aiq_user
+--
+
+CREATE INDEX experiment_trial_is_data_imported_index ON public.experiment_trial USING btree (is_data_imported);
 
 
 --

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import copy
 import json
-import random
 
 from .test_loader import TestLoader
 

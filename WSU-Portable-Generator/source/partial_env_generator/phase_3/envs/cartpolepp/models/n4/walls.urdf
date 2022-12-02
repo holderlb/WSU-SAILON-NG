@@ -1,0 +1,171 @@
+<?xml version="1.0"?>
+<robot name="wall">
+
+    <link name="wall1">
+        <visual>
+            <geometry>
+                <box size="50.1 50.0 50.1" />
+            </geometry>
+            <origin xyz="0.0 -30 5"/>
+            <material name="orange">
+                <color rgba="1.0 0.8 0.5 0.2"/>
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="50.1 50.0 50.1" />
+            </geometry>
+            <origin xyz="0.0 -30.1 5"/>
+        </collision>
+        <inertial>
+            <mass value="0.0"/>
+            <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+        </inertial>
+    </link>
+
+    <joint name="w1" type="fixed">
+        <axis xyz="1 0 0"/>
+        <origin xyz="0.0 0.0 0.0"/>
+        <parent link="wall1"/>
+        <child link="wall2"/>
+    </joint>
+
+    <link name="wall2">
+        <visual>
+            <geometry>
+                <box size="50.1 50 50.1" />
+            </geometry>
+            <origin xyz="0 30 5"/>
+            <material name="orange">
+                <color rgba="1.0 0.8 0.5 0.2"/>
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="50.1 50 50.1" />
+            </geometry>
+            <origin xyz="0 30 5"/>
+        </collision>
+        <inertial>
+            <mass value="0.0"/>
+            <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+        </inertial>
+    </link>
+
+    <joint name="w2" type="fixed">
+        <axis xyz="1 0 0"/>
+        <origin xyz="0.0 0.0 0.0"/>
+        <parent link="wall2"/>
+        <child link="wall3"/>
+    </joint>
+
+    <link name="wall3">
+        <visual>
+            <geometry>
+                <box size="50 50.1 50.1" />
+            </geometry>
+            <origin xyz="-30 0 5"/>
+            <material name="orange">
+                <color rgba="1.0 0.8 0.5 0.2"/>
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="50 50.1 50.1" />
+            </geometry>
+            <origin xyz="-30 0 5"/>
+        </collision>
+        <inertial>
+            <mass value="0.0"/>
+            <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+        </inertial>
+    </link>
+
+    <joint name="w3" type="fixed">
+        <axis xyz="1 0 0"/>
+        <origin xyz="0.0 0.0 0.0"/>
+        <parent link="wall3"/>
+        <child link="wall4"/>
+    </joint>
+
+    <link name="wall4">
+        <visual>
+            <geometry>
+                <box size="50 50.1 50.1" />
+            </geometry>
+            <origin xyz="30 0 5"/>
+            <material name="orange">
+                <color rgba="1.0 0.8 0.5 0.2"/>
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="50 50.1 50.1" />
+            </geometry>
+            <origin xyz="30 0 5"/>
+        </collision>
+        <inertial>
+            <mass value="0.0"/>
+            <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+        </inertial>
+    </link>
+
+    <joint name="w4" type="fixed">
+        <axis xyz="1 0 0"/>
+        <origin xyz="0.0 0.0 0.0"/>
+        <parent link="wall4"/>
+        <child link="wall5"/>
+    </joint>
+
+    <link name="wall5">
+        <visual>
+            <geometry>
+                <box size="50.1 50.1 50" />
+            </geometry>
+            <origin xyz="0 0 35"/>
+            <material name="orange">
+                <color rgba="1.0 0.8 0.5 0.2"/>
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="50.1 50.1 50" />
+            </geometry>
+            <origin xyz="0 0 35"/>
+        </collision>
+        <inertial>
+            <mass value="0.0"/>
+            <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+        </inertial>
+    </link>
+
+    <joint name="w5" type="fixed">
+        <axis xyz="1 0 0"/>
+        <origin xyz="0.0 0.0 0.0"/>
+        <parent link="wall5"/>
+        <child link="wall6"/>
+    </joint>
+
+    <link name="wall6">
+        <visual>
+            <geometry>
+                <box size="50.1 50.1 50" />
+            </geometry>
+            <origin xyz="0 0 -25"/>
+            <material name="white">
+                <color rgba="1.0 1.0 1.0 0.3"/>
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="50.1 50.1 50" />
+            </geometry>
+            <origin xyz="0 0 -25"/>
+        </collision>
+        <inertial>
+            <mass value="0.0"/>
+            <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+        </inertial>
+    </link>
+
+</robot>

@@ -70,7 +70,7 @@ class SailonViz:
             self.bucket_vals = np.arange(-512, 512, step=1023.9 / buckets)
 
         # Decide on agent behvoiur here
-        self.Agents = Agents(self.level, self.difficulty, self.use_mock, seed)
+        self.Agents = Agents(self.level, self.difficulty, self.use_mock)
 
         # Make and load game parameters here
         game = vzd.DoomGame()

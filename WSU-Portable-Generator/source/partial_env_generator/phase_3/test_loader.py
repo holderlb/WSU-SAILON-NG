@@ -1,9 +1,7 @@
 # Used for time since epoch sensor
 import copy
-import datetime
 import sys
 import json
-import random
 import zlib
 import os.path
 
@@ -19,7 +17,7 @@ class TestLoader:
     def __init__(self, domain: str = 'cartpole', novelty_level: int = 0, trial_novelty: int = 0,
                  seed: int = 0, difficulty: str = 'easy', day_offset: int = 0,
                  week_shift: int = None, generate_days: int = None, use_img: bool = False,
-                 path: str = "env_generator/envs/", use_gui: bool = False,
+                 path: str = "env_generator/phase_3/envs/", use_gui: bool = False,
                  ta2_generator_config: dict = None, hint_level: int = -1, phase: str = '3'):
         # Set internal params
         self.domain = domain
@@ -36,8 +34,6 @@ class TestLoader:
         self.ta2_generator_config = copy.deepcopy(ta2_generator_config)
         self.hint_level = hint_level
         self.phase = phase
-        self.max_episode_time = datetime.timedelta(minutes=5)
-        self.stamp_episode_start = datetime.datetime.now()
 
         # Set the custom seed if provided.
         if self.ta2_generator_config is not None:
@@ -53,11 +49,12 @@ class TestLoader:
 
         if self.novelty_level in [50, 51, 52, 53]:
             self.use_phase_one = True
-        elif self.novelty_level in [101, 102, 103, 104, 105, 106, 107, 108]:
+        elif self.novelty_level in [101, 102, 103, 104, 105, 106, 107, 108, 111]:
             self.use_mock = True
-        elif self.novelty_level in [201, 202, 203, 204, 205, 206, 207, 208]:
-            print('WARNING! REAL NOVELTY IS NOT HERE')
-            print('ITS IN ANOTHER CASTLE!')
+        elif self.novelty_level in [201, 202, 203, 204, 205]:
+            self.use_novel = True
+        elif self.novelty_level in [206, 207, 208]:
+            print("WARNING! NOT ALL NOVELTIES REVEALED!")
         elif self.novelty_level in [200]:
             None
         else:
@@ -95,10 +92,6 @@ class TestLoader:
                                         hint_level=self.hint_level)
         self.hint_sent = False
 
-        # Set seeds (thread wide here)
-        random.seed(self.seed)
-        np.random.seed(self.seed)
-
         # Load the test
         self.load_test()
 
@@ -132,6 +125,21 @@ class TestLoader:
                     from .envs.cartpolepp.m_7 import CartPolePPMock7 as CartPole
                 elif self.level == 8:
                     from .envs.cartpolepp.m_8 import CartPolePPMock8 as CartPole
+                elif self.level == 11:
+                    from .envs.cartpolepp.m_11 import CartPolePPMock11 as CartPole
+
+            # Novels
+            elif self.use_novel:
+                if self.level == 1:
+                    from .envs.cartpolepp.n_1 import CartPolePPNovel1 as CartPole
+                elif self.level == 2:
+                    from .envs.cartpolepp.n_2 import CartPolePPNovel2 as CartPole
+                elif self.level == 3:
+                    from .envs.cartpolepp.n_3 import CartPolePPNovel3 as CartPole
+                elif self.level == 4:
+                    from .envs.cartpolepp.n_4 import CartPolePPNovel4 as CartPole
+                elif self.level == 5:
+                    from .envs.cartpolepp.n_5 import CartPolePPNovel5 as CartPole
 
             # Old phase 1 rebuilt in 3d
             elif self.use_phase_one:
@@ -183,7 +191,8 @@ class TestLoader:
                                  trial=self.trial,
                                  day_offset=self.day_offset,
                                  week_shift=self.week_shift,
-                                 generate_days=self.generate_days)
+                                 generate_days=self.generate_days,
+                                 path=self.path)
             # Set internal reward here
             self.reward = 0.0
         else:
@@ -202,8 +211,6 @@ class TestLoader:
         self.info = {}
         self.hint_sent = False
 
-        self.stamp_episode_start = datetime.datetime.now()
-
         return None
 
     # Return state vars
@@ -212,18 +219,18 @@ class TestLoader:
 
     # Action input to env
     def act(self, action):
-        # Perform single step update
-        obs, reward, done, info = self.env.step(action)
-
-        # Set local state
-        self.obs = obs
-        self.reward = reward
-        self.is_done = done
-        self.info = info
-
-        if abs(datetime.datetime.now() - self.stamp_episode_start) > self.max_episode_time:
+        if self.domain == 'vizdoom' and action == 'give_up':
+            self.reward = 0.0
             self.is_done = True
+        else:
+            # Perform single step update
+            obs, reward, done, info = self.env.step(action)
+
+            # Set local state
+            self.obs = obs
             self.reward = reward
+            self.is_done = done
+            self.info = info
 
         return None
 

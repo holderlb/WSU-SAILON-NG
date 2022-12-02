@@ -81,6 +81,28 @@ class Selector:
             hint['attribute'] = 'quantity'
             hint['change'] = 'increasing'
 
+        # Real Novelties
+        elif self.novelty_level == 201:
+            hint['entity'] = 'pole'
+            hint['attribute'] = 'size'
+            hint['change'] = 'increase'
+        elif self.novelty_level == 202:
+            hint['entity'] = 'block'
+            hint['attribute'] = 'direction'
+            hint['change'] = 'toward location'
+        elif self.novelty_level == 203:
+            hint['entity'] = 'block'
+            hint['attribute'] = 'direction'
+            hint['change'] = 'toward location'
+        elif self.novelty_level == 204:
+            hint['entity'] = 'block'
+            hint['attribute'] = 'bounce'
+            hint['change'] = 'increase'
+        elif self.novelty_level == 205:
+            hint['entity'] = 'pole'
+            hint['attribute'] = 'direction'
+            hint['change'] = 'toward block'
+
         return hint
 
     def vizdoom_hint(self, hint):
@@ -131,6 +153,28 @@ class Selector:
             hint['attribute'] = 'ammo'
             hint['change'] = 'decreasing'
 
+        # Real Novelties
+        elif self.novelty_level == 201:
+            hint['entity'] = 'trap'
+            hint['attribute'] = 'quantity'
+            hint['change'] = 'increase'
+        elif self.novelty_level == 202:
+            hint['entity'] = 'enemy'
+            hint['attribute'] = 'damage'
+            hint['change'] = 'increase'
+        elif self.novelty_level == 203:
+            hint['entity'] = 'enemy'
+            hint['attribute'] = 'position'
+            hint['change'] = 'shift'
+        elif self.novelty_level == 204:
+            hint['entity'] = 'player'
+            hint['attribute'] = 'health'
+            hint['change'] = 'decrease'
+        elif self.novelty_level == 205:
+            hint['entity'] = 'enemy'
+            hint['attribute'] = 'angle'
+            hint['change'] = 'toward player'
+            
         return hint
 
     def smartenv_hint(self, hint):
@@ -157,7 +201,7 @@ class Selector:
             hint['change'] = 'increase'
         elif self.novelty_level == 106:
             hint['entity'] = 'sensor'
-            hint['attribute'] = 'frequency'
+            hint['attribute'] = 'variance'
             hint['change'] = 'increase'
         elif self.novelty_level == 107:
             hint = [hint] * 2
@@ -171,6 +215,28 @@ class Selector:
             hint['entity'] = 'sensor'
             hint['attribute'] = 'frequency'
             hint['change'] = 'decrease'
+
+        # Real Novelties
+        elif self.novelty_level == 201:
+            hint['entity'] = 'sensor'
+            hint['attribute'] = 'quantity'
+            hint['change'] = 'increase'
+        elif self.novelty_level == 202:
+            hint['entity'] = 'month'
+            hint['attribute'] = 'variance'
+            hint['change'] = 'increase'
+        elif self.novelty_level == 203:
+            hint['entity'] = 'inhabitant'
+            hint['attribute'] = 'variance'
+            hint['change'] = 'increase'
+        elif self.novelty_level == 204:
+            hint['entity'] = 'sensor'
+            hint['attribute'] = 'quantity'
+            hint['change'] = 'decrease'
+        elif self.novelty_level == 205:
+            hint['entity'] = 'inhabitant'
+            hint['attribute'] = 'quantity'
+            hint['change'] = 'increase'
 
         return hint
 

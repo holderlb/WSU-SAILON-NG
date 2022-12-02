@@ -1,28 +1,17 @@
 import random
 import numpy as np
 
-FORWARD = 1
-BACKWARD = 2
-LEFT = 3
-RIGHT = 4
-TLEFT = 5
-TRIGHT = 6
-SHOOT = 7
-NOTHING = 8
-
 
 class Agents:
 
-    def __init__(self, level, difficulty, mock, seed):
-        np.random.seed(seed)
-        random.seed(seed)
+    def __init__(self, level, difficulty, mock):
         # level and novelty selections
         self.level = level
         self.difficulty = difficulty
         self.mock = mock
 
         # Set looking bounds (vision cone)
-        self.left_side = np.pi * 7 / 8
+        self.left_side = 7 / 8 * np.pi
         self.right_side = np.pi / 8
 
         self.id_to_cvar = None
@@ -33,14 +22,30 @@ class Agents:
         # Used for check
         self.last_dist = np.zeros((4, 4))
 
+        # Abandonded novelties
+        # For un-used novelty
+        self.hunger_games_tick = None
+
         # Mock novelties
         # Used for revealed novelty 7
         self.covers = None
+        self.hiding = None
+
+        # REAL NOVELTIES BELOW
+        # Used for real novelty 3
+        self.last = [10] * 4
+        self.lastlast = [10] * 4
+
+        # Used for real novelty 5
+        self.hunting = False
+        self.tick_counter = -1
+        self.hunt_tick = None
 
         return None
 
     # Run agent behavoir here
     def act(self, state, id_to_cvar):
+        self.tick_counter = self.tick_counter + 1
         if self.id_to_cvar is None:
             self.id_to_cvar = id_to_cvar
 
@@ -63,12 +68,22 @@ class Agents:
         elif self.level == 107:
             commands = self.take_cover(state, commands)
 
+        # Enemies move away from player
+        elif self.level == 203:
+            commands = self.teleport(state, commands)
+
+        # Enemies switch between moving and shooting
+        elif self.level == 205:
+            commands = self.hunt(state, commands)
+            if self.hunting:
+                return commands
+
         # Any other is pure random
         else:
             commands = []
             # Random behavoiur:
             for ind in range(4):
-                action = random.choice([FORWARD, BACKWARD, LEFT, RIGHT, TLEFT, TRIGHT, SHOOT])
+                action = random.choice(list(range(7))) + 1
                 commands.append("set ai_" + str(ind + 1) + " " + str(action))
 
         # Enemies always check for facing to see if shoot
@@ -180,17 +195,76 @@ class Agents:
 
             if angle < self.right_side:
                 # Forward, left, right, shoot?
-                action = random.choice([FORWARD, LEFT, RIGHT])
+                action = random.choice([1, 3, 4])
             else:
                 if sign == -1.0:
                     # Turn right
-                    action = TLEFT
+                    action = 5
                 else:
                     # Turn left
-                    action = TRIGHT
+                    action = 6
 
             # Send ai action
             commands[self.id_to_cvar[val['id']] - 1] = "set ai_" + str(self.id_to_cvar[val['id']]) + " " + str(action)
+
+        return commands
+
+
+    # Real novelty 203
+    def teleport(self, state, commands):
+        # Update health table
+        current_health = []
+        for ind, val in enumerate(state['enemies']):
+            current_health.append(val['health'])
+
+        # Do logic
+        for ind, val in enumerate(state['enemies']):
+            # Check for double shots
+            if current_health[ind] != self.last[ind]:
+                commands[self.id_to_cvar[val['id']] - 1] = "set ai_" + str(self.id_to_cvar[val['id']]) + " " + str(9)
+
+        # Update last tables
+        self.lastlast = self.last
+        self.last = current_health
+
+        return commands
+
+    # Real 205
+    def hunt(self, state, commands):
+        # Roll for the hunt
+        if self.hunting:
+            for ind, val in enumerate(state['enemies']):
+                angle, sign = self.get_angle(state['player'], val)
+                if angle < np.pi / 8:
+                    commands[self.id_to_cvar[val['id']] - 1] = "set ai_" + str(self.id_to_cvar[val['id']]) + " " + str(7)
+
+                # Do movement here
+                else:
+                    if sign == -1.0:
+                        # Turn right
+                        action = 6
+                    else:
+                        # Turn left
+                        action = 5
+
+                    # Send ai action
+                    commands[self.id_to_cvar[val['id']] - 1] = "set ai_" + str(self.id_to_cvar[val['id']]) + " " + str(
+                        action)
+
+        else:
+            if self.hunt_tick is None:
+                r = random.random()
+                if self.difficulty == 'easy':
+                    r = 10
+                elif self.difficulty == 'medium':
+                    r = 5
+                elif self.difficulty == 'hard':
+                    r = 0
+
+                self.hunt_tick = r
+            else:
+                if self.tick_counter > self.hunt_tick:
+                    self.hunting = True
 
         return commands
 
@@ -201,6 +275,8 @@ class Agents:
             for command in commands:
                 if "ai_" + str(self.id_to_cvar[val['id']]) in command:
                     my_command = command
+            if '9' in my_command:
+                continue
 
             angle, sign = self.get_angle(state['player'], val)
 
