@@ -9,7 +9,7 @@
 * [Novelty Indicator](#noveltyindicator)
 * [Novelty Characterization](#noveltycharacterization)
 * [Sample (Mock) Novelty](#samplemocknovelty)
-* [Phase 1 Revealed Novelty](#phase1revealednovelty)
+* [Revealed Novelty](#revealednovelty)
 * [Frequently Asked Questions](#faq)
 
 <a name="taskdescription">
@@ -172,19 +172,59 @@ Level | Entity | Attribute | Change
 
 <a name="phase1revealednovelty">
 
-## Phase 1 Revealed Novelty
+## Revealed Novelty
 
-* Level 1 (Class): Not revealed (too close to Phase 2 novelty)
+### Phase 1
+
+* Level 1 (Class): Time shifts to some time in the future.
+  * No Novelty: Episodes are contiguous days
+  * Easy: Novel episodes are ? days into the future
+  * Medium: Novel episodes are ? days into the future
+  * Hard: Novel episodes are ? days into the future
+
 * Level 2 (Attribute): Sensors inactive in pre-novelty become active post-novelty
   * No Novelty: 0 inactive sensors become active
   * Easy: 5 inactive sensors become active
   * Medium: 10 inactive sensors become active
   * Hard: All inactive sensors become active (15-20 depending on floorplan)
+
 * Level 3 (Representation): Partition floorplan into areas; all sensors in area have same value
   * No novelty: # areas = # sensors
   * Easy: Floorplan partitioned into 10 areas
   * Medium: Floorplan partitioned into 8 areas
   * Hard: Floorplan partitioned into 5 areas
+
+### Phase 2
+
+* Level 1 (Objects): Increase in available sensors
+  * No novelty: No additional sensors
+  * Easy: ? additional sensors
+  * Medium: ? additional sensors
+  * Hard: ? additional sensors
+
+* Level 2 (Agents): Time shifts to some time in the future
+  * No Novelty: Episodes are contiguous days
+  * Easy: Novel episodes are ? days into the future
+  * Medium: Novel episodes are ? days into the future
+  * Hard: Novel episodes are ? days into the future
+
+* Level 3 (Actions): Different inhabitant in same floorplan
+  * No novelty: No change in inhabitant
+  * Easy: Small change in inhabitant behavior
+  * Medium: Medium change in inhabitant behavior
+  * Hard: Large change in inhabitant behavior
+
+* Level 4 (Relations): Sensors in one room turned off
+  * No novelty: No sensors turned off
+  * Easy: ? sensors turned off in a room
+  * Medium: ? sensors turned off in a room
+  * Hard: ? sensors turned off in a room
+
+* Level 5 (Interactions): Second inhabitant visits the environment
+  * No novelty: No additional inhabitants
+  * Easy: ? additional inhabitants visit for duration ?
+  * Medium: ? additional inhabitants visit for duration ?
+  * Hard: ? additional inhabitants visit for duration ?
 
 <a name="faq">
 
