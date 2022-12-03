@@ -9,7 +9,7 @@
 * [Novelty Indicator](#noveltyindicator)
 * [Novelty Characterization](#noveltycharacterization)
 * [Sample (Mock) Novelty](#samplemocknovelty)
-* [Phase 1 Revealed Novelty](#phase1revealednovelty)
+* [Revealed Novelty](#revealednovelty)
 * [Frequently Asked Questions](#faq)
 
 <a name="taskdescription">
@@ -18,7 +18,7 @@
 
 ![CartPole World](cartpole.png)
 
-For the Phase 2 novelty-level-0 CartPole task, the agent must keep the pole balanced
+For the novelty-level-0 CartPole task, the agent must keep the pole balanced
 by pushing the cart forward, backward, left or right. The cart is constrained to move
 in a 2D plane. The pole is affixed to the cart and can move around that fixed point
 in any direction. There are other objects in the environment that move in 3D and may
@@ -166,7 +166,7 @@ novelty level, and a characterization string.
 
 ## Sample (Mock) Novelty
 
-The CartPole novelty generator includes sample Phase 2 novelties for levels 1-5,
+The CartPole novelty generator includes sample novelties for levels 1-8,
 also called Mock novelties. These are described below.
 
 * Level 1: The mass of the cart changes.
@@ -210,9 +210,11 @@ Level | Entity | Attribute | Change
 8 | block | quantity | increasing
 
 
-<a name="phase1revealednovelty">
+<a name="revealednovelty">
 
-## Phase 1 Revealed Novelty
+## Revealed Novelty
+
+### Phase 1
 
 <img src="phase1.png" width="600">
     
@@ -235,6 +237,38 @@ Level | Entity | Attribute | Change
   * Easy: Each sensor value mapped to 1 of 10 buckets over sensor's range
   * Medium: Each sensor value mapped to 1 of 6 buckets over sensor's range
   * Hard: Each sensor value mapped to 1 of 3 buckets over sensor's range
+
+### Phase 2
+
+* Level 1 (Objects): Increase in pole length
+  * No Novelty: length=2
+  * Easy: length=3
+  * Medium: length=5
+  * Hard: length=8
+
+* Level 2 (Agents): Blocks move in non-random way along one dimension
+  * No Novelty: Blocks given random push at beginning
+  * Easy: Blocks move along line a distance 0.5 from origin
+  * Medium: Blocks move along line a distance 0.25 from origin
+  * Hard: Blocks move along line a distance 0.0 from origin
+
+* Level 3 (Actions): Blocks initially pushed toward cart
+  * No Novelty: Blocks given random push at beginning
+  * Easy: Blocks have 25% chance of being pushed toward cart
+  * Medium: Blocks have 50% chance of being pushed toward cart
+  * Hard: Blocks have 75% chance of being pushed toward cart
+
+* Level 4 (Relations): Change in energy of bounces (block/wall restitution)
+  * No Novelty: Block/wall restitution = 1.00
+  * Easy: Block/wall restitution = 1.05 to 1.15
+  * Medium: Block/wall restitution = 1.20 to 1.30
+  * Hard: Block/wall restitution = 1.35 to 1.45
+
+* Level 5 (Interactions): Pole attracted to blocks.
+  * No Novelty: Attraction force = 0
+  * Easy: Attraction force = 1
+  * Medium: Attraction force = 3
+  * Hard: Attraction force = 5
 
 <a name="faq">
 
