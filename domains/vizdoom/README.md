@@ -229,7 +229,7 @@ The first call will have an additional two feature vectors:
 ## Action Label
 
 Each turn, the agent provides an action to be performed, which is one of
-['nothing', 'left', 'right', 'forward', 'backward', 'shoot', 'turn_left', 'turn_right'].
+['nothing', 'left', 'right', 'forward', 'backward', 'shoot', 'turn_left', 'turn_right', 'give_up'].
 The returned action is
 referred to as the "label", which is an artifact of other domains in which
 the task is classification.
