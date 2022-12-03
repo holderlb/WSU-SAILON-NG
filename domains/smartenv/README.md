@@ -198,15 +198,15 @@ Level | Entity | Attribute | Change
 
 * Level 1 (Objects): Increase in available sensors
   * No novelty: No additional sensors
-  * Easy: ? additional sensors
-  * Medium: ? additional sensors
-  * Hard: ? additional sensors
+  * Easy: 5 additional sensors
+  * Medium: 10 additional sensors
+  * Hard: Rest 30 additional sensors
 
 * Level 2 (Agents): Time shifts to some time in the future
   * No Novelty: Episodes are contiguous days
-  * Easy: Novel episodes are ? days into the future
-  * Medium: Novel episodes are ? days into the future
-  * Hard: Novel episodes are ? days into the future
+  * Easy: Novel episodes are 30-60 days into the future
+  * Medium: Novel episodes are 120-150 days into the future
+  * Hard: Novel episodes are 260-300 days into the future
 
 * Level 3 (Actions): Different inhabitant in same floorplan
   * No novelty: No change in inhabitant
@@ -216,9 +216,9 @@ Level | Entity | Attribute | Change
 
 * Level 4 (Relations): Sensors in one room turned off
   * No novelty: No sensors turned off
-  * Easy: ? sensors turned off in a room
-  * Medium: ? sensors turned off in a room
-  * Hard: ? sensors turned off in a room
+  * Easy: Study (5) sensors turned off in a room
+  * Medium: Living room (6) sensors turned off in a room
+  * Hard: Bedroom (7) sensors turned off in a room
 
 * Level 5 (Interactions): Second inhabitant visits the environment
   * No novelty: No additional inhabitants
