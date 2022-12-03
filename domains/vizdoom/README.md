@@ -9,7 +9,7 @@
 * [Novelty Indicator](#noveltyindicator)
 * [Novelty Characterization](#noveltycharacterization)
 * [Sample (Mock) Novelty](#samplemocknovelty)
-* [Phase 1 Revealed Novelty](#phase1revealednovelty)
+* [Revealed Novelty](#revealednovelty)
 * [Frequently Asked Questions](#faq)
 
 <a name="taskdescription">
@@ -309,9 +309,11 @@ Level | Entity | Attribute | Change
 8 | ammo | quantity | decreasing
 8 | health | quantity | decreasing
 
-<a name="phase1revealednovelty">
+<a name="revealednovelty">
 
-## Phase 1 Revealed Novelty
+## Revealed Novelty
+
+### Phase 1
 
 * Level 1 (Class): Change in size of enemy hit box (smaller means harder to hit)
   * No novelty: Size = 20
@@ -329,6 +331,38 @@ Level | Entity | Attribute | Change
   * Easy: Discretize position values into 50 buckets
   * Medium: Health = Discretize position values into 40 buckets
   * Hard: Health = Discretize position values into 30 buckets
+
+### Phase 2
+
+* Level 1 (Objects): Increase in number of traps.
+  * No novelty: 1-4 traps
+  * Easy: 10-15 traps
+  * Medium: 20-25 traps
+  * Hard: 30-35 traps
+
+* Level 2 (Agents): Increase in enemy damage.
+  * No novelty: Damage per hit = 5
+  * Easy: Damage per hit = 14-17
+  * Medium: Damage per hit = 19-21
+  * Hard: Damage per hit = 24-26
+
+* Level 3 (Actions): Enemies teleport away after being shot
+  * No novelty: No teleportation after being shot
+  * Easy: Teleport distance of 300-400
+  * Medium: Teleport distance of 500-600
+  * Hard: Teleport distance of 700-800
+
+* Level 4 (Relations): Health decreases if player near wall or obstacle
+  * No novelty: No health decrease near walls and obstacles
+  * Easy: Health decreases by 1 per tick
+  * Medium: Health decreases by 2 per tick
+  * Hard: Health decreases by 5 per tick
+
+* Level 5 (Interactions): After some time, enemies change to sentry mode (aim and shoot with no randomness)
+  * No novelty: Enemies always move randomly
+  * Easy: Change to sentry mode after 10 ticks
+  * Medium: Change to sentry mode after 5 ticks
+  * Hard: Change to sentry mode immediately
 
 <a name="faq">
 

@@ -246,11 +246,11 @@ Level | Entity | Attribute | Change
   * Medium: length=5
   * Hard: length=8
 
-* Level 2 (Agents): Blocks move in non-random way along one dimension
-  * No Novelty: Blocks given random push at beginning
-  * Easy: Blocks move along line a distance 0.5 from origin
-  * Medium: Blocks move along line a distance 0.25 from origin
-  * Hard: Blocks move along line a distance 0.0 from origin
+* Level 2 (Agents): Blocks move in non-random way along a line some distance from origin
+  * No Novelty: Blocks move normally (random initial push)
+  * Easy: Blocks move along line a distance 3-4 from origin
+  * Medium: Blocks move along line a distance 2-3 from origin
+  * Hard: Blocks move along line a distance 1.5-2 from origin
 
 * Level 3 (Actions): Blocks initially pushed toward cart
   * No Novelty: Blocks given random push at beginning
