@@ -170,7 +170,7 @@ Level | Entity | Attribute | Change
 7 | enter_home | quantity | increase
 8 | sensor | frequency | decrease
 
-<a name="phase1revealednovelty">
+<a name="revealednovelty">
 
 ## Revealed Novelty
 
