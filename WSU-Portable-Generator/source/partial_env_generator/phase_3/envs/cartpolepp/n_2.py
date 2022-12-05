@@ -162,7 +162,7 @@ class CartPolePPNovel2(CartPoleBulletEnv):
             p.removeBody(i)
 
         # Load blocks in
-        self.nb_blocks = np.random.randint(3) + 2
+        self.nb_blocks = self.np_random.integers(3) + 2
         self.blocks = [None] * self.nb_blocks
         for i in range(self.nb_blocks):
             self.blocks[i] = p.loadURDF(os.path.join(self.path, 'models', 'n2', 'block.urdf'))
@@ -183,7 +183,7 @@ class CartPolePPNovel2(CartPoleBulletEnv):
         for i in self.blocks:
 
             while True:
-                angle = np.random.rand() * 2 * np.pi
+                angle = self.np_random.random() * 2 * np.pi
                 pos = np.asarray(list(self.np_random.uniform(low=-4.0, high=4.0, size=(2,))))
                 p1 = np.asarray([pos[0] + 20 * np.cos(angle), pos[1] + 20 * np.sin(angle)])
                 p2 = np.asarray([pos[0] + 20 * np.cos(angle + np.pi), pos[1] + 20 * np.sin(angle + np.pi)])
@@ -213,7 +213,7 @@ class CartPolePPNovel2(CartPoleBulletEnv):
             # Vel
             vel = self.np_random.uniform(low=6.0, high=10.0, size=(1,))
             for ind, val in enumerate(vel):
-                if np.random.rand() < 0.5:
+                if self.np_random.random() < 0.5:
                     vel[ind] = val * -1
 
             p.resetJointState(i, 0, pos, vel[0])

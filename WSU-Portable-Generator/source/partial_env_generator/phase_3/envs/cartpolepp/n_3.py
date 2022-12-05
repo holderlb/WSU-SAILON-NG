@@ -66,7 +66,7 @@ class CartPolePPNovel3(CartPoleBulletEnv):
             p.removeBody(i)
 
         # Load blocks in
-        self.nb_blocks = np.random.randint(3) + 2
+        self.nb_blocks = self.np_random.integers(3) + 2
         self.blocks = [None] * self.nb_blocks
         for i in range(self.nb_blocks):
             self.blocks[i] = p.loadURDF(os.path.join(self.path, 'models', 'block.urdf'))
@@ -90,7 +90,7 @@ class CartPolePPNovel3(CartPoleBulletEnv):
             p.resetBasePositionAndOrientation(i, pos, [0, 0, 1, 0])
 
         # Set block velocities
-        force = np.random.rand() * 10.0
+        force = self.np_random.random() * 10.0
 
         # Cartpole pos
         pos, _, _, _, _, _ = p.getLinkState(self.cartpole, 0)
@@ -99,19 +99,19 @@ class CartPolePPNovel3(CartPoleBulletEnv):
         cart_z = 0.5
 
         for i in self.blocks:
-            if np.random.rand() < self.r:
+            if self.np_random.random() < self.r:
                 pos, _ = p.getBasePositionAndOrientation(i)
                 u1 = np.asarray([cart_x - pos[0], cart_y - pos[1], cart_z - pos[2]])
                 if np.linalg.norm(u1) == 0.0:
-                    u1 = np.asarray([np.random.rand() * 9, np.random.rand() * 9, np.random.rand() * 4 + 5])
+                    u1 = np.asarray([self.np_random.random() * 9, self.np_random.random() * 9, self.np_random.random() * 4 + 5])
                 else:
-                    u1 = np.multiply(u1 / np.linalg.norm(u1), np.random.rand() * 10.0)
+                    u1 = np.multiply(u1 / np.linalg.norm(u1), self.np_random.random() * 10.0)
                 p.resetBaseVelocity(i, u1, [0, 0, 0])
             else:
                 
                 vel = self.np_random.uniform(low=6.0, high=10.0, size=(3,))
                 for ind, val in enumerate(vel):
-                    if np.random.rand() < 0.5:
+                    if self.np_random.random() < 0.5:
                         vel[ind] = val * -1
 
                 p.resetBaseVelocity(i, vel, [0, 0, 0])

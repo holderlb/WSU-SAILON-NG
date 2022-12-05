@@ -261,7 +261,8 @@ class CartPoleBulletEnv(gym.Env):
             p.removeBody(i)
 
         # Load blocks in
-        self.nb_blocks = np.random.randint(3) + 2
+
+        self.nb_blocks = self.np_random.integers(3) + 2
         self.blocks = [None] * self.nb_blocks
         for i in range(self.nb_blocks):
             self.blocks[i] = p.loadURDF(os.path.join(self.path, 'models', 'block.urdf'))
@@ -288,7 +289,7 @@ class CartPoleBulletEnv(gym.Env):
         for i in self.blocks:
             vel = self.np_random.uniform(low=6.0, high=10.0, size=(3,))
             for ind, val in enumerate(vel):
-                if np.random.rand() < 0.5:
+                if self.np_random.random() < 0.5:
                     vel[ind] = val * -1
 
             p.resetBaseVelocity(i, vel, [0, 0, 0])
@@ -296,7 +297,27 @@ class CartPoleBulletEnv(gym.Env):
         return None
 
     def set_world(self, state):
-        print('Set World is not yet implemented :(')
+        p = self._p
+
+        cart = state['cart']
+        cart_pos = [cart['x_position'], cart['y_position'], cart['z_position']]
+        p.resetBasePositionAndOrientation(self.cartpole, cart_pos, [0, 0, 0, 1])
+
+        pole = state['pole']
+        pole_pos = [pole['x_quaternion'], pole['y_quaternion'], pole['z_quaternion'], pole['w_quaternion']]
+        pole_vel = [pole['x_velocity'], pole['y_velocity'], pole['z_velocity']]
+        p.resetJointStateMultiDof(self.cartpole, 1, targetValue=pole_pos, targetVelocity=pole_vel)
+
+        blocks_v = {}
+        blocks_p = {}
+        for i in state['blocks']:
+            blocks_p[i['id']] = [i['x_position'], i['y_position'], i['z_position']]
+            blocks_v[i['id']] = [i['x_velocity'], i['y_velocity'], i['z_velocity']]
+
+        # Set block velocities
+        for i in self.blocks:
+            p.resetBasePositionAndOrientation(i, blocks_p[i], [0, 0, 1, 0])
+            p.resetBaseVelocity(i, blocks_v[i], [0, 0, 0])
         return None
 
     # Unified function for getting state information

@@ -87,7 +87,7 @@ class CartPolePPNovel5(CartPoleBulletEnv):
                 pos, ori = p.getBasePositionAndOrientation(i)
                 u1 = np.asarray([x_avg - pos[0], y_avg - pos[1], z_avg - pos[2]])
                 if np.linalg.norm(u1) == 0.0:
-                    u1 = np.asarray([np.random.rand(), np.random.rand(), np.random.rand()])
+                    u1 = np.asarray([self.np_random.random(), self.np_random.random(), self.np_random.random()])
                 else:
                     u1 = u1 / np.linalg.norm(u1) * force
                 p.applyExternalForce(i, -1, (u1[0], u1[1], -u1[2]), (0, 0, 0), p.LINK_FRAME)

@@ -20,13 +20,13 @@ class CartPolePPNovel4(CartPoleBulletEnv):
         self.rest = 1.0
         if self.difficulty == 'easy':
             # Between 1.05 and 1.15
-            self.rest = 1.05 + np.random.rand() / 10
+            self.rest = 1.05 + self.np_random.random() / 10
         elif self.difficulty == 'medium':
             # Between 1.20 and 1.30
-            self.rest = 1.2 + np.random.rand() / 10
+            self.rest = 1.2 + self.np_random.random() / 10
         elif self.difficulty == 'hard':
             # Between 1.35 and 1.45
-            self.rest = 1.35 + np.random.rand() / 10
+            self.rest = 1.35 + self.np_random.random() / 10
 
         return None
 

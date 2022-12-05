@@ -58,7 +58,7 @@ class CartPolePPMock4(CartPoleBulletEnv):
             p.removeBody(i)
 
         # Load blocks in
-        self.nb_blocks = np.random.randint(3) + 2
+        self.nb_blocks = self.np_random.integers(3) + 2
         self.blocks = [None] * self.nb_blocks
         for i in range(self.nb_blocks):
             self.blocks[i] = p.loadURDF(os.path.join(self.path, 'models', 'm4', 'block.urdf'))
@@ -85,7 +85,7 @@ class CartPolePPMock4(CartPoleBulletEnv):
         for i in self.blocks:
             vel = self.np_random.uniform(low=6.0, high=10.0, size=(3,))
             for ind, val in enumerate(vel):
-                if np.random.rand() < 0.5:
+                if self.np_random.random() < 0.5:
                     vel[ind] = val * -1
 
             p.resetBaseVelocity(i, vel, [0, 0, 0])

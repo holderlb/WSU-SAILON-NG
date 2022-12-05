@@ -12,7 +12,7 @@ class CartPole(CartPoleBulletEnv):
 
         if self.difficulty == 'medium':
             zones = 20
-            self.friction_zones = np.random.uniform(low=0.0125, high=0.1, size=(zones,))
+            self.friction_zones = self.np_random.uniform(low=0.0125, high=0.1, size=(zones,))
 
         return None
 

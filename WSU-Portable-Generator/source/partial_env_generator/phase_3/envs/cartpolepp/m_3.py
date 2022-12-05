@@ -57,7 +57,7 @@ class CartPolePPMock3(CartPoleBulletEnv):
             p.removeBody(i)
 
         # Load blocks in
-        self.nb_blocks = np.random.randint(3) + 2
+        self.nb_blocks = self.np_random.integers(3) + 2
         self.blocks = [None] * self.nb_blocks
         for i in range(self.nb_blocks):
             self.blocks[i] = p.loadURDF(os.path.join(self.path, 'models', 'block.urdf'))
@@ -83,12 +83,12 @@ class CartPolePPMock3(CartPoleBulletEnv):
         # Set block velocities
         u1 = self.np_random.uniform(low=-4.0, high=4.0, size=(3,))
         u1[2] = u1[2] + 5.0
-        force = np.random.rand() * 10.0
+        force = self.np_random.random() * 10.0
         for i in self.blocks:
             pos, ori = p.getBasePositionAndOrientation(i)
             u2 = np.asarray([u1[0] - pos[0], u1[1] - pos[1], u1[2] - pos[2]])
             if np.linalg.norm(u1) == 0.0:
-                u2 = np.asarray([np.random.rand() * 9, np.random.rand() * 9, np.random.rand() * 4 + 5])
+                u2 = np.asarray([self.np_random.random() * 9, self.np_random.random() * 9, self.np_random.random() * 4 + 5])
             else:
                 u2 = np.multiply(u2 / np.linalg.norm(u2), force)
 
