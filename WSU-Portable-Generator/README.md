@@ -50,6 +50,9 @@ docker-compose -f portable-generator.yml down
 
 # Change Log
 
+## Hotfix v0.8.1.1
+* Fixed seeding issue in cartpole environment. Results should be more reproducible now.
+
 ## v0.8.1
 
 * Major version bump, there were objects definition changes used for communicating between the
