@@ -181,6 +181,12 @@ It should look like:
     }
 ```
 
+Available options are:
+* Entity: cart, pole, block, obstacle, walls, location, player (+ Action)
+  * Action: nothing, left, right, forward, backward
+* Attribute: quantity, size, value, speed, direction, position, angle, gravity, mass, force, friction, bounce
+* Change: increase, decrease, increasing, decreasing, away <entity>, toward <entity>
+
 <a name="samplemocknovelty">
 
 ## Sample (Mock) Novelty
