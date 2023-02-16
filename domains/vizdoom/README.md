@@ -279,7 +279,13 @@ It should look like:
         'change': str
     }
 ```
-
+Available options for entity, attribute, and change:
+    
+* Entity: enemy, player, health, ammo, trap, obstacle, walls, location (+ Action)
+  * Action: nothing, left, right, forward, backward, shoot, turn_left, turn_right
+* Attribute: quantity, size, value, speed, direction, position, health, damage, ammo, angle
+* Change: increase, decrease, increasing, decreasing, away <entity>, toward <entity>, shift
+    
 <a name="samplemocknovelty">
 
 ## Sample (Mock) Novelty
