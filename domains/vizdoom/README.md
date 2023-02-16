@@ -257,9 +257,28 @@ be the same for every turn during an episode.
 
 ## Novelty Characterization
 
-At the end of each episode, the agent provides a novelty characterization
-for the episode, which includes a probability of novelty, probability threshold,
-novelty level, and a characterization string.
+At the end of each episode (train and test), the agent provides a novelty characterization.
+for the episode, which includes: 
+a list of novelty levels [0, 8] and their probabilities [0.0, 0.1], 
+an entity characterization string, 
+an attribute characterization string, 
+and directional change string.
+
+TA2s must report at least the novelty levels and their probabilities. Missing levels will be presumed to be 0.0.
+
+It should look like:
+```
+    "novelty_characterization": {
+        'level': [
+            {'level_number': int, 'probability': float},
+            ...,
+            {'level_number': int, 'probability': float}
+        ], 
+        'entity': str, 
+        'attribute': str, 
+        'change': str
+    }
+```
 
 <a name="samplemocknovelty">
 
