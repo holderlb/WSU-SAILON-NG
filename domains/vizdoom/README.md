@@ -257,8 +257,7 @@ be the same for every turn during an episode.
 
 ## Novelty Characterization
 
-At the end of each episode (train and test), the agent provides a novelty characterization.
-for the episode, which includes: 
+At the end of each episode (train and test), the agent provides a novelty characterization, which includes: 
 a list of novelty levels [0, 8] and their probabilities [0.0, 0.1], 
 an entity characterization string, 
 an attribute characterization string, 
