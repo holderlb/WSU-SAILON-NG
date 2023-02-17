@@ -169,14 +169,14 @@ TA2s must report at least the novelty levels and their probabilities. Missing le
 It should look like:
 ```
     "novelty_characterization": {
-        'level': [
-            {'level_number': int, 'probability': float},
+        "level": [
+            {"level_number": int, "probability": float},
             ...,
-            {'level_number': int, 'probability': float}
+            {"level_number": int, "probability": float}
         ], 
-        'entity': str, 
-        'attribute': str, 
-        'change': str
+        "entity": str, 
+        "attribute": str, 
+        "change": str
     }
 ```
 
@@ -237,7 +237,7 @@ Level | Entity | Attribute | Change
 <a name="revealednovelty">
 
 ## Revealed Novelty
-
+[README.md](..%2Fvizdoom%2FREADME.md)
 ### Phase 1
 
 <img src="phase1.png" width="600">
