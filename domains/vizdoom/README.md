@@ -299,7 +299,7 @@ also called Mock novelties. These are described below.
 * Level 5: Enemies spread out.
 * Level 6: Wind force added.
 * Level 7: Enemies move behind obstacles.
-* Level 8: Ammo and Health packs disappear over time.
+* Level 8: Player's ammo starts decreasing over time once an enemy is killed.
 
 The implementations of these mock novelties can be found in the folder
 [WSU-Portable-Generator/source/partial_env_generator/envs/vizdoom/wad_reduced/SCRIPTS.txt](https://github.com/holderlb/WSU-SAILON-NG/tree/master/WSU-Portable-Generator/source/partial_env_generator/envs/vizdoom/wad_reduced/SCRIPTS.txt).
