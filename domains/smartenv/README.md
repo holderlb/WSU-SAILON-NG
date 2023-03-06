@@ -37,8 +37,7 @@ domain, including ranges on sensor values.
 ## Feature Vector Format
 
 The feature vector provides a value for each sensor and is sent in JSON format.
-There are five types of sensors: motion, motion area, light switch, light
-level, and door.  Each sensor is described by its ID and value. There may be
+There are four types of sensors: motion, motion area, light switch, and door.  Each sensor is described by its ID and value. There may be
 more than one of each sensor type.
 
 For example,
@@ -59,9 +58,6 @@ For example,
     "light_switch_sensors": [
         { "id": "L021", "value": 1.0 },
         { "id": "L022", "value": 0.0 }
-    ],
-    "light_level_sensors": [
-        { "id": "LL025", "value": 70.0 }
     ]
 }
 ```
