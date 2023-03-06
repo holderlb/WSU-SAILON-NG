@@ -249,7 +249,7 @@ the episode is recorded as the performance for that entire episode.
 ## Novelty Indicator
 
 After each sensor fecture vector, the novelty generator sends a novelty
-indicator, which indicates if the current episode is novel "true", not novel
+indicator, which indicates if the current e[README.md](README.md)pisode is novel "true", not novel
 "false" (i.e., novelty level 0), or unknown "null". The novelty indicator will
 be the same for every turn during an episode.
 
@@ -263,7 +263,7 @@ an entity characterization string,
 an attribute characterization string, 
 and directional change string.
 
-TA2s must report at least the novelty levels and their probabilities. Missing levels will be presumed to be 0.0.
+**TA2s must report at least the novelty levels and their probabilities. Missing levels will be presumed to be 0.0.**
 
 It should look like:
 ```

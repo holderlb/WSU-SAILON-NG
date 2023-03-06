@@ -164,7 +164,7 @@ an entity characterization string,
 an attribute characterization string, 
 and directional change string.
 
-TA2s must report at least the novelty levels and their probabilities. Missing levels will be presumed to be 0.0.
+**TA2s must report at least the novelty levels and their probabilities. Missing levels will be presumed to be 0.0.**
 
 It should look like:
 ```
