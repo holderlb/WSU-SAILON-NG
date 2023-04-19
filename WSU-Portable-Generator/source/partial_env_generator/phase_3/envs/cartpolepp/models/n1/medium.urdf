@@ -1,0 +1,118 @@
+<?xml version="1.0"?>
+<robot name="ground">
+
+    <link name="ground">
+        <inertial>
+            <origin rpy="0 0 0" xyz="0 0 0"/>
+            <mass value="0"/>
+            <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+        </inertial>
+        <visual>
+            <origin rpy="0 0 0" xyz="0 0 0.0"/>
+            <geometry>
+                <box size="0.1 0.1 0.3"/>
+            </geometry>
+            <material name="ground_mat">
+                <color rgba="1 0 0 0"/>
+            </material>
+        </visual>
+        <!--
+        <collision>
+            <origin rpy="0 0 0" xyz="0 0 0.0"/>
+            <geometry>
+                <box size="0.01 0.01 0.01"/>
+            </geometry>
+        </collision>
+        -->
+    </link>
+
+    <link name="cart">
+        <visual>
+            <geometry>
+                <cylinder length="0.2" radius="0.5"/>
+            </geometry>
+            <origin xyz="0 0 0.2"/>
+            <material name="blue">
+                <color rgba="0 0.9 0.1 1"/>
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <cylinder length="0.2" radius="0.5"/>
+            </geometry>
+            <origin xyz="0 0 0.2"/>
+        </collision>
+        <inertial>
+            <mass value="1.0"/>
+            <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+        </inertial>
+    </link>
+
+    <joint name="ground_to_cart" type="planar">
+        <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+        <axis xyz="0.0 0.0 1.0"/>
+        <parent link="ground"/>
+        <child link="cart"/>
+    </joint>
+
+    <link name="pole">
+        <visual>
+            <geometry>
+                <cylinder length="5.0" radius="0.03"/>
+            </geometry>
+            <origin rpy="0 0 0" xyz="0 0 2.55"/>
+            <material name="white">
+                <color rgba="1 0 0 1"/>
+            </material>
+        </visual>
+        <inertial>
+            <origin xyz="0 0 1.0"/>
+            <mass value="0.1"/>
+            <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+        </inertial>
+        <collision>
+            <geometry>
+                <cylinder length="5.0" radius="0.03"/>
+            </geometry>
+            <origin rpy="0 0 0" xyz="0 0 2.55"/>
+        </collision>
+    </link>
+
+    <joint name="pole_to_cart" type="spherical">
+        <origin xyz="0.0 0.0 0.2" rpy="0 0 0"/>
+        <axis xyz="0 0 0"/>
+        <parent link="cart"/>
+        <child link="pole"/>
+    </joint>
+<!--
+    <link name="pole_center">
+        <visual>
+            <geometry>
+                <box size="0.501 0.501 0.001"/>
+            </geometry>
+            <origin rpy="0 0 0" xyz="0 0 1.05"/>
+            <material name="blue">
+                <color rgba="0 1 0 1"/>
+            </material>
+        </visual>
+        <inertial>
+            <origin xyz="0 0 2.0"/>
+            <mass value="0.00001"/>
+            <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="4.0"/>
+        </inertial>
+        <collision>
+            <geometry>
+                <box size="0.001 0.001 0.001"/>
+            </geometry>
+            <origin rpy="0 0 0" xyz="0 0 1.05"/>
+        </collision>
+    </link>
+
+    <joint name="pole_to_center" type="fixed">
+        <origin xyz="0.0 0.0 0.0"/>
+        <axis xyz="0 0 0"/>
+        <parent link="pole"/>
+        <child link="pole_center"/>
+    </joint>
+-->
+</robot>
