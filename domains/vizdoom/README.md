@@ -388,6 +388,8 @@ Level | Entity | Attribute | Change
   * Medium: Change to sentry mode after 5 ticks
   * Hard: Change to sentry mode immediately
 
+### Phase 3
+
 * Level 6 (Rules): Every 50 ticks damage is applied to the player
   * No novelty: No damage applied to player
   * Easy: Damage = 1
