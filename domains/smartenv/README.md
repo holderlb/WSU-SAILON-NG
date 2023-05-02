@@ -248,6 +248,26 @@ Level | Entity | Attribute | Change
   * Medium: ? additional inhabitants visit for duration ?
   * Hard: ? additional inhabitants visit for duration ?
 
+### Phase 3
+
+* Level 6 (Rules): 
+  * No novelty: 
+  * Easy: 
+  * Medium: 
+  * Hard: 
+
+* Level 7 (Goals): 
+  * No novelty: 
+  * Easy: 
+  * Medium: 
+  * Hard: 
+
+* Level 8 (Events): 
+  * No novelty: 
+  * Easy: 
+  * Medium: 
+  * Hard: 
+
 <a name="faq">
 
 ## Frequently Asked Questions
