@@ -294,6 +294,26 @@ Level | Entity | Attribute | Change
   * Medium: Attraction force = 3
   * Hard: Attraction force = 5
 
+### Phase 3
+
+* Level 6 (Rules): Wind force applied to objects (Thanks Katarina)
+  * No novelty: No wind applied
+  * Easy: Wind Force Multiplier 16
+  * Medium: Wind Force Multiplier 18
+  * Hard: Wind Force Multiplier 20
+
+* Level 7 (Goals): Blocks pushed towards cartpole
+  * No novelty: Blocks behave normally
+  * Easy: Push Force = 10
+  * Medium: Push Force = 20
+  * Hard: Push Force = 30
+
+* Level 8 (Events): Additional normal blocks spawned.
+  * No novelty: No additional blocks
+  * Easy: Ticks between spawns = 3
+  * Medium: Ticks between spawns = 2
+  * Hard: Ticks between spawns = 1
+
 <a name="faq">
 
 ## Frequently Asked Questions
