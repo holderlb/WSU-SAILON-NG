@@ -388,6 +388,24 @@ Level | Entity | Attribute | Change
   * Medium: Change to sentry mode after 5 ticks
   * Hard: Change to sentry mode immediately
 
+* Level 6 (Rules): Every 50 ticks damage is applied to the player
+  * No novelty: No damage applied to player
+  * Easy: Damage = 1
+  * Medium: Damage = 2
+  * Hard: Damage = 5
+
+* Level 7 (Goals): Enemies move to goal point. Game ends if enemy reaches. 
+  * No novelty: Enemies always move randomly
+  * Easy: Point = (0, 0), Tolerance = 16
+  * Medium: Point = (64, 64), Tolerance = 64
+  * Hard: Point = (-128, -128), Tolerance = 128
+
+* Level 8 (Events): Enemies respawn with exponential increase between respawns. Additional ammo given on respawn.
+  * No novelty: Enemies do not respawn
+  * Easy: Exponential increase = 3.5
+  * Medium: Exponential increase = 2.5
+  * Hard: Exponential increase = 1.2
+
 <a name="faq">
 
 ## Frequently Asked Questions
