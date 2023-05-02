@@ -28,6 +28,7 @@ class Agents:
 
         # Mock novelties
         # Used for revealed novelty 7
+        self.pillars = None
         self.covers = None
         self.hiding = None
 
@@ -40,6 +41,10 @@ class Agents:
         self.hunting = False
         self.tick_counter = -1
         self.hunt_tick = None
+
+        # Used for real novelty 7
+        self.special_exit_flag = False
+        self.point = None
 
         return None
 
@@ -67,6 +72,9 @@ class Agents:
         # Enemies move away from avg
         elif self.level == 107:
             commands = self.take_cover(state, commands)
+
+        elif self.level == 117:
+            commands = self.take_cover_2(state, commands)
 
         # Enemies move away from player
         elif self.level == 203:
@@ -164,6 +172,9 @@ class Agents:
         elif self.difficulty == 'hard':
             cover_dist = 64
 
+        if self.pillars is None:
+            self.pillars = state['items']['obstacle']
+
         # Assign closet obstacle to agent
         if self.covers is None:
             self.covers = {}
@@ -171,7 +182,7 @@ class Agents:
                 enemy_pos = np.asarray([enemy['x_position'], enemy['y_position']])
                 min_dist = None
 
-                for obs_ind, obstacle in enumerate(state['items']['obstacle']):
+                for obs_ind, obstacle in enumerate(self.pillars):
                     obs_pos = np.asarray([obstacle['x_position'], obstacle['y_position']])
                     dist = np.linalg.norm(enemy_pos - obs_pos)
                     if min_dist is None or dist < min_dist:
@@ -180,7 +191,7 @@ class Agents:
 
         # TODO: This is default goto script, make better
         for ind, val in enumerate(state['enemies']):
-            obs = state['items']['obstacle'][self.covers[ind]]
+            obs = self.pillars[self.covers[ind]]
             # Determine point to go to
             obs_pos = np.asarray([obs['x_position'], obs['y_position']])
             player_pos = np.asarray([state['player']['x_position'], state['player']['y_position']])
@@ -209,6 +220,75 @@ class Agents:
 
         return commands
 
+    # Novelty 117
+    # Enemies move away from player behind cover
+    def take_cover_2(self, state, commands):
+        if self.hiding is None:
+            if self.difficulty == 'easy':
+                r = 0.25
+            elif self.difficulty == 'medium':
+                r = 0.50
+            elif self.difficulty == 'hard':
+                r = 0.75
+
+            self.hiding = []
+            for i in range(4):
+                if random.random() < r:
+                    self.hiding.append(True)
+                else:
+                    self.hiding.append(False)
+
+        if self.pillars is None:
+            self.pillars = state['items']['obstacle']
+
+        cover_dist = 128
+        # Assign closet obstacle to agent
+        if self.covers is None:
+            self.covers = {}
+            for en_ind, enemy in enumerate(state['enemies']):
+                enemy_pos = np.asarray([enemy['x_position'], enemy['y_position']])
+                min_dist = None
+
+                for obs_ind, obstacle in enumerate(self.pillars):
+                    obs_pos = np.asarray([obstacle['x_position'], obstacle['y_position']])
+                    dist = np.linalg.norm(enemy_pos - obs_pos)
+                    if min_dist is None or dist < min_dist:
+                        min_dist = dist
+                        self.covers[en_ind] = obs_ind
+
+        # TODO: This is default goto script, make better
+        for ind, val in enumerate(state['enemies']):
+            if not self.hiding[ind]:
+                continue
+
+            obs = self.pillars[self.covers[ind]]
+            # Determine point to go to
+            obs_pos = np.asarray([obs['x_position'], obs['y_position']])
+            player_pos = np.asarray([state['player']['x_position'], state['player']['y_position']])
+
+            angle = np.arctan2(obs_pos[0] - player_pos[0], obs_pos[1] - player_pos[1])
+
+            goal = {'x_position': obs_pos[0] + -np.cos(angle) * cover_dist,
+                    'y_position': obs_pos[1] + -np.sin(angle) * cover_dist}
+
+            # Get info
+            angle, sign = self.get_angle(goal, val)
+
+            if angle < self.right_side:
+                # Forward, left, right, shoot?
+                action = random.choice([FORWARD, LEFT, RIGHT])
+            else:
+                if sign == -1.0:
+                    # Turn right
+                    action = TLEFT
+                else:
+                    # Turn left
+                    action = TRIGHT
+
+            # Send ai action
+            commands[self.id_to_cvar[val['id']] - 1] = "set ai_" + str(self.id_to_cvar[val['id']]) + " " + str(action)
+
+        return commands
 
     # Real novelty 203
     def teleport(self, state, commands):
@@ -265,6 +345,42 @@ class Agents:
             else:
                 if self.tick_counter > self.hunt_tick:
                     self.hunting = True
+
+        return commands
+
+    # Real novelty 207
+    def point_defense(self, state, commands):
+        if self.difficulty == 'easy':
+            point = np.asarray([0, 0])
+            tolerance = 16
+        elif self.difficulty == 'medium':
+            point = np.asarray([64, 64])
+            tolerance = 64
+        elif self.difficulty == 'hard':
+            point = np.asarray([-128, -128])
+            tolerance = 128
+
+        for ind, val in enumerate(state['enemies']):
+            # Get info
+            angle, sign = self.get_angle({'x_position': point[0], 'y_position': point[1]}, val)
+
+            if angle < self.right_side:
+                # Forward, left, right, shoot?
+                action = random.choice([FORWARD, LEFT, RIGHT])
+            else:
+                if sign == -1.0:
+                    action = TRIGHT
+                else:
+                    action = TLEFT
+
+            # Send ai action
+            commands[self.id_to_cvar[val['id']] - 1] = "set ai_" + str(self.id_to_cvar[val['id']]) + " " + str(action)
+
+
+            # Check exit flag
+            enemy_pos = np.asarray([val['x_position'], val['y_position']])
+            if np.linalg.norm(enemy_pos - point) < tolerance:
+                self.special_exit_flag = True
 
         return commands
 

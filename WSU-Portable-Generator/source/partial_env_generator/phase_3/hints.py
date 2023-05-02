@@ -102,6 +102,25 @@ class Selector:
             hint['entity'] = 'pole'
             hint['attribute'] = 'direction'
             hint['change'] = 'toward block'
+        elif self.novelty_level == 206:
+            hint = [hint] * 3
+            hint[0]['entity'] = 'block'
+            hint[0]['attribute'] = 'force'
+            hint[0]['change'] = 'toward walls'
+            hint[1]['entity'] = 'cart'
+            hint[1]['attribute'] = 'force'
+            hint[1]['change'] = 'toward walls'
+            hint[2]['entity'] = 'pole'
+            hint[2]['attribute'] = 'force'
+            hint[2]['change'] = 'toward walls'
+        elif self.novelty_level == 207:
+            hint['entity'] = 'block'
+            hint['attribute'] = 'direction'
+            hint['change'] = 'toward pole'
+        elif self.novelty_level == 208:
+            hint['entity'] = 'block'
+            hint['attribute'] = 'quantity'
+            hint['change'] = 'increasing'
 
         return hint
 
@@ -174,7 +193,19 @@ class Selector:
             hint['entity'] = 'enemy'
             hint['attribute'] = 'angle'
             hint['change'] = 'toward player'
-            
+        elif self.novelty_level == 206:
+            hint['entity'] = 'player'
+            hint['attribute'] = 'health'
+            hint['change'] = 'decreasing'
+        elif self.novelty_level == 207:
+            hint['entity'] = 'enemy'
+            hint['attribute'] = 'direction'
+            hint['change'] = 'toward location'
+        elif self.novelty_level == 208:
+            hint['entity'] = 'enemy'
+            hint['attribute'] = 'quantity'
+            hint['change'] = 'increasing'
+
         return hint
 
     def smartenv_hint(self, hint):
@@ -237,6 +268,21 @@ class Selector:
             hint['entity'] = 'inhabitant'
             hint['attribute'] = 'quantity'
             hint['change'] = 'increase'
+        elif self.novelty_level == 206:
+            hint['entity'] = 'motion'
+            hint['attribute'] = 'frequency'
+            hint['change'] = 'increase'
+        elif self.novelty_level == 207:
+            hint = [hint] * 2
+            hint[0]['entity'] = 'leave_home'
+            hint[0]['attribute'] = 'frequency'
+            hint[0]['change'] = 'increase'
+            hint[1]['entity'] = 'enter_home'
+            hint[1]['attribute'] = 'frequency'
+            hint[1]['change'] = 'increase'
+        elif self.novelty_level == 208:
+            hint['entity'] = 'sensor'
+            hint['attribute'] = 'frequency'
+            hint['change'] = 'increase'
 
         return hint
-

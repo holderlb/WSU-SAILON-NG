@@ -40,6 +40,7 @@ class SailonViz:
         self.walls = None
         self.time = None
         self.time_delta = 1.0 / 35.0
+        self.id_map = dict()
 
         # Set to true for phase 3 (will change enemy / player spawn locations)
         # for right now just treat as level 1 phase 0
@@ -76,7 +77,7 @@ class SailonViz:
         game = vzd.DoomGame()
         package_path = self.path + "vizdoom/"
         game.load_config(package_path + 'basic.cfg')
-        game.set_doom_scenario_path(package_path + "phase_3_reduced.wad")
+        game.set_doom_scenario_path(package_path + "phase_3.wad")
 
         # Set in game limit
         game.set_episode_timeout(self.step_limit)
@@ -158,6 +159,11 @@ class SailonViz:
         self.done = self.game.is_episode_finished()
 
         if self.game.is_player_dead():
+            self.done = True
+            self.performance = 0.0
+
+        # Special exit flag from viz script
+        if self.Agents.special_exit_flag:
             self.done = True
             self.performance = 0.0
 
@@ -288,6 +294,31 @@ class SailonViz:
                             self.enemies_health[object.id] = game_vars[i]
                             self.id_to_cvar[object.id] = i + 1
 
+        # Remap game ids to internal ids
+        if self.level == 208:
+            self.enemies_health = dict()
+            game_vars = [vzd.vizdoom.USER20, vzd.vizdoom.USER21,
+                         vzd.vizdoom.USER22, vzd.vizdoom.USER23]
+
+            x_vars = [vzd.vizdoom.USER30, vzd.vizdoom.USER31,
+                      vzd.vizdoom.USER32, vzd.vizdoom.USER33]
+
+            y_vars = [vzd.vizdoom.USER40, vzd.vizdoom.USER41,
+                      vzd.vizdoom.USER42, vzd.vizdoom.USER43]
+
+            for object in state.objects:
+                if "Zombie" in object.name and "Dead" not in object.name:
+                    for i in range(4):
+                        x_pos = self.game.get_game_variable(x_vars[i])
+                        y_pos = self.game.get_game_variable(y_vars[i])
+                        dif = abs(x_pos - object.position_x) + abs(y_pos - object.position_y)
+                        if dif < 5:
+                            self.id_to_cvar[object.id] = i + 1
+                            if object.id not in self.id_map.keys():
+                                self.id_map[object.id] = i + 1
+                            self.enemies_health[self.id_map[object.id]] = game_vars[i]
+
+
         # Start formatting the data
         data = {'enemies': [], 'items': {'health': [], 'ammo': [], 'trap': [], 'obstacle': []}}
         for object in state.objects:
@@ -319,9 +350,16 @@ class SailonViz:
                 data['player'] = entity
 
             # Check for enemy
-            elif "Zombie" in object.name and "Dead" not in object.name and object.id in self.enemies_health.keys():
+            elif self.level != 208 and "Zombie" in object.name and "Dead" not in object.name and object.id in self.enemies_health.keys():
                 entity['name'] = "ZombieMan"
                 entity['health'] = self.game.get_game_variable(self.enemies_health[int(object.id)])
+                data['enemies'].append(entity)
+
+            # Check for enemy
+            elif self.level == 208 and"Zombie" in object.name and "Dead" not in object.name and self.id_map[object.id] in self.enemies_health.keys():
+                entity['id'] = self.id_map[object.id]
+                entity['name'] = "ZombieMan"
+                entity['health'] = self.game.get_game_variable(self.enemies_health[int(self.id_map[object.id])])
                 data['enemies'].append(entity)
 
             # Whiskey is the ultimate trap!

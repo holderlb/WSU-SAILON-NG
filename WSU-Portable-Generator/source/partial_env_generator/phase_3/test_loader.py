@@ -49,12 +49,10 @@ class TestLoader:
 
         if self.novelty_level in [50, 51, 52, 53]:
             self.use_phase_one = True
-        elif self.novelty_level in [101, 102, 103, 104, 105, 106, 107, 108, 111]:
+        elif self.novelty_level in [101, 102, 103, 104, 105, 106, 107, 108, 111, 112, 113, 114, 115]:
             self.use_mock = True
-        elif self.novelty_level in [201, 202, 203, 204, 205]:
+        elif self.novelty_level in [201, 202, 203, 204, 205, 206, 207, 208]:
             self.use_novel = True
-        elif self.novelty_level in [206, 207, 208]:
-            print("WARNING! NOT ALL NOVELTIES REVEALED!")
         elif self.novelty_level in [200]:
             None
         else:
@@ -127,6 +125,14 @@ class TestLoader:
                     from .envs.cartpolepp.m_8 import CartPolePPMock8 as CartPole
                 elif self.level == 11:
                     from .envs.cartpolepp.m_11 import CartPolePPMock11 as CartPole
+                elif self.level == 12:
+                    from .envs.cartpolepp.m_12 import CartPolePPMock12 as CartPole
+                elif self.level == 13:
+                    from .envs.cartpolepp.m_13 import CartPolePPMock13 as CartPole
+                elif self.level == 14:
+                    from .envs.cartpolepp.m_14 import CartPolePPMock14 as CartPole
+                elif self.level == 15:
+                    from .envs.cartpolepp.m_15 import CartPolePPMock15 as CartPole
 
             # Novels
             elif self.use_novel:
@@ -140,6 +146,12 @@ class TestLoader:
                     from .envs.cartpolepp.n_4 import CartPolePPNovel4 as CartPole
                 elif self.level == 5:
                     from .envs.cartpolepp.n_5 import CartPolePPNovel5 as CartPole
+                elif self.level == 6:
+                    from .envs.cartpolepp.n_6 import CartPolePPNovel6 as CartPole
+                elif self.level == 7:
+                    from .envs.cartpolepp.n_7 import CartPolePPNovel7 as CartPole
+                elif self.level == 8:
+                    from .envs.cartpolepp.n_8 import CartPolePPNovel8 as CartPole
 
             # Old phase 1 rebuilt in 3d
             elif self.use_phase_one:
@@ -219,7 +231,7 @@ class TestLoader:
 
     # Action input to env
     def act(self, action):
-        if self.domain == 'vizdoom' and action == 'give_up':
+        if action == 'give_up':
             self.reward = 0.0
             self.is_done = True
         else:
