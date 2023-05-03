@@ -250,23 +250,23 @@ Level | Entity | Attribute | Change
 
 ### Phase 3
 
-* Level 6 (Rules): 
-  * No novelty: 
-  * Easy: 
-  * Medium: 
-  * Hard: 
+* Level 6 (Rules): Temperature decrease causes motion sensors to trigger more often.
+  * No novelty: Normal motion sensor behavior.
+  * Easy: Small increase in motion sensor triggers.
+  * Medium: Medium increase in motion sensor triggers.
+  * Hard: Large increase in motion sensor triggers.
 
-* Level 7 (Goals): 
-  * No novelty: 
-  * Easy: 
-  * Medium: 
-  * Hard: 
+* Level 7 (Goals): Inhabitant attempts to fool caregiver into thinking they went outside, but in fact they did not. This is based on fake leave_home and enter_home events inserted in the sensor stream, but activity label is prior activity.
+  * No novelty: Normal frequency of leave_home and enter_home events.
+  * Easy: Small increase in number of leave_home and enter_home events.
+  * Medium: Medium increase in number of leave_home and enter_home events.
+  * Hard: Large increase in number of leave_home and enter_home events.
 
-* Level 8 (Events): 
-  * No novelty: 
-  * Easy: 
-  * Medium: 
-  * Hard: 
+* Level 8 (Events): Multiple days worth of data combined into one (fast forward).
+  * No novelty: Episode data represents a normal 24-hour day.
+  * Easy: Novel episodes contain 1.5 days worth of data.
+  * Medium: Novel episodes contain 2 days worth of data.
+  * Hard: Novel episodes contain 3 days worth of data.
 
 <a name="faq">
 
